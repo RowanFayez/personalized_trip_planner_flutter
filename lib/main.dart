@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/config/env_config.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/features/home/presentation/view/home_page.dart';
@@ -30,11 +31,19 @@ class NextStationApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'NextStation',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const HomePage(),
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      child: const HomePage(),
+      builder: (context, child) {
+        return MaterialApp(
+          title: 'NextStation',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.darkTheme,
+          home: child,
+        );
+      },
     );
   }
 }

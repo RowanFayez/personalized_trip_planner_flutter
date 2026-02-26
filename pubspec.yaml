@@ -61,6 +61,7 @@ dependencies:
   
   # UI Utilities
   flutter_svg: ^2.0.16
+  flutter_screenutil: ^5.9.3
 
 dev_dependencies:
   flutter_test:

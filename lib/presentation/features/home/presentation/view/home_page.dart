@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../core/config/map_config.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/location_service.dart';
@@ -70,11 +71,11 @@ class _HomePageState extends State<HomePage> {
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
 
                 // From field
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
                   child: TextField(
                     controller: _fromController,
                     style: const TextStyle(color: AppColors.textPrimary),
@@ -91,11 +92,11 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
 
                 // To field
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
                   child: TextField(
                     controller: _toController,
                     style: const TextStyle(color: AppColors.textPrimary),
@@ -112,11 +113,11 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
 
                 // Set Preferences Button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -128,7 +129,7 @@ class _HomePageState extends State<HomePage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.searchInputBackground,
                         foregroundColor: AppColors.textPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
                       ),
                     ),
                   ),
@@ -139,9 +140,9 @@ class _HomePageState extends State<HomePage> {
 
           // Bottom action buttons
           Positioned(
-            bottom: 32,
-            left: 20,
-            right: 20,
+            bottom: 32.h,
+            left: 20.w,
+            right: 20.w,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

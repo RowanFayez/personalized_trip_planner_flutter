@@ -7,7 +7,7 @@ class AppStrings {
   static const String appNameAr = 'المحطة التالية';
   
   // Map Configuration
-  static const String mapStyleUrl = 'mapbox://styles/mapbox/dark-v11'; // Dark theme
+  static const String mapStyleUrl = 'mapbox://styles/mapbox/streets-v12';
   
   // Default Location (Alexandria, Egypt - City Center)
   static const double alexandriaLat = 31.2001;
