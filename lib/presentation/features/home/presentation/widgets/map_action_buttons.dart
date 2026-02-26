@@ -6,10 +6,7 @@ import '../../../../../core/constants/app_colors.dart';
 class MapActionButtons extends StatelessWidget {
   final VoidCallback onChatPressed;
 
-  const MapActionButtons({
-    super.key,
-    required this.onChatPressed,
-  });
+  const MapActionButtons({super.key, required this.onChatPressed});
 
   @override
   Widget build(BuildContext context) {

@@ -74,9 +74,7 @@ class _HomePageState extends State<HomePage> {
               mapboxMap.scaleBar.updateSettings(
                 ScaleBarSettings(enabled: false),
               );
-              mapboxMap.compass.updateSettings(
-                CompassSettings(enabled: false),
-              );
+              mapboxMap.compass.updateSettings(CompassSettings(enabled: false));
               // Smoothly move to user's current location once at startup.
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _centerOnUserOnStartup();
@@ -117,9 +115,7 @@ class _HomePageState extends State<HomePage> {
           Positioned(
             bottom: 32.h,
             left: 20.w,
-            child: MapActionButtons(
-              onChatPressed: _handleChatPressed,
-            ),
+            child: MapActionButtons(onChatPressed: _handleChatPressed),
           ),
         ],
       ),

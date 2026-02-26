@@ -41,11 +41,7 @@ class SearchInputField extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(width: 16.w),
-            SvgPicture.asset(
-              svgAsset,
-              width: 12.w,
-              height: 12.h,
-            ),
+            SvgPicture.asset(svgAsset, width: 12.w, height: 12.h),
             SizedBox(width: 12.w),
             Expanded(
               child: TextField(
@@ -54,7 +50,10 @@ class SearchInputField extends StatelessWidget {
                 style: TextStyle(color: AppColors.textPrimary, fontSize: 15.sp),
                 decoration: InputDecoration(
                   hintText: hintText,
-                  hintStyle: TextStyle(color: AppColors.textHint, fontSize: 15.sp),
+                  hintStyle: TextStyle(
+                    color: AppColors.textHint,
+                    fontSize: 15.sp,
+                  ),
                   filled: true,
                   fillColor: Colors.transparent,
                   border: InputBorder.none,
