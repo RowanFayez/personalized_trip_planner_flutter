@@ -16,6 +16,7 @@ class _HomePageState extends State<HomePage> {
   MapboxMap? _mapboxMap;
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
+  bool _didCenterOnUser = false;
   
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
@@ -38,6 +39,12 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _centerOnUserOnStartup() async {
+    if (_didCenterOnUser) return;
+    _didCenterOnUser = true;
+    await _goToCurrentLocation();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,6 +59,10 @@ class _HomePageState extends State<HomePage> {
             onMapCreated: (MapboxMap mapboxMap) {
               _mapboxMap = mapboxMap;
               _mapService.initialize(mapboxMap);
+              // Smoothly move to user's current location once at startup.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _centerOnUserOnStartup();
+              });
             },
           ),
           
