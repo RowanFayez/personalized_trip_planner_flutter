@@ -6,10 +6,7 @@ import '../../../../../core/constants/app_colors.dart';
 class PreferencesButton extends StatelessWidget {
   final VoidCallback onPressed;
 
-  const PreferencesButton({
-    super.key,
-    required this.onPressed,
-  });
+  const PreferencesButton({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -35,11 +32,7 @@ class PreferencesButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.tune,
-                  color: AppColors.textPrimary,
-                  size: 22.r,
-                ),
+                Icon(Icons.tune, color: AppColors.textPrimary, size: 22.r),
                 SizedBox(width: 12.w),
                 Text(
                   'Set preferences',

@@ -36,21 +36,11 @@ class SearchInputField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onTap: onTap,
-        style: TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 16.sp,
-        ),
+        style: TextStyle(color: AppColors.textPrimary, fontSize: 16.sp),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(
-            color: AppColors.textHint,
-            fontSize: 16.sp,
-          ),
-          prefixIcon: Icon(
-            icon,
-            color: iconColor,
-            size: 24.r,
-          ),
+          hintStyle: TextStyle(color: AppColors.textHint, fontSize: 16.sp),
+          prefixIcon: Icon(icon, color: iconColor, size: 24.r),
           filled: true,
           fillColor: Colors.transparent,
           border: InputBorder.none,
