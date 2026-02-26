@@ -11,9 +11,11 @@ class PreferencesButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 358.w,
+      height: 47.h,
       decoration: BoxDecoration(
         color: AppColors.searchInputBackground,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(48.r),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadow,
@@ -24,26 +26,24 @@ class PreferencesButton extends StatelessWidget {
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(48.r),
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(16.r),
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 18.h, horizontal: 20.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.tune, color: AppColors.textPrimary, size: 22.r),
-                SizedBox(width: 12.w),
-                Text(
-                  'Set preferences',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+          borderRadius: BorderRadius.circular(48.r),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.tune, color: AppColors.textPrimary, size: 20.r),
+              SizedBox(width: 10.w),
+              Text(
+                'Set preferences',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

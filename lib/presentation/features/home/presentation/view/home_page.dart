@@ -15,6 +15,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // ignore: unused_field
   MapboxMap? _mapboxMap;
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
@@ -69,11 +70,40 @@ class _HomePageState extends State<HomePage> {
             onMapCreated: (MapboxMap mapboxMap) {
               _mapboxMap = mapboxMap;
               _mapService.initialize(mapboxMap);
+              // Hide Mapbox ornaments
+              mapboxMap.scaleBar.updateSettings(
+                ScaleBarSettings(enabled: false),
+              );
+              mapboxMap.compass.updateSettings(
+                CompassSettings(enabled: false),
+              );
               // Smoothly move to user's current location once at startup.
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _centerOnUserOnStartup();
               });
             },
+          ),
+
+          // Gradient overlay matching HTML mockup:
+          // from-background-dark/80 via-background-dark/20 to-background-dark/50
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x800F2123), // top: 50% dark
+                      Color(0x330F2123), // via: 20% dark
+                      Color(0x330F2123), // middle: transparent-ish
+                      Color(0xCC0F2123), // bottom: 80% dark
+                    ],
+                    stops: [0.0, 0.25, 0.6, 1.0],
+                  ),
+                ),
+              ),
+            ),
           ),
 
           // Top search UI overlay
@@ -87,10 +117,8 @@ class _HomePageState extends State<HomePage> {
           Positioned(
             bottom: 32.h,
             left: 20.w,
-            right: 20.w,
             child: MapActionButtons(
               onChatPressed: _handleChatPressed,
-              onLocationPressed: _goToCurrentLocation,
             ),
           ),
         ],

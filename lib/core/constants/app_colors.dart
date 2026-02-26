@@ -9,7 +9,7 @@ class AppColors {
   static const Color primaryDarkTeal = Color(0xFF008FA1); // Darker teal
   static const Color accentRed = Color(0xFFE53935); // Location pin red
 
-  // Background Colors - Darker blue theme matching UI mockup
+  // Background Colors - 
   static const Color backgroundDark = Color(0xFF0E1D25); // Main background
   static const Color searchInputBackground = Color(
     0xFF1E3A47,
@@ -17,15 +17,15 @@ class AppColors {
   static const Color surfaceDark = Color(0xFF2A4858); // Card/surface dark blue
   static const Color surfaceLight = Color(0xFF355566); // Lighter surface blue
 
-  // Transport Mode Colors
-  static const Color walkColor = Color(0xFFFFC107); // Yellow/amber for walking
-  static const Color tramColor = Color(0xFF2196F3); // Blue for tram
-  static const Color microbusColor = Color(0xFFFF9800); // Orange for microbus
-  static const Color minibusColor = Color(0xFF9C27B0); // Purple for minibus
-  static const Color busColor = Color(0xFF4CAF50); // Green for bus
-  static const Color tonayaColor = Color(
-    0xFFE91E63,
-  ); // Pink for tonaya (informal)
+  // // Transport Mode Colors
+  // static const Color walkColor = Color(0xFFFFC107); // Yellow/amber for walking
+  // static const Color tramColor = Color(0xFF2196F3); // Blue for tram
+  // static const Color microbusColor = Color(0xFFFF9800); // Orange for microbus
+  // static const Color minibusColor = Color(0xFF9C27B0); // Purple for minibus
+  // static const Color busColor = Color(0xFF4CAF50); // Green for bus
+  // static const Color tonayaColor = Color(
+  //   0xFFE91E63,
+  // ); 
 
   // Text Colors
   static const Color textPrimary = Color(0xFFFFFFFF); // White
@@ -45,10 +45,10 @@ class AppColors {
   static const Color error = Color(0xFFE53935);
   static const Color info = Color(0xFF2196F3);
 
-  // Route Preference Badge Colors
-  static const Color badgeFastest = Color(0xFF1DE9B6);
-  static const Color badgeCheapest = Color(0xFF66BB6A);
-  static const Color badgeSimplest = Color(0xFF5C6BC0);
+  // // Route Preference Badge Colors
+  // static const Color badgeFastest = Color(0xFF1DE9B6);
+  // static const Color badgeCheapest = Color(0xFF66BB6A);
+  // static const Color badgeSimplest = Color(0xFF5C6BC0);
 
   // Map UI Elements
   static const Color currentLocationButton = Color(

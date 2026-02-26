@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../../core/constants/app_colors.dart';
 import 'search_input_field.dart';
 import 'preferences_button.dart';
 
@@ -21,35 +20,35 @@ class SearchOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // From field
             SearchInputField(
               controller: fromController,
               hintText: 'From: من',
-              icon: Icons.my_location,
-              iconColor: AppColors.primaryTeal,
-              onTap: () {
-                // TODO: Open location search/autocomplete
-              },
+              svgAsset: 'assets/icons/from.svg',
+              onTap: () {},
             ),
 
-            SizedBox(height: 12.h),
+            SizedBox(height: 10.h),
 
             // To field
             SearchInputField(
               controller: toController,
               hintText: 'To: إلى أين؟',
-              icon: Icons.location_on,
-              iconColor: AppColors.accentRed,
-              onTap: () {
-                // TODO: Open destination search/autocomplete
-              },
+              svgAsset: 'assets/icons/to.svg',
+              onTap: () {},
+              suffixWidget: Icon(
+                Icons.map_outlined,
+                color: const Color(0xFF9AB8BC),
+                size: 22.r,
+              ),
             ),
 
-            SizedBox(height: 16.h),
+            SizedBox(height: 10.h),
 
             // Preferences button
             PreferencesButton(onPressed: onPreferencesPressed),

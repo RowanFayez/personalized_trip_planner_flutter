@@ -8,7 +8,7 @@ class AppStrings {
 
   // Map Configuration
   static const String mapStyleUrl =
-      'mapbox://styles/mapbox/satellite-streets-v12';
+      'mapbox://styles/mapbox/streets-v12';
 
   // Default Location (Alexandria, Egypt - City Center)
   static const double alexandriaLat = 31.2001;
