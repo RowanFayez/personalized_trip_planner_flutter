@@ -17,7 +17,7 @@ class _HomePageState extends State<HomePage> {
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
   bool _didCenterOnUser = false;
-  
+
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
 
@@ -65,13 +65,13 @@ class _HomePageState extends State<HomePage> {
               });
             },
           ),
-          
+
           // Top search UI overlay
           SafeArea(
             child: Column(
               children: [
                 const SizedBox(height: 16),
-                
+
                 // From field
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -90,9 +90,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // To field
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -111,9 +111,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Set Preferences Button
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -136,7 +136,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          
+
           // Bottom action buttons
           Positioned(
             bottom: 32,
@@ -155,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                   label: const Text('الأسطى\nChat with AI'),
                   heroTag: 'chat',
                 ),
-                
+
                 // Current location button
                 FloatingActionButton(
                   onPressed: _goToCurrentLocation,
