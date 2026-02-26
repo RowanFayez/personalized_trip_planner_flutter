@@ -8,7 +8,8 @@ plugins {
 android {
     namespace = "com.example.nextstation"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Keep in sync with plugins requiring newer NDK.
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
