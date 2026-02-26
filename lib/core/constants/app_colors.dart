@@ -9,11 +9,11 @@ class AppColors {
   static const Color primaryDarkTeal = Color(0xFF008FA1); // Darker teal
   static const Color accentRed = Color(0xFFE53935); // Location pin red
   
-  // Background Colors
+  // Background Colors - Darker blue theme matching UI mockup
   static const Color backgroundDark = Color(0xFF0E1D25); // Main background
-  static const Color searchInputBackground = Color(0xFF1B2E35); // Search "From/To" fields
-  static const Color surfaceDark = Color(0xFF1F2F38); // Card/surface dark
-  static const Color surfaceLight = Color(0xFF2F4552); // Lighter surface
+  static const Color searchInputBackground = Color(0xFF1E3A47); // Darker blue for search fields (matches 2nd image)
+  static const Color surfaceDark = Color(0xFF2A4858); // Card/surface dark blue
+  static const Color surfaceLight = Color(0xFF355566); // Lighter surface blue
   
   // Transport Mode Colors
   static const Color walkColor = Color(0xFFFFC107); // Yellow/amber for walking
@@ -47,7 +47,7 @@ class AppColors {
   static const Color badgeSimplest = Color(0xFF5C6BC0);
   
   // Map UI Elements
-  static const Color currentLocationButton = Color(0xFF1B2E35);
+  static const Color currentLocationButton = Color(0xFF1E3A47); // Darker blue button
   static const Color mapPin = Color(0xFFE53935); // Red pin
   static const Color routeLine = Color(0xFF00BCD4); // Primary route color
 }

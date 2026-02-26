@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../core/config/map_config.dart';
-import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
+import '../widgets/search_overlay.dart';
+import '../widgets/map_action_buttons.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -46,6 +47,14 @@ class _HomePageState extends State<HomePage> {
     await _goToCurrentLocation();
   }
 
+  void _handlePreferencesPressed() {
+    // TODO: Open preferences bottom sheet
+  }
+
+  void _handleChatPressed() {
+    // TODO: Open AI chat interface
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,74 +77,10 @@ class _HomePageState extends State<HomePage> {
           ),
 
           // Top search UI overlay
-          SafeArea(
-            child: Column(
-              children: [
-                SizedBox(height: 16.h),
-
-                // From field
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: TextField(
-                    controller: _fromController,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'From: من',
-                      hintStyle: const TextStyle(color: AppColors.textHint),
-                      prefixIcon: const Icon(
-                        Icons.my_location,
-                        color: AppColors.primaryTeal,
-                      ),
-                      filled: true,
-                      fillColor: AppColors.searchInputBackground, // #1B2E35
-                    ),
-                  ),
-                ),
-
-                SizedBox(height: 12.h),
-
-                // To field
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: TextField(
-                    controller: _toController,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'To: إلى أين؟',
-                      hintStyle: const TextStyle(color: AppColors.textHint),
-                      prefixIcon: const Icon(
-                        Icons.location_on,
-                        color: AppColors.accentRed,
-                      ),
-                      filled: true,
-                      fillColor: AppColors.searchInputBackground, // #1B2E35
-                    ),
-                  ),
-                ),
-
-                SizedBox(height: 16.h),
-
-                // Set Preferences Button
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Open preferences bottom sheet
-                      },
-                      icon: const Icon(Icons.tune),
-                      label: const Text('Set preferences'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.searchInputBackground,
-                        foregroundColor: AppColors.textPrimary,
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          SearchOverlay(
+            fromController: _fromController,
+            toController: _toController,
+            onPreferencesPressed: _handlePreferencesPressed,
           ),
 
           // Bottom action buttons
@@ -143,28 +88,9 @@ class _HomePageState extends State<HomePage> {
             bottom: 32.h,
             left: 20.w,
             right: 20.w,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Chat with AI button
-                FloatingActionButton.extended(
-                  onPressed: () {
-                    // TODO: Open AI chat
-                  },
-                  backgroundColor: AppColors.searchInputBackground,
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  label: const Text('الأسطى\nChat with AI'),
-                  heroTag: 'chat',
-                ),
-
-                // Current location button
-                FloatingActionButton(
-                  onPressed: _goToCurrentLocation,
-                  backgroundColor: AppColors.currentLocationButton,
-                  heroTag: 'location',
-                  child: const Icon(Icons.my_location),
-                ),
-              ],
+            child: MapActionButtons(
+              onChatPressed: _handleChatPressed,
+              onLocationPressed: _goToCurrentLocation,
             ),
           ),
         ],
