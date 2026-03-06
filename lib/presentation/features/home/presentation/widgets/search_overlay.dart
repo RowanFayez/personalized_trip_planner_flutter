@@ -4,6 +4,8 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 import 'search_input_field.dart';
 import 'preferences_button.dart';
+import 'quick_place_chips.dart';
+import '../../../../../core/services/saved_places_service.dart';
 
 /// Top overlay containing search inputs and preferences button
 class SearchOverlay extends StatelessWidget {
@@ -17,6 +19,10 @@ class SearchOverlay extends StatelessWidget {
   final ValueChanged<String> onToSubmitted;
   final VoidCallback onFromTapped;
   final VoidCallback onToTapped;
+  final bool showQuickPlaces;
+  final bool showQuickPlacesUnderFrom;
+  final ValueChanged<SavedPlaceType> onQuickPlaceSelected;
+  final VoidCallback onQuickPlaceMore;
   final List<MapboxPlaceSuggestion> fromSuggestions;
   final List<MapboxPlaceSuggestion> toSuggestions;
   final ValueChanged<MapboxPlaceSuggestion> onFromSuggestionSelected;
@@ -37,6 +43,10 @@ class SearchOverlay extends StatelessWidget {
     required this.onToSubmitted,
     required this.onFromTapped,
     required this.onToTapped,
+    required this.showQuickPlaces,
+    required this.showQuickPlacesUnderFrom,
+    required this.onQuickPlaceSelected,
+    required this.onQuickPlaceMore,
     required this.fromSuggestions,
     required this.toSuggestions,
     required this.onFromSuggestionSelected,
@@ -144,6 +154,14 @@ class SearchOverlay extends StatelessWidget {
               onSubmitted: onFromSubmitted,
             ),
 
+            if (showQuickPlaces && showQuickPlacesUnderFrom) ...[
+              SizedBox(height: 10.h),
+              QuickPlaceChips(
+                onSelected: onQuickPlaceSelected,
+                onMore: onQuickPlaceMore,
+              ),
+            ],
+
             if (showFromSuggestions && fromSuggestions.isNotEmpty) ...[
               SizedBox(height: 8.h),
               _buildSuggestionsList(
@@ -170,6 +188,14 @@ class SearchOverlay extends StatelessWidget {
                 size: 22.r,
               ),
             ),
+
+            if (showQuickPlaces && !showQuickPlacesUnderFrom) ...[
+              SizedBox(height: 10.h),
+              QuickPlaceChips(
+                onSelected: onQuickPlaceSelected,
+                onMore: onQuickPlaceMore,
+              ),
+            ],
 
             if (showToSuggestions && toSuggestions.isNotEmpty) ...[
               SizedBox(height: 8.h),

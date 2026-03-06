@@ -30,6 +30,9 @@ class SearchInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inputFontSize = (15.sp <= 0) ? 15.0 : 15.sp;
+    final hintFontSize = (15.sp <= 0) ? 15.0 : 15.sp;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -61,12 +64,15 @@ class SearchInputField extends StatelessWidget {
                 onSubmitted: onSubmitted,
                 cursorColor: AppColors.textPrimary,
                 selectionControls: materialTextSelectionControls,
-                style: TextStyle(color: AppColors.textPrimary, fontSize: 15.sp),
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: inputFontSize,
+                ),
                 decoration: InputDecoration(
                   hintText: hintText,
                   hintStyle: TextStyle(
                     color: AppColors.textHint,
-                    fontSize: 15.sp,
+                    fontSize: hintFontSize,
                   ),
                   filled: true,
                   fillColor: Colors.transparent,

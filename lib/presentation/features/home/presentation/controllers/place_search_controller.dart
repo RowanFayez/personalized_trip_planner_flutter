@@ -116,6 +116,34 @@ class PlaceSearchController extends ChangeNotifier {
     );
   }
 
+  Future<void> goToLocation({
+    required String title,
+    required double latitude,
+    required double longitude,
+  }) async {
+    textController.text = title;
+    textController.selection = TextSelection.fromPosition(
+      TextPosition(offset: textController.text.length),
+    );
+
+    _suggestions = const [];
+    _showSuggestions = false;
+    notifyListeners();
+
+    await _mapService.animateCamera(
+      latitude: latitude,
+      longitude: longitude,
+      zoom: 15.0,
+    );
+
+    await _mapService.upsertMarker(
+      id: _markerId,
+      latitude: latitude,
+      longitude: longitude,
+      color: _markerColor,
+    );
+  }
+
   void clearSuggestions() {
     _suggestions = const [];
     notifyListeners();

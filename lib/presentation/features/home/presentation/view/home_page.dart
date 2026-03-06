@@ -6,6 +6,7 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
+import '../../../../../core/services/saved_places_service.dart';
 import '../controllers/place_search_controller.dart';
 import '../widgets/search_overlay.dart';
 import '../widgets/map_action_buttons.dart';
@@ -22,6 +23,7 @@ class _HomePageState extends State<HomePage> {
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
   final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
+  final SavedPlacesService _savedPlacesService = SavedPlacesService();
   bool _didCenterOnUser = false;
 
   double? _proximityLatitude;
@@ -43,6 +45,10 @@ class _HomePageState extends State<HomePage> {
         if (mounted) setState(() {});
       });
 
+    _fromSearch.focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     _toSearch = PlaceSearchController(
       geocodingService: _geocodingService,
       mapService: _mapService,
@@ -51,6 +57,10 @@ class _HomePageState extends State<HomePage> {
     )..addListener(() {
         if (mounted) setState(() {});
       });
+
+    _toSearch.focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -97,8 +107,48 @@ class _HomePageState extends State<HomePage> {
     // TODO: Open AI chat interface
   }
 
+  PlaceSearchController get _activeSearchController {
+    if (_toSearch.focusNode.hasFocus) return _toSearch;
+    return _fromSearch;
+  }
+
+  Future<void> _handleQuickPlaceSelected(SavedPlaceType type) async {
+    final place = await _savedPlacesService.getPlace(type);
+    if (!mounted) return;
+
+    if (place == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Set this location in preferences first.'),
+        ),
+      );
+      return;
+    }
+
+    final title = switch (type) {
+      SavedPlaceType.home => 'Home',
+      SavedPlaceType.work => 'Work',
+      SavedPlaceType.college => 'College',
+    };
+
+    await _activeSearchController.goToLocation(
+      title: title,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    );
+  }
+
+  void _handleQuickPlaceMore() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('More places: coming soon.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final safeBottomInset = MediaQuery.paddingOf(context).bottom;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -155,8 +205,19 @@ class _HomePageState extends State<HomePage> {
             onToChanged: _toSearch.onChanged,
             onFromSubmitted: (_) => _fromSearch.submit(),
             onToSubmitted: (_) => _toSearch.submit(),
-            onFromTapped: _fromSearch.onFieldTap,
-            onToTapped: _toSearch.onFieldTap,
+            onFromTapped: () {
+              _fromSearch.onFieldTap();
+              setState(() {});
+            },
+            onToTapped: () {
+              _toSearch.onFieldTap();
+              setState(() {});
+            },
+            showQuickPlaces:
+                _fromSearch.focusNode.hasFocus || _toSearch.focusNode.hasFocus,
+            showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
+            onQuickPlaceSelected: (type) => _handleQuickPlaceSelected(type),
+            onQuickPlaceMore: _handleQuickPlaceMore,
             fromSuggestions: _fromSearch.suggestions,
             toSuggestions: _toSearch.suggestions,
             onFromSuggestionSelected: _fromSearch.selectSuggestion,
@@ -167,10 +228,18 @@ class _HomePageState extends State<HomePage> {
           ),
 
           // Bottom action buttons
-          Positioned(
-            bottom: 32.h,
-            left: 20.w,
-            child: MapActionButtons(onChatPressed: _handleChatPressed),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(
+                left: 20.w,
+                bottom: (keyboardInset > 0 ? keyboardInset + 12.h : 32.h) +
+                    safeBottomInset,
+              ),
+              child: MapActionButtons(onChatPressed: _handleChatPressed),
+            ),
           ),
         ],
       ),
