@@ -79,6 +79,13 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       ),
+
+      // Text selection / cursor colors (avoid light-blue accents in inputs)
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: AppColors.textPrimary,
+        selectionColor: Color(0x00FFFFFF),
+        selectionHandleColor: AppColors.textPrimary,
+      ),
       
       // Elevated Button
       elevatedButtonTheme: ElevatedButtonThemeData(

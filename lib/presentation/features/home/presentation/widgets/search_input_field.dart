@@ -59,6 +59,8 @@ class SearchInputField extends StatelessWidget {
                 onChanged: onChanged,
                 textInputAction: textInputAction,
                 onSubmitted: onSubmitted,
+                cursorColor: AppColors.textPrimary,
+                selectionControls: materialTextSelectionControls,
                 style: TextStyle(color: AppColors.textPrimary, fontSize: 15.sp),
                 decoration: InputDecoration(
                   hintText: hintText,
@@ -69,6 +71,8 @@ class SearchInputField extends StatelessWidget {
                   filled: true,
                   fillColor: Colors.transparent,
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                   contentPadding: EdgeInsets.zero,
                   isDense: true,
                 ),

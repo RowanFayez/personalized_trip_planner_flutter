@@ -60,6 +60,7 @@ class PlaceSearchController extends ChangeNotifier {
     _debounce = Timer(const Duration(milliseconds: 250), () async {
       final results = await _geocodingService.autocomplete(
         query: query,
+        country: 'EG',
         proximityLatitude: _proximityLatitude,
         proximityLongitude: _proximityLongitude,
       );
@@ -82,6 +83,7 @@ class PlaceSearchController extends ChangeNotifier {
     final results = await _geocodingService.autocomplete(
       query: query,
       limit: 1,
+      country: 'EG',
       proximityLatitude: _proximityLatitude,
       proximityLongitude: _proximityLongitude,
     );

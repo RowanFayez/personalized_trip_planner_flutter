@@ -37,6 +37,7 @@ class MapboxGeocodingService {
     required String query,
     int limit = 6,
     String language = 'ar',
+    String? country,
     double? proximityLatitude,
     double? proximityLongitude,
   }) async {
@@ -49,6 +50,11 @@ class MapboxGeocodingService {
       'limit': limit.toString(),
       'language': language,
     };
+
+    final countryValue = (country ?? 'EG').trim();
+    if (countryValue.isNotEmpty) {
+      params['country'] = countryValue;
+    }
 
     if (proximityLatitude != null && proximityLongitude != null) {
       params['proximity'] = '$proximityLongitude,$proximityLatitude';
