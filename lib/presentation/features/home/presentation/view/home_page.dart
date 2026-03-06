@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../core/config/map_config.dart';
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
+import '../../../../../core/services/mapbox_geocoding_service.dart';
+import '../controllers/place_search_controller.dart';
 import '../widgets/search_overlay.dart';
 import '../widgets/map_action_buttons.dart';
 
@@ -15,25 +18,63 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // ignore: unused_field
   MapboxMap? _mapboxMap;
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
+  final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
   bool _didCenterOnUser = false;
 
-  final TextEditingController _fromController = TextEditingController();
-  final TextEditingController _toController = TextEditingController();
+  double? _proximityLatitude;
+  double? _proximityLongitude;
+
+  late final PlaceSearchController _fromSearch;
+  late final PlaceSearchController _toSearch;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _fromSearch = PlaceSearchController(
+      geocodingService: _geocodingService,
+      mapService: _mapService,
+      markerId: 'from_pin',
+      markerColor: AppColors.primaryTeal,
+    )..addListener(() {
+        if (mounted) setState(() {});
+      });
+
+    _toSearch = PlaceSearchController(
+      geocodingService: _geocodingService,
+      mapService: _mapService,
+      markerId: 'to_pin',
+      markerColor: AppColors.accentRed,
+    )..addListener(() {
+        if (mounted) setState(() {});
+      });
+  }
 
   @override
   void dispose() {
-    _fromController.dispose();
-    _toController.dispose();
+    _fromSearch.dispose();
+    _toSearch.dispose();
     super.dispose();
   }
 
   Future<void> _goToCurrentLocation() async {
     final position = await _locationService.getCurrentLocation();
     if (position != null && mounted) {
+      _proximityLatitude = position.latitude;
+      _proximityLongitude = position.longitude;
+
+      _fromSearch.setProximity(
+        latitude: _proximityLatitude,
+        longitude: _proximityLongitude,
+      );
+      _toSearch.setProximity(
+        latitude: _proximityLatitude,
+        longitude: _proximityLongitude,
+      );
+
       await _mapService.animateCamera(
         latitude: position.latitude,
         longitude: position.longitude,
@@ -106,8 +147,22 @@ class _HomePageState extends State<HomePage> {
 
           // Top search UI overlay
           SearchOverlay(
-            fromController: _fromController,
-            toController: _toController,
+            fromController: _fromSearch.textController,
+            toController: _toSearch.textController,
+            fromFocusNode: _fromSearch.focusNode,
+            toFocusNode: _toSearch.focusNode,
+            onFromChanged: _fromSearch.onChanged,
+            onToChanged: _toSearch.onChanged,
+            onFromSubmitted: (_) => _fromSearch.submit(),
+            onToSubmitted: (_) => _toSearch.submit(),
+            onFromTapped: _fromSearch.onFieldTap,
+            onToTapped: _toSearch.onFieldTap,
+            fromSuggestions: _fromSearch.suggestions,
+            toSuggestions: _toSearch.suggestions,
+            onFromSuggestionSelected: _fromSearch.selectSuggestion,
+            onToSuggestionSelected: _toSearch.selectSuggestion,
+            showFromSuggestions: _fromSearch.showSuggestions,
+            showToSuggestions: _toSearch.showSuggestions,
             onPreferencesPressed: _handlePreferencesPressed,
           ),
 

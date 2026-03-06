@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'dart:convert';
 import '../config/map_config.dart';
 import '../constants/app_colors.dart';
 
@@ -41,12 +42,21 @@ class MapService {
   }) async {
     if (_mapboxMap == null) return;
 
+    final geoJsonFeature = {
+      'type': 'Feature',
+      'properties': <String, dynamic>{},
+      'geometry': {
+        'type': 'Point',
+        'coordinates': [longitude, latitude],
+      },
+    };
+
     // Add source with GeoJSON point
     try {
       await _mapboxMap!.style.addSource(
         GeoJsonSource(
           id: '${id}_source',
-          data: '{"type": "Point", "coordinates": [$longitude, $latitude]}',
+          data: jsonEncode(geoJsonFeature),
         ),
       );
     } catch (e) {
@@ -68,6 +78,22 @@ class MapService {
     } catch (e) {
       // Layer might already exist
     }
+  }
+
+  /// Add or replace a marker at a new location.
+  Future<void> upsertMarker({
+    required String id,
+    required double latitude,
+    required double longitude,
+    Color color = AppColors.mapPin,
+  }) async {
+    await removeMarker(id);
+    await addMarker(
+      id: id,
+      latitude: latitude,
+      longitude: longitude,
+      color: color,
+    );
   }
 
   /// Remove a marker from the map
@@ -107,7 +133,7 @@ class MapService {
       await _mapboxMap!.style.addSource(
         GeoJsonSource(
           id: '${id}_route_source',
-          data: lineString.toString(),
+          data: jsonEncode(lineString),
         ),
       );
     } catch (e) {

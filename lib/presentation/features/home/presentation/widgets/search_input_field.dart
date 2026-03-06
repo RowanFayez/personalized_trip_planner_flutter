@@ -6,17 +6,25 @@ import '../../../../../core/constants/app_colors.dart';
 /// Reusable search input field for From/To locations
 class SearchInputField extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final String hintText;
   final String svgAsset;
   final VoidCallback? onTap;
+  final ValueChanged<String>? onChanged;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
   final Widget? suffixWidget;
 
   const SearchInputField({
     super.key,
     required this.controller,
+    this.focusNode,
     required this.hintText,
     required this.svgAsset,
     this.onTap,
+    this.onChanged,
+    this.textInputAction,
+    this.onSubmitted,
     this.suffixWidget,
   });
 
@@ -46,7 +54,11 @@ class SearchInputField extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: controller,
+                focusNode: focusNode,
                 onTap: onTap,
+                onChanged: onChanged,
+                textInputAction: textInputAction,
+                onSubmitted: onSubmitted,
                 style: TextStyle(color: AppColors.textPrimary, fontSize: 15.sp),
                 decoration: InputDecoration(
                   hintText: hintText,
