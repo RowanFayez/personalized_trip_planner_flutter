@@ -150,6 +150,7 @@ class _HomePageState extends State<HomePage> {
     final safeBottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // Mapbox Map
@@ -235,8 +236,9 @@ class _HomePageState extends State<HomePage> {
               curve: Curves.easeOut,
               padding: EdgeInsets.only(
                 left: 20.w,
-                bottom: (keyboardInset > 0 ? keyboardInset + 12.h : 32.h) +
-                    safeBottomInset,
+                bottom: keyboardInset > 0
+                    ? keyboardInset + 12.h
+                    : 32.h + safeBottomInset,
               ),
               child: MapActionButtons(onChatPressed: _handleChatPressed),
             ),
