@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/config/env_config.dart';
+import 'core/routes/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'presentation/features/home/presentation/view/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,13 +35,12 @@ class NextStationApp extends StatelessWidget {
       designSize: const Size(375, 812),
       minTextAdapt: true,
       splitScreenMode: true,
-      child: const HomePage(),
       builder: (context, child) {
-        return MaterialApp(
+        return MaterialApp.router(
           title: 'NextStation',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.darkTheme,
-          home: child,
+          routerConfig: AppRouter.router,
         );
       },
     );

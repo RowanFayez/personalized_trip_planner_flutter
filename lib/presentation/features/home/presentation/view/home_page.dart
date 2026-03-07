@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../../core/config/map_config.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/location_service.dart';
@@ -19,7 +20,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  MapboxMap? _mapboxMap;
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
   final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
@@ -100,7 +100,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handlePreferencesPressed() {
-    // TODO: Open preferences bottom sheet
+    if (!mounted) return;
+    context.push('/preferences');
   }
 
   void _handleChatPressed() {
@@ -160,7 +161,6 @@ class _HomePageState extends State<HomePage> {
             styleUri: MapConfig.styleUrl,
             textureView: true,
             onMapCreated: (MapboxMap mapboxMap) {
-              _mapboxMap = mapboxMap;
               _mapService.initialize(mapboxMap);
               // Hide Mapbox ornaments
               mapboxMap.scaleBar.updateSettings(

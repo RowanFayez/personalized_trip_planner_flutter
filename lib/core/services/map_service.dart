@@ -70,9 +70,9 @@ class MapService {
           id: '${id}_layer',
           sourceId: '${id}_source',
           circleRadius: 10.0,
-          circleColor: color.value,
+          circleColor: color.toARGB32(),
           circleStrokeWidth: 2.0,
-          circleStrokeColor: Colors.white.value,
+          circleStrokeColor: Colors.white.toARGB32(),
         ),
       );
     } catch (e) {
@@ -146,7 +146,7 @@ class MapService {
         LineLayer(
           id: '${id}_route_layer',
           sourceId: '${id}_route_source',
-          lineColor: color.value,
+          lineColor: color.toARGB32(),
           lineWidth: width,
           lineCap: LineCap.ROUND,
           lineJoin: LineJoin.ROUND,
