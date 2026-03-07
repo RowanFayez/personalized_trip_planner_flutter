@@ -16,10 +16,7 @@ class PreferencesPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(22.r),
         border: Border.all(color: AppColors.border.withValues(alpha: 0.25)),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22.r),
-        child: child,
-      ),
+      child: ClipRRect(borderRadius: BorderRadius.circular(22.r), child: child),
     );
   }
 }

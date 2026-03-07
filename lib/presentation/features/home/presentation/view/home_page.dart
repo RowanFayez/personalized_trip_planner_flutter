@@ -36,27 +36,29 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
-    _fromSearch = PlaceSearchController(
-      geocodingService: _geocodingService,
-      mapService: _mapService,
-      markerId: 'from_pin',
-      markerColor: AppColors.primaryTeal,
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _fromSearch =
+        PlaceSearchController(
+          geocodingService: _geocodingService,
+          mapService: _mapService,
+          markerId: 'from_pin',
+          markerColor: AppColors.primaryTeal,
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
 
     _fromSearch.focusNode.addListener(() {
       if (mounted) setState(() {});
     });
 
-    _toSearch = PlaceSearchController(
-      geocodingService: _geocodingService,
-      mapService: _mapService,
-      markerId: 'to_pin',
-      markerColor: AppColors.accentRed,
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _toSearch =
+        PlaceSearchController(
+          geocodingService: _geocodingService,
+          mapService: _mapService,
+          markerId: 'to_pin',
+          markerColor: AppColors.accentRed,
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
 
     _toSearch.focusNode.addListener(() {
       if (mounted) setState(() {});
@@ -140,9 +142,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handleQuickPlaceMore() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('More places: coming soon.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('More places: coming soon.')));
   }
 
   @override

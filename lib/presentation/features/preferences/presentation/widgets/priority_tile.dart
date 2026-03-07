@@ -17,7 +17,9 @@ class PriorityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = selected ? AppColors.primaryTeal : AppColors.border.withValues(alpha: 0.55);
+    final borderColor = selected
+        ? AppColors.primaryTeal
+        : AppColors.border.withValues(alpha: 0.55);
     final bgColor = selected
         ? AppColors.searchInputBackground.withValues(alpha: 0.72)
         : AppColors.searchInputBackground.withValues(alpha: 0.35);
@@ -70,7 +72,9 @@ class _RadioDot extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? AppColors.primaryTeal : AppColors.border.withValues(alpha: 0.7),
+          color: selected
+              ? AppColors.primaryTeal
+              : AppColors.border.withValues(alpha: 0.7),
           width: 2,
         ),
       ),

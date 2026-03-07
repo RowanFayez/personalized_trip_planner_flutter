@@ -27,10 +27,7 @@ class MapService {
       zoom: zoom,
     );
 
-    await _mapboxMap!.flyTo(
-      cameraOptions,
-      MapAnimationOptions(duration: 1000),
-    );
+    await _mapboxMap!.flyTo(cameraOptions, MapAnimationOptions(duration: 1000));
   }
 
   /// Add a marker/pin to the map
@@ -54,10 +51,7 @@ class MapService {
     // Add source with GeoJSON point
     try {
       await _mapboxMap!.style.addSource(
-        GeoJsonSource(
-          id: '${id}_source',
-          data: jsonEncode(geoJsonFeature),
-        ),
+        GeoJsonSource(id: '${id}_source', data: jsonEncode(geoJsonFeature)),
       );
     } catch (e) {
       // Source might already exist
@@ -122,19 +116,14 @@ class MapService {
       'type': 'Feature',
       'geometry': {
         'type': 'LineString',
-        'coordinates': coordinates
-            .map((pos) => [pos.lng, pos.lat])
-            .toList(),
+        'coordinates': coordinates.map((pos) => [pos.lng, pos.lat]).toList(),
       },
     };
 
     // Add source
     try {
       await _mapboxMap!.style.addSource(
-        GeoJsonSource(
-          id: '${id}_route_source',
-          data: jsonEncode(lineString),
-        ),
+        GeoJsonSource(id: '${id}_route_source', data: jsonEncode(lineString)),
       );
     } catch (e) {
       // Source already exists
@@ -180,10 +169,7 @@ class MapService {
     if (_mapboxMap == null || coordinates.isEmpty) return;
 
     final cameraOptions = MapConfig.fitBounds(coordinates: coordinates);
-    await _mapboxMap!.flyTo(
-      cameraOptions,
-      MapAnimationOptions(duration: 1500),
-    );
+    await _mapboxMap!.flyTo(cameraOptions, MapAnimationOptions(duration: 1500));
   }
 
   /// Get current camera position

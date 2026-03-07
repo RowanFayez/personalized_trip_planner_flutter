@@ -26,7 +26,10 @@ class ModeRow extends StatelessWidget {
         iconAsset,
         width: 22.r,
         height: 22.r,
-        colorFilter: const ColorFilter.mode(AppColors.textPrimary, BlendMode.srcIn),
+        colorFilter: const ColorFilter.mode(
+          AppColors.textPrimary,
+          BlendMode.srcIn,
+        ),
       ),
       label: label,
       value: value,

@@ -8,10 +8,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     routes: <RouteBase>[
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const HomePage(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const HomePage()),
       GoRoute(
         path: '/preferences',
         builder: (context, state) => const RoutePreferencesPage(),

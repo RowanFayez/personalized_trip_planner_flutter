@@ -23,7 +23,11 @@ class ToggleRow extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       child: Row(
         children: [
-          SizedBox(width: 26.r, height: 26.r, child: Center(child: leading)),
+          SizedBox(
+            width: 26.r,
+            height: 26.r,
+            child: Center(child: leading),
+          ),
           SizedBox(width: 14.w),
           Expanded(
             child: Text(

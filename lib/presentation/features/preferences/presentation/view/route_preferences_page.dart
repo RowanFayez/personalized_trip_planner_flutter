@@ -50,9 +50,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
       backgroundColor: AppColors.backgroundDark,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: const RoutePreferencesGradient(),
-          ),
+          Positioned.fill(child: const RoutePreferencesGradient()),
           SafeArea(
             child: Column(
               children: [
@@ -76,19 +74,24 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         PriorityTile(
                           label: 'Fastest Route',
                           selected: _priority == RoutePriority.fastest,
-                          onTap: () => setState(() => _priority = RoutePriority.fastest),
+                          onTap: () =>
+                              setState(() => _priority = RoutePriority.fastest),
                         ),
                         SizedBox(height: 12.h),
                         PriorityTile(
                           label: 'Cheapest Route',
                           selected: _priority == RoutePriority.cheapest,
-                          onTap: () => setState(() => _priority = RoutePriority.cheapest),
+                          onTap: () => setState(
+                            () => _priority = RoutePriority.cheapest,
+                          ),
                         ),
                         SizedBox(height: 12.h),
                         PriorityTile(
                           label: 'Simplest Route',
                           selected: _priority == RoutePriority.simplest,
-                          onTap: () => setState(() => _priority = RoutePriority.simplest),
+                          onTap: () => setState(
+                            () => _priority = RoutePriority.simplest,
+                          ),
                         ),
                         SizedBox(height: 22.h),
                         const DividerLine(),
@@ -120,14 +123,17 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             activeTrackColor: AppColors.primaryTeal,
                             inactiveTrackColor: AppColors.surfaceDark,
                             thumbColor: AppColors.primaryTeal,
-                            overlayColor: AppColors.primaryTeal.withValues(alpha: 0.2),
+                            overlayColor: AppColors.primaryTeal.withValues(
+                              alpha: 0.2,
+                            ),
                             trackHeight: 3.h,
                           ),
                           child: Slider(
                             min: 0,
                             max: 60,
                             value: _maxWalkingMinutes.clamp(0, 60),
-                            onChanged: (v) => setState(() => _maxWalkingMinutes = v),
+                            onChanged: (v) =>
+                                setState(() => _maxWalkingMinutes = v),
                           ),
                         ),
                         SizedBox(height: 14.h),
@@ -173,10 +179,15 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         SizedBox(height: 10.h),
                         PreferencesPanel(
                           child: ToggleRow(
-                            leading: Icon(Icons.swap_horiz, color: AppColors.textPrimary, size: 22.r),
+                            leading: Icon(
+                              Icons.swap_horiz,
+                              color: AppColors.textPrimary,
+                              size: 22.r,
+                            ),
                             label: 'Avoid Transfers',
                             value: _avoidTransfers,
-                            onChanged: (v) => setState(() => _avoidTransfers = v),
+                            onChanged: (v) =>
+                                setState(() => _avoidTransfers = v),
                           ),
                         ),
                         SizedBox(height: 26.h),
