@@ -22,7 +22,10 @@ class ToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: verticalPadding.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: 16.w,
+        vertical: verticalPadding.h,
+      ),
       child: Row(
         children: [
           SizedBox(

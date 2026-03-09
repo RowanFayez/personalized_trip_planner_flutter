@@ -57,7 +57,9 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                 return SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(8.5.w, 4.h, 8.5.w, 12.h),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -134,7 +136,9 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                               alpha: 0.2,
                             ),
                             trackHeight: 2.5.h,
-                            thumbShape: RoundSliderThumbShape(enabledThumbRadius: 10.r),
+                            thumbShape: RoundSliderThumbShape(
+                              enabledThumbRadius: 10.r,
+                            ),
                           ),
                           child: Slider(
                             min: 0,
@@ -145,7 +149,10 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                           ),
                         ),
                         SizedBox(height: 0.5.h),
-                        const SectionHeading(text: 'Transport Modes', fontSize: 17),
+                        const SectionHeading(
+                          text: 'Transport Modes',
+                          fontSize: 17,
+                        ),
                         SizedBox(height: 4.h),
                         SizedBox(
                           width: 358.w,
@@ -156,7 +163,8 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                   iconAsset: 'assets/icons/microbus.svg',
                                   label: 'Microbus',
                                   value: _microbus,
-                                  onChanged: (v) => setState(() => _microbus = v),
+                                  onChanged: (v) =>
+                                      setState(() => _microbus = v),
                                 ),
                                 const PanelDivider(),
                                 ModeRow(
@@ -170,14 +178,16 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                   iconAsset: 'assets/icons/minibus.svg',
                                   label: 'Minibus',
                                   value: _minibus,
-                                  onChanged: (v) => setState(() => _minibus = v),
+                                  onChanged: (v) =>
+                                      setState(() => _minibus = v),
                                 ),
                                 const PanelDivider(),
                                 ModeRow(
                                   iconAsset: 'assets/icons/walking.svg',
                                   label: 'Walking',
                                   value: _walking,
-                                  onChanged: (v) => setState(() => _walking = v),
+                                  onChanged: (v) =>
+                                      setState(() => _walking = v),
                                 ),
                               ],
                             ),
@@ -191,19 +201,19 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         SizedBox(
                           width: 358.w,
                           child: PreferencesPanel(
-                          child: ToggleRow(
-                            leading: Icon(
-                              Icons.swap_horiz,
-                              color: AppColors.textPrimary,
-                              size: 20.r,
+                            child: ToggleRow(
+                              leading: Icon(
+                                Icons.swap_horiz,
+                                color: AppColors.textPrimary,
+                                size: 20.r,
+                              ),
+                              label: 'Avoid Transfers',
+                              value: _avoidTransfers,
+                              onChanged: (v) =>
+                                  setState(() => _avoidTransfers = v),
+                              verticalPadding: 5,
                             ),
-                            label: 'Avoid Transfers',
-                            value: _avoidTransfers,
-                            onChanged: (v) =>
-                                setState(() => _avoidTransfers = v),
-                            verticalPadding: 5,
                           ),
-                        ),
                         ),
                         SizedBox(height: 8.h),
                         SizedBox(
