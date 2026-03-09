@@ -24,8 +24,8 @@ class ModeRow extends StatelessWidget {
     return ToggleRow(
       leading: SvgPicture.asset(
         iconAsset,
-        width: 22.r,
-        height: 22.r,
+        width: 20.r,
+        height: 20.r,
         colorFilter: const ColorFilter.mode(
           AppColors.textPrimary,
           BlendMode.srcIn,

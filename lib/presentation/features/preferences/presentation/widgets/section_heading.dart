@@ -5,8 +5,9 @@ import '../../../../../core/constants/app_colors.dart';
 
 class SectionHeading extends StatelessWidget {
   final String text;
+  final double fontSize;
 
-  const SectionHeading({super.key, required this.text});
+  const SectionHeading({super.key, required this.text, this.fontSize = 18});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +15,7 @@ class SectionHeading extends StatelessWidget {
       text,
       style: TextStyle(
         color: AppColors.textPrimary,
-        fontSize: 22.sp,
+        fontSize: fontSize.sp,
         fontWeight: FontWeight.w700,
       ),
     );

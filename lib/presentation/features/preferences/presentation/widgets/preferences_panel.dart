@@ -13,10 +13,10 @@ class PreferencesPanel extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.searchInputBackground.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(22.r),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: AppColors.border.withValues(alpha: 0.25)),
       ),
-      child: ClipRRect(borderRadius: BorderRadius.circular(22.r), child: child),
+      child: ClipRRect(borderRadius: BorderRadius.circular(20.r), child: child),
     );
   }
 }
