@@ -57,11 +57,7 @@ class SearchInputField extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(width: 16.w),
-            SvgPicture.asset(
-              svgAsset,
-              width: iconWidth,
-              height: iconHeight,
-            ),
+            SvgPicture.asset(svgAsset, width: iconWidth, height: iconHeight),
             SizedBox(width: 12.w),
             Expanded(
               child: TextField(

@@ -77,11 +77,8 @@ class SearchOverlay extends StatelessWidget {
         padding: EdgeInsets.zero,
         shrinkWrap: true,
         itemCount: suggestions.length,
-        separatorBuilder: (_, __) => Divider(
-          height: 1,
-          thickness: 1,
-          color: AppColors.divider,
-        ),
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, thickness: 1, color: AppColors.divider),
         itemBuilder: (context, index) {
           final suggestion = suggestions[index];
           return InkWell(
@@ -158,9 +155,7 @@ class SearchOverlay extends StatelessWidget {
               textInputAction: TextInputAction.search,
               onSubmitted: onFromSubmitted,
               suffixWidget: fromFocusNode.hasFocus
-                  ? SvgPicture.asset(
-                      'assets/icons/map.svg',
-                    )
+                  ? SvgPicture.asset('assets/icons/map.svg')
                   : null,
               onSuffixTap: onFromMapPressed,
             ),
@@ -194,9 +189,7 @@ class SearchOverlay extends StatelessWidget {
               textInputAction: TextInputAction.search,
               onSubmitted: onToSubmitted,
               suffixWidget: toFocusNode.hasFocus
-                  ? SvgPicture.asset(
-                      'assets/icons/map.svg',
-                    )
+                  ? SvgPicture.asset('assets/icons/map.svg')
                   : null,
               onSuffixTap: onToMapPressed,
             ),
