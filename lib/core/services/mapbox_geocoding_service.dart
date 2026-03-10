@@ -58,6 +58,9 @@ class MapboxGeocodingService {
       params['proximity'] = '$proximityLongitude,$proximityLatitude';
     }
 
+    // Restrict results to Alexandria, Egypt bounding box
+    params['bbox'] = '29.8233,31.1100,30.0800,31.3300';
+
     final uri = Uri.https(
       'api.mapbox.com',
       '/geocoding/v5/mapbox.places/$trimmed.json',
