@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../../presentation/features/home/presentation/view/home_page.dart';
+import '../../presentation/features/map_picker/presentation/view/map_picker_page.dart';
 import '../../presentation/features/preferences/presentation/view/route_preferences_page.dart';
 
 class AppRouter {
@@ -12,6 +13,13 @@ class AppRouter {
       GoRoute(
         path: '/preferences',
         builder: (context, state) => const RoutePreferencesPage(),
+      ),
+      GoRoute(
+        path: '/map-picker/:field',
+        builder: (context, state) {
+          final field = state.pathParameters['field'] ?? 'from';
+          return MapPickerPage(fieldLabel: field);
+        },
       ),
     ],
   );

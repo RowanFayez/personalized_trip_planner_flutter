@@ -97,4 +97,50 @@ class MapboxGeocodingService {
         .whereType<MapboxPlaceSuggestion>()
         .toList(growable: false);
   }
+
+  /// Reverse geocode: convert coordinates to a place name.
+  /// Returns null when no result is found.
+  Future<MapboxPlaceSuggestion?> reverseGeocode({
+    required double latitude,
+    required double longitude,
+    String language = 'ar',
+  }) async {
+    final params = <String, String>{
+      'access_token': _accessToken,
+      'language': language,
+      'limit': '1',
+      'types': 'address,poi,place,neighborhood,locality',
+    };
+
+    final uri = Uri.https(
+      'api.mapbox.com',
+      '/geocoding/v5/mapbox.places/$longitude,$latitude.json',
+      params,
+    );
+
+    final response = await _client.get(uri);
+    if (response.statusCode != 200) return null;
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    final features = (decoded['features'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
+
+    if (features.isEmpty) return null;
+
+    final feature = features.first;
+    final id = (feature['id'] as String?) ?? '';
+    final title = (feature['text'] as String?) ?? '';
+    final placeName = (feature['place_name'] as String?) ?? '';
+    final center = (feature['center'] as List<dynamic>? ?? const []);
+    final lng = center.length >= 2 ? (center[0] as num).toDouble() : longitude;
+    final lat = center.length >= 2 ? (center[1] as num).toDouble() : latitude;
+
+    return MapboxPlaceSuggestion(
+      id: id,
+      title: title,
+      subtitle: placeName,
+      latitude: lat,
+      longitude: lng,
+    );
+  }
 }

@@ -8,6 +8,7 @@ import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
+import '../../../../features/map_picker/presentation/view/map_picker_page.dart';
 import '../controllers/place_search_controller.dart';
 import '../widgets/search_overlay.dart';
 import '../widgets/map_action_buttons.dart';
@@ -110,10 +111,28 @@ class _HomePageState extends State<HomePage> {
     // TODO: Open AI chat interface
   }
 
-  void _handlePickFromMap() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pick from map: coming soon.')),
-    );
+  Future<void> _handleFromMapPick() async {
+    _fromSearch.focusNode.unfocus();
+    final result = await context.push<MapPickerResult>('/map-picker/from');
+    if (result != null && mounted) {
+      await _fromSearch.goToLocation(
+        title: result.placeName,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      );
+    }
+  }
+
+  Future<void> _handleToMapPick() async {
+    _toSearch.focusNode.unfocus();
+    final result = await context.push<MapPickerResult>('/map-picker/to');
+    if (result != null && mounted) {
+      await _toSearch.goToLocation(
+        title: result.placeName,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      );
+    }
   }
 
   PlaceSearchController get _activeSearchController {
@@ -234,8 +253,8 @@ class _HomePageState extends State<HomePage> {
             showFromSuggestions: _fromSearch.showSuggestions,
             showToSuggestions: _toSearch.showSuggestions,
             onPreferencesPressed: _handlePreferencesPressed,
-            onFromMapPressed: _handlePickFromMap,
-            onToMapPressed: _handlePickFromMap,
+            onFromMapPressed: _handleFromMapPick,
+            onToMapPressed: _handleToMapPick,
           ),
 
           // Bottom action buttons
