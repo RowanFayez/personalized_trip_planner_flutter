@@ -86,7 +86,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
     }
     // Reset the idle timer every time camera moves
     _idleTimer?.cancel();
-    _idleTimer = Timer(const Duration(milliseconds: 600), _onCameraIdle);
+    _idleTimer = Timer(const Duration(milliseconds: 800), _onCameraIdle);
   }
 
   Future<void> _onCameraIdle() async {

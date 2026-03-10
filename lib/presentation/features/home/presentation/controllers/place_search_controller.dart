@@ -57,7 +57,7 @@ class PlaceSearchController extends ChangeNotifier {
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 250), () async {
+    _debounce = Timer(const Duration(milliseconds: 800), () async {
       final results = await _geocodingService.autocomplete(
         query: query,
         country: 'EG',
