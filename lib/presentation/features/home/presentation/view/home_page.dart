@@ -110,6 +110,12 @@ class _HomePageState extends State<HomePage> {
     // TODO: Open AI chat interface
   }
 
+  void _handlePickFromMap() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pick from map: coming soon.')),
+    );
+  }
+
   PlaceSearchController get _activeSearchController {
     if (_toSearch.focusNode.hasFocus) return _toSearch;
     return _fromSearch;
@@ -228,6 +234,8 @@ class _HomePageState extends State<HomePage> {
             showFromSuggestions: _fromSearch.showSuggestions,
             showToSuggestions: _toSearch.showSuggestions,
             onPreferencesPressed: _handlePreferencesPressed,
+            onFromMapPressed: _handlePickFromMap,
+            onToMapPressed: _handlePickFromMap,
           ),
 
           // Bottom action buttons

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 import 'search_input_field.dart';
@@ -30,6 +31,8 @@ class SearchOverlay extends StatelessWidget {
   final bool showFromSuggestions;
   final bool showToSuggestions;
   final VoidCallback onPreferencesPressed;
+  final VoidCallback onFromMapPressed;
+  final VoidCallback onToMapPressed;
 
   const SearchOverlay({
     super.key,
@@ -54,6 +57,8 @@ class SearchOverlay extends StatelessWidget {
     required this.showFromSuggestions,
     required this.showToSuggestions,
     required this.onPreferencesPressed,
+    required this.onFromMapPressed,
+    required this.onToMapPressed,
   });
 
   Widget _buildSuggestionsList({
@@ -152,6 +157,12 @@ class SearchOverlay extends StatelessWidget {
               onChanged: onFromChanged,
               textInputAction: TextInputAction.search,
               onSubmitted: onFromSubmitted,
+              suffixWidget: fromFocusNode.hasFocus
+                  ? SvgPicture.asset(
+                      'assets/icons/map.svg',
+                    )
+                  : null,
+              onSuffixTap: onFromMapPressed,
             ),
 
             if (showQuickPlaces && showQuickPlacesUnderFrom) ...[
@@ -182,11 +193,12 @@ class SearchOverlay extends StatelessWidget {
               onChanged: onToChanged,
               textInputAction: TextInputAction.search,
               onSubmitted: onToSubmitted,
-              suffixWidget: Icon(
-                Icons.map_outlined,
-                color: const Color(0xFF9AB8BC),
-                size: 22.r,
-              ),
+              suffixWidget: toFocusNode.hasFocus
+                  ? SvgPicture.asset(
+                      'assets/icons/map.svg',
+                    )
+                  : null,
+              onSuffixTap: onToMapPressed,
             ),
 
             if (showQuickPlaces && !showQuickPlacesUnderFrom) ...[

@@ -9,11 +9,14 @@ class SearchInputField extends StatelessWidget {
   final FocusNode? focusNode;
   final String hintText;
   final String svgAsset;
+  final double? iconWidth;
+  final double? iconHeight;
   final VoidCallback? onTap;
   final ValueChanged<String>? onChanged;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
   final Widget? suffixWidget;
+  final VoidCallback? onSuffixTap;
 
   const SearchInputField({
     super.key,
@@ -21,18 +24,20 @@ class SearchInputField extends StatelessWidget {
     this.focusNode,
     required this.hintText,
     required this.svgAsset,
+    this.iconWidth,
+    this.iconHeight,
     this.onTap,
     this.onChanged,
     this.textInputAction,
     this.onSubmitted,
     this.suffixWidget,
+    this.onSuffixTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final inputFontSize = (15.sp <= 0) ? 15.0 : 15.sp;
     final hintFontSize = (15.sp <= 0) ? 15.0 : 15.sp;
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -52,7 +57,11 @@ class SearchInputField extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(width: 16.w),
-            SvgPicture.asset(svgAsset, width: 12.w, height: 12.h),
+            SvgPicture.asset(
+              svgAsset,
+              width: iconWidth,
+              height: iconHeight,
+            ),
             SizedBox(width: 12.w),
             Expanded(
               child: TextField(
@@ -84,7 +93,17 @@ class SearchInputField extends StatelessWidget {
                 ),
               ),
             ),
-            if (suffixWidget != null) ...[suffixWidget!, SizedBox(width: 8.w)],
+            if (suffixWidget != null) ...[
+              GestureDetector(
+                onTap: onSuffixTap,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 6.h),
+                  child: suffixWidget!,
+                ),
+              ),
+              SizedBox(width: 8.w),
+            ],
           ],
         ),
       ),
