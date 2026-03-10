@@ -46,10 +46,7 @@ class PickerLocationCard extends StatelessWidget {
           // Small label
           Text(
             fieldLabel == 'from' ? 'Pickup point' : 'Drop-off point',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13.sp,
-            ),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13.sp),
           ),
           SizedBox(height: 6.h),
 
@@ -70,10 +67,9 @@ class PickerLocationCard extends StatelessWidget {
             width: double.infinity,
             height: 50.h,
             child: ElevatedButton(
-              onPressed:
-                  (placeName != null && !isMoving && !isGeocoding)
-                      ? onConfirm
-                      : null,
+              onPressed: (placeName != null && !isMoving && !isGeocoding)
+                  ? onConfirm
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryTeal,
                 disabledBackgroundColor: AppColors.surfaceDark,
@@ -85,10 +81,7 @@ class PickerLocationCard extends StatelessWidget {
               ),
               child: Text(
                 'Confirm Location',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -143,10 +136,7 @@ class PickerLocationCard extends StatelessWidget {
         SizedBox(width: 10.w),
         Text(
           'Finding location…',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 16.sp,
-          ),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 16.sp),
         ),
       ],
     );
@@ -155,10 +145,7 @@ class PickerLocationCard extends StatelessWidget {
   Widget _buildPlaceholder(String text) {
     return Text(
       text,
-      style: TextStyle(
-        color: AppColors.textHint,
-        fontSize: 16.sp,
-      ),
+      style: TextStyle(color: AppColors.textHint, fontSize: 16.sp),
     );
   }
 }

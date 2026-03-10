@@ -27,11 +27,9 @@ class MapboxGeocodingService {
   final http.Client _client;
   final String _accessToken;
 
-  MapboxGeocodingService({
-    http.Client? client,
-    String? accessToken,
-  })  : _client = client ?? http.Client(),
-        _accessToken = accessToken ?? MapConfig.accessToken;
+  MapboxGeocodingService({http.Client? client, String? accessToken})
+    : _client = client ?? http.Client(),
+      _accessToken = accessToken ?? MapConfig.accessToken;
 
   Future<List<MapboxPlaceSuggestion>> autocomplete({
     required String query,

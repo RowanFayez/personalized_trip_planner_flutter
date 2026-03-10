@@ -119,7 +119,8 @@ class _MapPickerPageState extends State<MapPickerPage> {
       if (features.isNotEmpty) {
         final props = features.first?.queriedFeature.feature['properties'];
         if (props is Map) {
-          streetName = (props['name'] as String?) ??
+          streetName =
+              (props['name'] as String?) ??
               (props['name_en'] as String?) ??
               (props['name_ar'] as String?);
         }
@@ -212,9 +213,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
           Positioned(
             right: 20.w,
             bottom: 180.h,
-            child: PickerMyLocationButton(
-              onPressed: () => _goToUserLocation(),
-            ),
+            child: PickerMyLocationButton(onPressed: () => _goToUserLocation()),
           ),
 
           // Bottom location card
