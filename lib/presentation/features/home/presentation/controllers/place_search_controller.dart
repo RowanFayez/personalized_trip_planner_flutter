@@ -26,15 +26,17 @@ class PlaceSearchController extends ChangeNotifier {
     required MapService mapService,
     required String markerId,
     required Color markerColor,
-  })  : _geocodingService = geocodingService,
-        _mapService = mapService,
-        _markerId = markerId,
-        _markerColor = markerColor;
+  }) : _geocodingService = geocodingService,
+       _mapService = mapService,
+       _markerId = markerId,
+       _markerColor = markerColor;
 
   List<MapboxPlaceSuggestion> get suggestions => _suggestions;
 
   bool get showSuggestions =>
-      _showSuggestions && _suggestions.isNotEmpty && textController.text.trim().isNotEmpty;
+      _showSuggestions &&
+      _suggestions.isNotEmpty &&
+      textController.text.trim().isNotEmpty;
 
   void setProximity({double? latitude, double? longitude}) {
     _proximityLatitude = latitude;
