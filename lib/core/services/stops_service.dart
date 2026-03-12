@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart' show rootBundle;
-import 'dart:math' as math;
 
 /// A single transit stop parsed from stops.txt.
 class Stop {
@@ -31,6 +30,7 @@ class StopsService {
     final lines = raw.split('\n');
 
     final stops = <Stop>[];
+    final seenKeys = <String>{};
     // Skip header line
     for (var i = 1; i < lines.length; i++) {
       final line = lines[i].trim();
@@ -50,52 +50,15 @@ class StopsService {
 
       if (id == null || lat == null || lon == null) continue;
 
+      final exactKey = '$nameAr|${parts[2].trim()}|${parts[3].trim()}';
+      if (!seenKeys.add(exactKey)) continue;
+
       stops.add(
         Stop(id: id, name: name, nameAr: nameAr, latitude: lat, longitude: lon),
       );
     }
 
-    _cache = _deduplicateNearbyStops(stops);
+    _cache = List<Stop>.unmodifiable(stops);
     return _cache!;
   }
-
-  List<Stop> _deduplicateNearbyStops(List<Stop> stops) {
-    final unique = <Stop>[];
-
-    for (final stop in stops) {
-      final isDuplicate = unique.any(
-        (existing) =>
-            existing.nameAr == stop.nameAr &&
-            _distanceMeters(
-                  existing.latitude,
-                  existing.longitude,
-                  stop.latitude,
-                  stop.longitude,
-                ) <=
-                35,
-      );
-
-      if (!isDuplicate) {
-        unique.add(stop);
-      }
-    }
-
-    return unique;
-  }
-
-  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
-    const earthRadius = 6371000.0;
-    final dLat = _degToRad(lat2 - lat1);
-    final dLon = _degToRad(lon2 - lon1);
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_degToRad(lat1)) *
-            math.cos(_degToRad(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadius * c;
-  }
-
-  double _degToRad(double degrees) => degrees * math.pi / 180.0;
 }

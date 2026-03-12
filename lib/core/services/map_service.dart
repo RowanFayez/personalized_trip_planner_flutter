@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import '../config/map_config.dart';
 import '../constants/app_colors.dart';
+import 'stop_icon_service.dart';
+import 'stop_visibility_service.dart';
 import 'stops_service.dart';
 
 /// Service for managing Mapbox map operations
 class MapService {
   MapboxMap? _mapboxMap;
+  final StopIconService _stopIconService = StopIconService();
+  final StopVisibilityService _stopVisibilityService = StopVisibilityService();
   PointAnnotationManager? _stopsAnnotationManager;
   Uint8List? _stopsIconBytes;
   List<Stop> _lastStops = const [];
@@ -204,8 +207,7 @@ class MapService {
   Future<Uint8List> _getStopIconBytes() async {
     if (_stopsIconBytes != null) return _stopsIconBytes!;
 
-    final data = await rootBundle.load('assets/icons/stops.png');
-    _stopsIconBytes = data.buffer.asUint8List();
+    _stopsIconBytes = await _stopIconService.loadOptimizedStopIconBytes();
     return _stopsIconBytes!;
   }
 
@@ -252,7 +254,7 @@ class MapService {
   }
 
   Future<void> _renderStopsAnnotations() async {
-    if (_mapboxMap == null || _renderedStops.isEmpty) return;
+    if (_mapboxMap == null) return;
 
     if (!_didHideBasemapLayers) {
       await _hideConflictingBasemapLayers();
@@ -276,6 +278,9 @@ class MapService {
         await _stopsAnnotationManager!.deleteAll();
       } catch (_) {}
     }
+
+    if (_renderedStops.isEmpty) return;
+
     await _stopsAnnotationManager!.setTextIgnorePlacement(false);
     await _stopsAnnotationManager!.setTextOptional(true);
 
@@ -286,7 +291,7 @@ class MapService {
               coordinates: Position(stop.longitude, stop.latitude),
             ),
             image: iconBytes,
-            iconSize: 0.13,
+            iconSize: 0.30,
             iconAnchor: IconAnchor.BOTTOM,
             textField: _showStopLabels ? stop.labelAr : '',
             textSize: 10.5,
@@ -335,9 +340,6 @@ class MapService {
   }) async {
     if (_lastStops.isEmpty) return;
 
-    final center = state.center.coordinates;
-    final centerLat = center.lat.toDouble();
-    final centerLng = center.lng.toDouble();
     final zoom = state.zoom;
     final shouldShowLabels = zoom >= stopLabelZoomThreshold;
 
@@ -347,10 +349,10 @@ class MapService {
         _distanceMeters(
               _lastStopsCenterLat!,
               _lastStopsCenterLng!,
-              centerLat,
-              centerLng,
+              state.center.coordinates.lat.toDouble(),
+              state.center.coordinates.lng.toDouble(),
             ) >=
-            400;
+            350;
 
     final zoomChangedEnough =
         _lastStopsZoom == null || (zoom - _lastStopsZoom!).abs() >= 0.5;
@@ -361,32 +363,24 @@ class MapService {
     }
 
     _showStopLabels = shouldShowLabels;
-    _lastStopsCenterLat = centerLat;
-    _lastStopsCenterLng = centerLng;
+    _lastStopsCenterLat = state.center.coordinates.lat.toDouble();
+    _lastStopsCenterLng = state.center.coordinates.lng.toDouble();
     _lastStopsZoom = zoom;
 
-    final maxRadiusMeters = _radiusForZoom(zoom);
-    final visibleStops =
-        _lastStops
-            .map(
-              (stop) => (
-                stop: stop,
-                distance: _distanceMeters(
-                  centerLat,
-                  centerLng,
-                  stop.latitude,
-                  stop.longitude,
-                ),
-              ),
-            )
-            .where((entry) => entry.distance <= maxRadiusMeters)
-            .toList()
-          ..sort((a, b) => a.distance.compareTo(b.distance));
+    final bounds = await _mapboxMap!.coordinateBoundsForCamera(
+      CameraOptions(
+        center: state.center,
+        padding: state.padding,
+        zoom: state.zoom,
+        bearing: state.bearing,
+        pitch: state.pitch,
+      ),
+    );
 
-    final newRendered = visibleStops
-        .take(_maxAnnotationsForZoom(zoom))
-        .map((entry) => entry.stop)
-        .toList(growable: false);
+    final newRendered = _stopVisibilityService.filterStopsInBounds(
+      _lastStops,
+      bounds,
+    );
 
     // Skip re-render if exact same stops and same label state.
     final newIds = newRendered.map((s) => s.id).toList(growable: false);
@@ -402,22 +396,6 @@ class MapService {
     );
 
     await _renderStopsAnnotations();
-  }
-
-  int _maxAnnotationsForZoom(double zoom) {
-    if (zoom >= 16.5) return 90;
-    if (zoom >= 15.5) return 70;
-    if (zoom >= 14.5) return 55;
-    if (zoom >= 13.5) return 40;
-    return 28;
-  }
-
-  double _radiusForZoom(double zoom) {
-    if (zoom >= 16.5) return 900;
-    if (zoom >= 15.5) return 1500;
-    if (zoom >= 14.5) return 2400;
-    if (zoom >= 13.5) return 3600;
-    return 5200;
   }
 
   bool _listsEqual(List<int> a, List<int> b) {
@@ -442,5 +420,5 @@ class MapService {
     return earthRadius * c;
   }
 
-  double _degToRad(double degrees) => degrees * math.pi / 180.0;
+  double _degToRad(double degrees) => degrees * 3.1415926535897932 / 180.0;
 }
