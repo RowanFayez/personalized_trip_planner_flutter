@@ -8,6 +8,7 @@ import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
+import '../../../../../core/services/stops_service.dart';
 import '../../../../features/map_picker/presentation/view/map_picker_page.dart';
 import '../controllers/place_search_controller.dart';
 import '../widgets/search_overlay.dart';
@@ -25,6 +26,7 @@ class _HomePageState extends State<HomePage> {
   final LocationService _locationService = LocationService();
   final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
   final SavedPlacesService _savedPlacesService = SavedPlacesService();
+  final StopsService _stopsService = StopsService();
   bool _didCenterOnUser = false;
 
   double? _proximityLatitude;
@@ -100,6 +102,11 @@ class _HomePageState extends State<HomePage> {
     if (_didCenterOnUser) return;
     _didCenterOnUser = true;
     await _goToCurrentLocation();
+  }
+
+  Future<void> _loadStopsLayer() async {
+    final stops = await _stopsService.loadStops();
+    await _mapService.addStopsLayer(stops);
   }
 
   void _handlePreferencesPressed() {
@@ -197,6 +204,7 @@ class _HomePageState extends State<HomePage> {
               // Smoothly move to user's current location once at startup.
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _centerOnUserOnStartup();
+                _loadStopsLayer();
               });
             },
           ),
