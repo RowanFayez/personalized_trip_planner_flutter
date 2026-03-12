@@ -23,15 +23,17 @@ class StopVisibilityService {
     final maxLng = east + lngPadding;
     final crossesAntimeridian = west > east;
 
-    return stops.where((stop) {
-      final inLatRange = stop.latitude >= minLat && stop.latitude <= maxLat;
-      if (!inLatRange) return false;
+    return stops
+        .where((stop) {
+          final inLatRange = stop.latitude >= minLat && stop.latitude <= maxLat;
+          if (!inLatRange) return false;
 
-      if (crossesAntimeridian) {
-        return stop.longitude >= minLng || stop.longitude <= maxLng;
-      }
+          if (crossesAntimeridian) {
+            return stop.longitude >= minLng || stop.longitude <= maxLng;
+          }
 
-      return stop.longitude >= minLng && stop.longitude <= maxLng;
-    }).toList(growable: false);
+          return stop.longitude >= minLng && stop.longitude <= maxLng;
+        })
+        .toList(growable: false);
   }
 }

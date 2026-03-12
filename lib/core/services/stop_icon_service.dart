@@ -20,7 +20,8 @@ class StopIconService {
       format: ui.ImageByteFormat.png,
     );
 
-    _cachedIconBytes = byteData?.buffer.asUint8List() ?? data.buffer.asUint8List();
+    _cachedIconBytes =
+        byteData?.buffer.asUint8List() ?? data.buffer.asUint8List();
     return _cachedIconBytes!;
   }
 }
