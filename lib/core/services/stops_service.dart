@@ -43,17 +43,16 @@ class StopsService {
       final name = parts[1].trim();
       final lat = double.tryParse(parts[2].trim());
       final lon = double.tryParse(parts[3].trim());
-      final nameAr = parts.sublist(4).join(',').trim(); // handle commas in Arabic name
+      final nameAr = parts
+          .sublist(4)
+          .join(',')
+          .trim(); // handle commas in Arabic name
 
       if (id == null || lat == null || lon == null) continue;
 
-      stops.add(Stop(
-        id: id,
-        name: name,
-        nameAr: nameAr,
-        latitude: lat,
-        longitude: lon,
-      ));
+      stops.add(
+        Stop(id: id, name: name, nameAr: nameAr, latitude: lat, longitude: lon),
+      );
     }
 
     _cache = _deduplicateNearbyStops(stops);
@@ -84,12 +83,7 @@ class StopsService {
     return unique;
   }
 
-  double _distanceMeters(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
+  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
     const earthRadius = 6371000.0;
     final dLat = _degToRad(lat2 - lat1);
     final dLon = _degToRad(lon2 - lon1);

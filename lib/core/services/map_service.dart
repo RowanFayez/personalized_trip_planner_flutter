@@ -236,7 +236,8 @@ class MapService {
     final styleLayers = await _mapboxMap!.style.getStyleLayers();
     for (final layer in styleLayers.whereType<StyleObjectInfo>()) {
       final id = layer.id.toLowerCase();
-      final shouldHide = _conflictingBasemapTokens.any(id.contains) &&
+      final shouldHide =
+          _conflictingBasemapTokens.any(id.contains) &&
           (id.contains('label') || id.contains('icon'));
       if (!shouldHide) continue;
 
@@ -262,8 +263,8 @@ class MapService {
 
     // Create manager only once; reuse on subsequent renders.
     if (_stopsAnnotationManager == null) {
-      _stopsAnnotationManager =
-          await _mapboxMap!.annotations.createPointAnnotationManager();
+      _stopsAnnotationManager = await _mapboxMap!.annotations
+          .createPointAnnotationManager();
 
       await _stopsAnnotationManager!.setIconAllowOverlap(true);
       await _stopsAnnotationManager!.setIconIgnorePlacement(true);
@@ -340,7 +341,8 @@ class MapService {
     final zoom = state.zoom;
     final shouldShowLabels = zoom >= stopLabelZoomThreshold;
 
-    final movedEnough = _lastStopsCenterLat == null ||
+    final movedEnough =
+        _lastStopsCenterLat == null ||
         _lastStopsCenterLng == null ||
         _distanceMeters(
               _lastStopsCenterLat!,
@@ -364,21 +366,22 @@ class MapService {
     _lastStopsZoom = zoom;
 
     final maxRadiusMeters = _radiusForZoom(zoom);
-    final visibleStops = _lastStops
-        .map(
-          (stop) => (
-            stop: stop,
-            distance: _distanceMeters(
-              centerLat,
-              centerLng,
-              stop.latitude,
-              stop.longitude,
-            ),
-          ),
-        )
-        .where((entry) => entry.distance <= maxRadiusMeters)
-        .toList()
-      ..sort((a, b) => a.distance.compareTo(b.distance));
+    final visibleStops =
+        _lastStops
+            .map(
+              (stop) => (
+                stop: stop,
+                distance: _distanceMeters(
+                  centerLat,
+                  centerLng,
+                  stop.latitude,
+                  stop.longitude,
+                ),
+              ),
+            )
+            .where((entry) => entry.distance <= maxRadiusMeters)
+            .toList()
+          ..sort((a, b) => a.distance.compareTo(b.distance));
 
     final newRendered = visibleStops
         .take(_maxAnnotationsForZoom(zoom))
@@ -425,12 +428,7 @@ class MapService {
     return true;
   }
 
-  double _distanceMeters(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
+  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
     const earthRadius = 6371000.0;
     final dLat = _degToRad(lat2 - lat1);
     final dLon = _degToRad(lon2 - lon1);

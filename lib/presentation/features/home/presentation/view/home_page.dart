@@ -122,13 +122,16 @@ class _HomePageState extends State<HomePage> {
     _cameraDebounce = Timer(const Duration(milliseconds: 300), () {
       if (_isUpdatingStopsForZoom) return;
       _isUpdatingStopsForZoom = true;
-      _mapService.getCameraState().then((state) async {
-        if (state != null) {
-          await _mapService.updateStopsForCameraState(state);
-        }
-      }).whenComplete(() {
-        _isUpdatingStopsForZoom = false;
-      });
+      _mapService
+          .getCameraState()
+          .then((state) async {
+            if (state != null) {
+              await _mapService.updateStopsForCameraState(state);
+            }
+          })
+          .whenComplete(() {
+            _isUpdatingStopsForZoom = false;
+          });
     });
   }
 
