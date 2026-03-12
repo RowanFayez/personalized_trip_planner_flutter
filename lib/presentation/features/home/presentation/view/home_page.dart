@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -28,6 +29,9 @@ class _HomePageState extends State<HomePage> {
   final SavedPlacesService _savedPlacesService = SavedPlacesService();
   final StopsService _stopsService = StopsService();
   bool _didCenterOnUser = false;
+  bool _didLoadStops = false;
+  bool _isUpdatingStopsForZoom = false;
+  Timer? _cameraDebounce;
 
   double? _proximityLatitude;
   double? _proximityLongitude;
@@ -70,6 +74,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _cameraDebounce?.cancel();
     _fromSearch.dispose();
     _toSearch.dispose();
     super.dispose();
@@ -105,8 +110,26 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadStopsLayer() async {
+    if (_didLoadStops) return;
+    _didLoadStops = true;
     final stops = await _stopsService.loadStops();
-    await _mapService.addStopsLayer(stops);
+    final zoom = (await _mapService.getCameraState())?.zoom ?? 0;
+    await _mapService.addStopsLayer(stops, currentZoom: zoom);
+  }
+
+  void _handleCameraChanged(CameraChangedEventData _) {
+    _cameraDebounce?.cancel();
+    _cameraDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (_isUpdatingStopsForZoom) return;
+      _isUpdatingStopsForZoom = true;
+      _mapService.getCameraState().then((state) async {
+        if (state != null) {
+          await _mapService.updateStopsForCameraState(state);
+        }
+      }).whenComplete(() {
+        _isUpdatingStopsForZoom = false;
+      });
+    });
   }
 
   void _handlePreferencesPressed() {
@@ -194,6 +217,7 @@ class _HomePageState extends State<HomePage> {
             cameraOptions: MapConfig.defaultCamera,
             styleUri: MapConfig.styleUrl,
             textureView: true,
+            onCameraChangeListener: _handleCameraChanged,
             onMapCreated: (MapboxMap mapboxMap) {
               _mapService.initialize(mapboxMap);
               // Hide Mapbox ornaments
@@ -204,8 +228,10 @@ class _HomePageState extends State<HomePage> {
               // Smoothly move to user's current location once at startup.
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _centerOnUserOnStartup();
-                _loadStopsLayer();
               });
+            },
+            onStyleLoadedListener: (_) {
+              _loadStopsLayer();
             },
           ),
 

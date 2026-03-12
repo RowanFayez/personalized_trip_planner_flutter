@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'dart:convert';
-import 'dart:ui' as ui;
+import 'dart:math' as math;
+import 'dart:typed_data';
 import '../config/map_config.dart';
 import '../constants/app_colors.dart';
 import 'stops_service.dart';
@@ -9,6 +11,25 @@ import 'stops_service.dart';
 /// Service for managing Mapbox map operations
 class MapService {
   MapboxMap? _mapboxMap;
+  PointAnnotationManager? _stopsAnnotationManager;
+  Uint8List? _stopsIconBytes;
+  List<Stop> _lastStops = const [];
+  List<Stop> _renderedStops = const [];
+  bool _showStopLabels = false;
+  double? _lastStopsCenterLat;
+  double? _lastStopsCenterLng;
+  double? _lastStopsZoom;
+  bool _didHideBasemapLayers = false;
+  List<int> _renderedStopIds = const [];
+
+  static const double stopLabelZoomThreshold = 15.3;
+
+  static const List<String> _conflictingBasemapTokens = <String>[
+    'transit',
+    'station',
+    'rail',
+    'metro',
+  ];
 
   /// Initialize map controller
   void initialize(MapboxMap mapboxMap) {
@@ -180,129 +201,248 @@ class MapService {
     return await _mapboxMap!.getCameraState();
   }
 
-  /// Register a PNG asset as a Mapbox style image.
-  Future<void> _registerStopIcon() async {
+  Future<Uint8List> _getStopIconBytes() async {
+    if (_stopsIconBytes != null) return _stopsIconBytes!;
+
+    final data = await rootBundle.load('assets/icons/stops.png');
+    _stopsIconBytes = data.buffer.asUint8List();
+    return _stopsIconBytes!;
+  }
+
+  Future<void> removeStopsLayer() async {
     if (_mapboxMap == null) return;
 
-    // Paint a bus-stop pin icon programmatically (no asset file needed).
-    const int size = 96;
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, 96, 96));
+    if (_stopsAnnotationManager != null) {
+      try {
+        await _stopsAnnotationManager!.deleteAll();
+      } catch (_) {}
 
-    // Pin body (teardrop)
-    final pinPaint = Paint()..color = const Color(0xFF2196F3); // blue
-    final path = Path()
-      ..moveTo(48, 96) // bottom tip
-      ..cubicTo(48, 96, 8, 58, 8, 38)
-      ..arcToPoint(const Offset(88, 38),
-          radius: const Radius.circular(40), clockwise: true)
-      ..cubicTo(88, 58, 48, 96, 48, 96)
-      ..close();
-    canvas.drawPath(path, pinPaint);
+      try {
+        await _mapboxMap!.annotations.removeAnnotationManager(
+          _stopsAnnotationManager!,
+        );
+      } catch (_) {}
 
-    // White circle
-    final circlePaint = Paint()..color = Colors.white;
-    canvas.drawCircle(const Offset(48, 38), 22, circlePaint);
-
-    // Simple bus shape inside
-    final busPaint = Paint()
-      ..color = const Color(0xFF2196F3)
-      ..style = PaintingStyle.fill;
-    // Bus body
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(33, 28, 30, 18),
-        const Radius.circular(3),
-      ),
-      busPaint,
-    );
-    // Windows
-    final windowPaint = Paint()..color = Colors.white;
-    for (var x = 36.0; x <= 55; x += 8) {
-      canvas.drawRect(Rect.fromLTWH(x, 31, 5, 7), windowPaint);
+      _stopsAnnotationManager = null;
     }
-    // Wheels
-    canvas.drawCircle(const Offset(40, 47), 2.5, busPaint);
-    canvas.drawCircle(const Offset(56, 47), 2.5, busPaint);
 
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(size, size);
-    final byteData =
-        await image.toByteData(format: ui.ImageByteFormat.rawStraightRgba);
-    if (byteData == null) return;
+    _renderedStopIds = const [];
+    _didHideBasemapLayers = false;
+  }
 
-    final mbImage = MbxImage(
-      width: image.width,
-      height: image.height,
-      data: byteData.buffer.asUint8List(),
-    );
+  Future<void> _hideConflictingBasemapLayers() async {
+    if (_mapboxMap == null) return;
 
-    await _mapboxMap!.style.addStyleImage(
-      'stop-icon',
-      1.0,
-      mbImage,
-      false,
-      [],
-      [],
-      null,
+    final styleLayers = await _mapboxMap!.style.getStyleLayers();
+    for (final layer in styleLayers.whereType<StyleObjectInfo>()) {
+      final id = layer.id.toLowerCase();
+      final shouldHide = _conflictingBasemapTokens.any(id.contains) &&
+          (id.contains('label') || id.contains('icon'));
+      if (!shouldHide) continue;
+
+      try {
+        await _mapboxMap!.style.setStyleLayerProperty(
+          layer.id,
+          'visibility',
+          'none',
+        );
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _renderStopsAnnotations() async {
+    if (_mapboxMap == null || _renderedStops.isEmpty) return;
+
+    if (!_didHideBasemapLayers) {
+      await _hideConflictingBasemapLayers();
+      _didHideBasemapLayers = true;
+    }
+
+    final iconBytes = await _getStopIconBytes();
+
+    // Create manager only once; reuse on subsequent renders.
+    if (_stopsAnnotationManager == null) {
+      _stopsAnnotationManager =
+          await _mapboxMap!.annotations.createPointAnnotationManager();
+
+      await _stopsAnnotationManager!.setIconAllowOverlap(true);
+      await _stopsAnnotationManager!.setIconIgnorePlacement(true);
+      await _stopsAnnotationManager!.setTextAllowOverlap(false);
+      await _stopsAnnotationManager!.setTextIgnorePlacement(false);
+      await _stopsAnnotationManager!.setTextOptional(true);
+    } else {
+      try {
+        await _stopsAnnotationManager!.deleteAll();
+      } catch (_) {}
+    }
+    await _stopsAnnotationManager!.setTextIgnorePlacement(false);
+    await _stopsAnnotationManager!.setTextOptional(true);
+
+    final options = _renderedStops
+        .map(
+          (stop) => PointAnnotationOptions(
+            geometry: Point(
+              coordinates: Position(stop.longitude, stop.latitude),
+            ),
+            image: iconBytes,
+            iconSize: 0.13,
+            iconAnchor: IconAnchor.BOTTOM,
+            textField: _showStopLabels ? stop.labelAr : '',
+            textSize: 10.5,
+            textMaxWidth: 8.0,
+            textColor: Colors.white.toARGB32(),
+            textHaloColor: const Color(0xFF0B171D).toARGB32(),
+            textHaloWidth: 1.5,
+            textOffset: [0.0, 0.72],
+            textAnchor: TextAnchor.TOP,
+            symbolSortKey: 10.0,
+          ),
+        )
+        .toList(growable: false);
+
+    await _stopsAnnotationManager!.createMulti(options);
+
+    debugPrint(
+      'Stops layer: added ${options.length} point annotations, labels=${_showStopLabels ? 'on' : 'off'}',
     );
   }
 
-  /// Add a stops layer with bus-stop icons and Arabic labels.
-  Future<void> addStopsLayer(List<Stop> stops) async {
+  /// Add stops with icons always visible; labels appear only at high zoom.
+  Future<void> addStopsLayer(List<Stop> stops, {double? currentZoom}) async {
     if (_mapboxMap == null || stops.isEmpty) return;
 
-    // 1. Register the stop icon image
-    await _registerStopIcon();
+    _lastStops = stops;
+    _showStopLabels = (currentZoom ?? 0) >= stopLabelZoomThreshold;
 
-    // 2. Build GeoJSON FeatureCollection
-    final features = stops.map((s) => {
-          'type': 'Feature',
-          'properties': {
-            'name_ar': s.nameAr,
-            'stop_id': s.id,
-          },
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [s.longitude, s.latitude],
-          },
-        }).toList();
-
-    final geoJson = jsonEncode({
-      'type': 'FeatureCollection',
-      'features': features,
-    });
-
-    // 3. Add GeoJSON source
-    try {
-      await _mapboxMap!.style.addSource(
-        GeoJsonSource(id: 'stops_source', data: geoJson),
-      );
-    } catch (_) {}
-
-    // 4. Add symbol layer (icon + text)
-    try {
-      await _mapboxMap!.style.addLayer(
-        SymbolLayer(
-          id: 'stops_layer',
-          sourceId: 'stops_source',
-          iconImage: 'stop-icon',
-          iconSize: 0.45,
-          iconAllowOverlap: false,
-          iconAnchor: IconAnchor.BOTTOM,
-          textField: '{name_ar}',
-          textSize: 12.0,
-          textColor: Colors.white.toARGB32(),
-          textHaloColor: const Color(0xFF0E1D25).toARGB32(),
-          textHaloWidth: 1.5,
-          textOffset: [0.0, 0.8],
-          textAnchor: TextAnchor.TOP,
-          textAllowOverlap: false,
-          textOptional: true,
-          symbolSortKey: 1.0,
-          minZoom: 13.0,
-        ),
-      );
-    } catch (_) {}
+    final state = await _mapboxMap!.getCameraState();
+    await updateStopsForCameraState(state, force: true);
   }
+
+  Future<void> updateStopsForZoom(double zoom) async {
+    if (_lastStops.isEmpty) return;
+
+    final shouldShowLabels = zoom >= stopLabelZoomThreshold;
+    if (shouldShowLabels == _showStopLabels) return;
+
+    _showStopLabels = shouldShowLabels;
+    await _renderStopsAnnotations();
+  }
+
+  Future<void> updateStopsForCameraState(
+    CameraState state, {
+    bool force = false,
+  }) async {
+    if (_lastStops.isEmpty) return;
+
+    final center = state.center.coordinates;
+    final centerLat = center.lat.toDouble();
+    final centerLng = center.lng.toDouble();
+    final zoom = state.zoom;
+    final shouldShowLabels = zoom >= stopLabelZoomThreshold;
+
+    final movedEnough = _lastStopsCenterLat == null ||
+        _lastStopsCenterLng == null ||
+        _distanceMeters(
+              _lastStopsCenterLat!,
+              _lastStopsCenterLng!,
+              centerLat,
+              centerLng,
+            ) >=
+            400;
+
+    final zoomChangedEnough =
+        _lastStopsZoom == null || (zoom - _lastStopsZoom!).abs() >= 0.5;
+    final labelsChanged = shouldShowLabels != _showStopLabels;
+
+    if (!force && !movedEnough && !zoomChangedEnough && !labelsChanged) {
+      return;
+    }
+
+    _showStopLabels = shouldShowLabels;
+    _lastStopsCenterLat = centerLat;
+    _lastStopsCenterLng = centerLng;
+    _lastStopsZoom = zoom;
+
+    final maxRadiusMeters = _radiusForZoom(zoom);
+    final visibleStops = _lastStops
+        .map(
+          (stop) => (
+            stop: stop,
+            distance: _distanceMeters(
+              centerLat,
+              centerLng,
+              stop.latitude,
+              stop.longitude,
+            ),
+          ),
+        )
+        .where((entry) => entry.distance <= maxRadiusMeters)
+        .toList()
+      ..sort((a, b) => a.distance.compareTo(b.distance));
+
+    final newRendered = visibleStops
+        .take(_maxAnnotationsForZoom(zoom))
+        .map((entry) => entry.stop)
+        .toList(growable: false);
+
+    // Skip re-render if exact same stops and same label state.
+    final newIds = newRendered.map((s) => s.id).toList(growable: false);
+    if (!force && _listsEqual(newIds, _renderedStopIds) && !labelsChanged) {
+      return;
+    }
+
+    _renderedStops = newRendered;
+    _renderedStopIds = newIds;
+
+    debugPrint(
+      'Stops layer: rendering ${_renderedStops.length}/${_lastStops.length} stops at zoom ${zoom.toStringAsFixed(2)}, labels=${_showStopLabels ? 'on' : 'off'}',
+    );
+
+    await _renderStopsAnnotations();
+  }
+
+  int _maxAnnotationsForZoom(double zoom) {
+    if (zoom >= 16.5) return 90;
+    if (zoom >= 15.5) return 70;
+    if (zoom >= 14.5) return 55;
+    if (zoom >= 13.5) return 40;
+    return 28;
+  }
+
+  double _radiusForZoom(double zoom) {
+    if (zoom >= 16.5) return 900;
+    if (zoom >= 15.5) return 1500;
+    if (zoom >= 14.5) return 2400;
+    if (zoom >= 13.5) return 3600;
+    return 5200;
+  }
+
+  bool _listsEqual(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  double _distanceMeters(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    const earthRadius = 6371000.0;
+    final dLat = _degToRad(lat2 - lat1);
+    final dLon = _degToRad(lon2 - lon1);
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degToRad(lat1)) *
+            math.cos(_degToRad(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _degToRad(double degrees) => degrees * math.pi / 180.0;
 }
