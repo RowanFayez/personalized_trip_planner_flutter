@@ -12,7 +12,6 @@ import '../widgets/priority_tile.dart';
 import '../widgets/route_preferences_gradient.dart';
 import '../widgets/route_preferences_header.dart';
 import '../widgets/section_heading.dart';
-import '../widgets/toggle_row.dart';
 
 class RoutePreferencesPage extends StatefulWidget {
   const RoutePreferencesPage({super.key});
@@ -30,8 +29,6 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
   bool _minibus = false;
   bool _walking = true;
 
-  bool _avoidTransfers = false;
-
   void _resetToDefault() {
     setState(() {
       _priority = RoutePriority.fastest;
@@ -40,7 +37,6 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
       _tram = true;
       _minibus = false;
       _walking = true;
-      _avoidTransfers = false;
     });
   }
 
@@ -96,7 +92,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         PriorityTile(
                           width: 358.w,
                           height: 54,
-                          label: 'Simplest Route',
+                          label: 'Less Walking',
                           selected: _priority == RoutePriority.simplest,
                           onTap: () => setState(
                             () => _priority = RoutePriority.simplest,
@@ -195,27 +191,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         ),
                         SizedBox(height: 6.h),
                         const DividerLine(),
-                        SizedBox(height: 6.h),
-                        const SectionHeading(text: 'General', fontSize: 17),
-                        SizedBox(height: 4.h),
-                        SizedBox(
-                          width: 358.w,
-                          child: PreferencesPanel(
-                            child: ToggleRow(
-                              leading: Icon(
-                                Icons.swap_horiz,
-                                color: AppColors.textPrimary,
-                                size: 20.r,
-                              ),
-                              label: 'Avoid Transfers',
-                              value: _avoidTransfers,
-                              onChanged: (v) =>
-                                  setState(() => _avoidTransfers = v),
-                              verticalPadding: 5,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 10.h),
                         SizedBox(
                           width: double.infinity,
                           height: 54.h,
