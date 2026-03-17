@@ -15,7 +15,10 @@ class ApiResult<T> {
 
   factory ApiResult.failure(ApiErrorModel error) => ApiResult._(error: error);
 
-  R when<R>({required R Function(T data) success, required R Function(ApiErrorModel error) failure}) {
+  R when<R>({
+    required R Function(T data) success,
+    required R Function(ApiErrorModel error) failure,
+  }) {
     if (isSuccess) return success(data as T);
     return failure(error as ApiErrorModel);
   }

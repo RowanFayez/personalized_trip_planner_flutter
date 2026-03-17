@@ -11,11 +11,12 @@ class RoutesRemoteDataSource {
   final RoutesApiService _api;
 
   RoutesRemoteDataSource({RoutesApiService? api, Dio? dio})
-      : _api = api ??
-            RoutesApiService(
-              dio ?? DioFactory.create(baseUrl: ApiConstants.baseUrl),
-              baseUrl: ApiConstants.baseUrl,
-            );
+    : _api =
+          api ??
+          RoutesApiService(
+            dio ?? DioFactory.create(baseUrl: ApiConstants.baseUrl),
+            baseUrl: ApiConstants.baseUrl,
+          );
 
   Future<ApiResult<RoutesResponseDto>> getRoutes(RoutesRequestDto request) {
     return safeApiCall(() => _api.getRoutes(request));

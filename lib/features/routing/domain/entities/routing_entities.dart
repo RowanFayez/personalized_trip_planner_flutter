@@ -41,13 +41,13 @@ class JourneySummary extends Equatable {
 
   @override
   List<Object?> get props => [
-        totalTimeMinutes,
-        totalDistanceMeters,
-        walkingDistanceMeters,
-        transfers,
-        cost,
-        modes,
-      ];
+    totalTimeMinutes,
+    totalDistanceMeters,
+    walkingDistanceMeters,
+    transfers,
+    cost,
+    modes,
+  ];
 }
 
 class StopRef extends Equatable {
@@ -100,18 +100,18 @@ class RouteLeg extends Equatable {
 
   @override
   List<Object?> get props => [
-        type,
-        distanceMeters,
-        durationMinutes,
-        path,
-        tripId,
-        mode,
-        routeShortName,
-        headsign,
-        fare,
-        from,
-        to,
-      ];
+    type,
+    distanceMeters,
+    durationMinutes,
+    path,
+    tripId,
+    mode,
+    routeShortName,
+    headsign,
+    fare,
+    from,
+    to,
+  ];
 }
 
 class RoutesRequest extends Equatable {
@@ -138,13 +138,13 @@ class RoutesRequest extends Equatable {
 
   @override
   List<Object?> get props => [
-        startLat,
-        startLon,
-        endLat,
-        endLon,
-        maxWalkingTimeMinutes,
-        priority,
-        modes,
-        avoidTransfers,
-      ];
+    startLat,
+    startLon,
+    endLat,
+    endLon,
+    maxWalkingTimeMinutes,
+    priority,
+    modes,
+    avoidTransfers,
+  ];
 }

@@ -9,10 +9,7 @@ class RoutesResponseDto {
 
   final List<JourneyDto> journeys;
 
-  const RoutesResponseDto({
-    required this.numJourneys,
-    required this.journeys,
-  });
+  const RoutesResponseDto({required this.numJourneys, required this.journeys});
 
   factory RoutesResponseDto.fromJson(Map<String, dynamic> json) =>
       _$RoutesResponseDtoFromJson(json);
@@ -25,10 +22,7 @@ class JourneyDto {
   final JourneySummaryDto summary;
   final List<RouteLegDto> legs;
 
-  const JourneyDto({
-    required this.summary,
-    required this.legs,
-  });
+  const JourneyDto({required this.summary, required this.legs});
 
   factory JourneyDto.fromJson(Map<String, dynamic> json) =>
       _$JourneyDtoFromJson(json);
@@ -156,7 +150,11 @@ class StopRefDto {
 
   static List<double> _toDouble1D(dynamic value) {
     if (value is! List) return const [0, 0];
-    final nums = value.whereType<num>().take(2).map((n) => n.toDouble()).toList();
+    final nums = value
+        .whereType<num>()
+        .take(2)
+        .map((n) => n.toDouble())
+        .toList();
     if (nums.length != 2) return const [0, 0];
     return List<double>.unmodifiable(nums);
   }

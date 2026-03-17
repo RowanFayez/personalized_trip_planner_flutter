@@ -3,7 +3,8 @@ import '../config/env_config.dart';
 class ApiConstants {
   ApiConstants._();
 
-  static const String defaultBaseUrl = 'https://routing-demo-eval.azurewebsites.net';
+  static const String defaultBaseUrl =
+      'https://routing-demo-eval.azurewebsites.net';
 
   /// Backend base URL.
   ///

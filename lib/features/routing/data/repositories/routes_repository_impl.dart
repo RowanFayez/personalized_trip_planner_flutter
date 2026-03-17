@@ -8,7 +8,7 @@ class RoutesRepositoryImpl implements RoutesRepository {
   final RoutesRemoteDataSource _remote;
 
   RoutesRepositoryImpl({RoutesRemoteDataSource? remote})
-      : _remote = remote ?? RoutesRemoteDataSource();
+    : _remote = remote ?? RoutesRemoteDataSource();
 
   @override
   Future<ApiResult<RoutingResult>> getRoutes(RoutesRequest request) async {
