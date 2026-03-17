@@ -201,8 +201,6 @@ class _HomePageState extends State<HomePage> {
             },
           ),
 
-          // Gradient overlay matching HTML mockup:
-          // from-background-dark/80 via-background-dark/20 to-background-dark/50
           Positioned.fill(
             child: IgnorePointer(
               child: Container(
