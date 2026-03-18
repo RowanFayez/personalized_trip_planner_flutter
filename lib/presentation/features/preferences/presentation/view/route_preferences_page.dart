@@ -46,8 +46,10 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     if (!mounted) return;
 
     setState(() {
-      _maxWalkingMinutes =
-          (saved.walkingCutoffMeters / _metersPerMinute).clamp(0, 60);
+      _maxWalkingMinutes = (saved.walkingCutoffMeters / _metersPerMinute).clamp(
+        0,
+        60,
+      );
 
       _microbus = saved.restrictedModes.contains('microbus');
       _tram = saved.restrictedModes.contains('tram');

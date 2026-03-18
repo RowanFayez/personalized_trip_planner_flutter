@@ -159,17 +159,18 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    final key = '${fromLat.toStringAsFixed(6)},${fromLon.toStringAsFixed(6)}|'
+    final key =
+        '${fromLat.toStringAsFixed(6)},${fromLon.toStringAsFixed(6)}|'
         '${toLat.toStringAsFixed(6)},${toLon.toStringAsFixed(6)}';
     if (_lastRoutesKey == key) return;
 
     _lastRoutesKey = key;
     context.read<RoutingCubit>().fetchRoutes(
-          startLat: fromLat,
-          startLon: fromLon,
-          endLat: toLat,
-          endLon: toLon,
-        );
+      startLat: fromLat,
+      startLon: fromLon,
+      endLat: toLat,
+      endLon: toLon,
+    );
   }
 
   PlaceSearchController get _activeSearchController {

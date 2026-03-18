@@ -65,12 +65,9 @@ class SavedPlacesService {
 
   Future<void> setPlace(SavedPlaceType type, SavedPlace place) async {
     final box = await HiveService.openBox<dynamic>(CoreHiveBoxes.savedPlaces);
-    await box.put(
-      _placeKey(type),
-      <String, double>{
-        'lat': place.latitude,
-        'lng': place.longitude,
-      },
-    );
+    await box.put(_placeKey(type), <String, double>{
+      'lat': place.latitude,
+      'lng': place.longitude,
+    });
   }
 }

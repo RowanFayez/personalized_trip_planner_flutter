@@ -47,5 +47,10 @@ class RoutingState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [status, result, errorMessage, selectedJourneyIndex];
+  List<Object?> get props => [
+    status,
+    result,
+    errorMessage,
+    selectedJourneyIndex,
+  ];
 }

@@ -46,9 +46,12 @@ class RoutePreferencesService {
   ];
 
   Future<RoutePreferences> load() async {
-    final box = await HiveService.openBox<dynamic>(CoreHiveBoxes.routePreferences);
+    final box = await HiveService.openBox<dynamic>(
+      CoreHiveBoxes.routePreferences,
+    );
 
-    final maxTransfers = (box.get(_kMaxTransfers) as int?) ?? defaultMaxTransfers;
+    final maxTransfers =
+        (box.get(_kMaxTransfers) as int?) ?? defaultMaxTransfers;
     final walkingCutoff =
         (box.get(_kWalkingCutoff) as int?) ?? defaultWalkingCutoffMeters;
     final topK = (box.get(_kTopK) as int?) ?? defaultTopK;
@@ -69,7 +72,9 @@ class RoutePreferencesService {
   }
 
   Future<void> save(RoutePreferences preferences) async {
-    final box = await HiveService.openBox<dynamic>(CoreHiveBoxes.routePreferences);
+    final box = await HiveService.openBox<dynamic>(
+      CoreHiveBoxes.routePreferences,
+    );
     await box.put(_kMaxTransfers, preferences.maxTransfers);
     await box.put(_kWalkingCutoff, preferences.walkingCutoffMeters);
     await box.put(_kTopK, preferences.topK);

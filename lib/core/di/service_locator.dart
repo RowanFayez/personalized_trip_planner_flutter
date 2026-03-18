@@ -22,8 +22,12 @@ class ServiceLocator {
     await HiveService.init();
 
     // Core
-    sl.registerLazySingleton<Dio>(() => DioFactory.create(baseUrl: ApiConstants.baseUrl));
-    sl.registerLazySingleton<RoutePreferencesService>(() => RoutePreferencesService());
+    sl.registerLazySingleton<Dio>(
+      () => DioFactory.create(baseUrl: ApiConstants.baseUrl),
+    );
+    sl.registerLazySingleton<RoutePreferencesService>(
+      () => RoutePreferencesService(),
+    );
 
     // Routing (data)
     sl.registerLazySingleton<RoutesApiService>(
