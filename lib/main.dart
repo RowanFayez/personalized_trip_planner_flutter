@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/config/env_config.dart';
+import 'core/di/service_locator.dart';
 import 'core/routes/app_router.dart';
 import 'core/theme/app_theme.dart';
 
@@ -11,6 +12,9 @@ void main() async {
 
   // Load environment variables
   await EnvConfig.init();
+
+  // Dependency injection + local storage
+  await ServiceLocator.init();
 
   // Provide Mapbox token at runtime (keeps native config files token-free for GitHub).
   MapboxOptions.setAccessToken(EnvConfig.mapboxAccessToken);
