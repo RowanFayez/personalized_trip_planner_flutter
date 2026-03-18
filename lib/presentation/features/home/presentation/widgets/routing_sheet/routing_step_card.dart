@@ -53,10 +53,7 @@ class RoutingStepCard extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) ...[
-            SizedBox(width: 10.w),
-            trailing,
-          ],
+          if (trailing != null) ...[SizedBox(width: 10.w), trailing],
         ],
       ),
     );

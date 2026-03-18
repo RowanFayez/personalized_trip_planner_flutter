@@ -97,7 +97,9 @@ class RoutingSheetContent extends StatelessWidget {
           Duration(minutes: journey.summary.totalTimeMinutes),
         );
         final fastestIndex = RoutingJourneyUtils.findFastestIndex(allJourneys);
-        final cheapestIndex = RoutingJourneyUtils.findCheapestIndex(allJourneys);
+        final cheapestIndex = RoutingJourneyUtils.findCheapestIndex(
+          allJourneys,
+        );
         final lessWalkingIndex = RoutingJourneyUtils.findLessWalkingIndex(
           allJourneys,
         );
@@ -105,10 +107,10 @@ class RoutingSheetContent extends StatelessWidget {
         final badgeLabel = index == fastestIndex
             ? 'Fastest'
             : index == cheapestIndex
-                ? 'Cheapest'
-                : index == lessWalkingIndex
-                    ? 'Less Walking'
-                    : 'Route';
+            ? 'Cheapest'
+            : index == lessWalkingIndex
+            ? 'Less Walking'
+            : 'Route';
 
         return ListView(
           controller: scrollController,
