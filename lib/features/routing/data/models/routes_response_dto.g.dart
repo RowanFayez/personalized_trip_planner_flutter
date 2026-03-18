@@ -12,12 +12,20 @@ RoutesResponseDto _$RoutesResponseDtoFromJson(Map<String, dynamic> json) =>
       journeys: (json['journeys'] as List<dynamic>)
           .map((e) => JourneyDto.fromJson(e as Map<String, dynamic>))
           .toList(),
+      startTripsFound: (json['start_trips_found'] as num?)?.toInt(),
+      endTripsFound: (json['end_trips_found'] as num?)?.toInt(),
+      totalRoutesFound: (json['total_routes_found'] as num?)?.toInt(),
+      error: json['error'],
     );
 
 Map<String, dynamic> _$RoutesResponseDtoToJson(RoutesResponseDto instance) =>
     <String, dynamic>{
       'num_journeys': instance.numJourneys,
       'journeys': instance.journeys.map((e) => e.toJson()).toList(),
+      'start_trips_found': instance.startTripsFound,
+      'end_trips_found': instance.endTripsFound,
+      'total_routes_found': instance.totalRoutesFound,
+      'error': instance.error,
     };
 
 JourneyDto _$JourneyDtoFromJson(Map<String, dynamic> json) => JourneyDto(
@@ -25,12 +33,16 @@ JourneyDto _$JourneyDtoFromJson(Map<String, dynamic> json) => JourneyDto(
   legs: (json['legs'] as List<dynamic>)
       .map((e) => RouteLegDto.fromJson(e as Map<String, dynamic>))
       .toList(),
+  textSummary: json['text_summary'] as String?,
+  id: (json['id'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$JourneyDtoToJson(JourneyDto instance) =>
     <String, dynamic>{
       'summary': instance.summary.toJson(),
       'legs': instance.legs.map((e) => e.toJson()).toList(),
+      'text_summary': instance.textSummary,
+      'id': instance.id,
     };
 
 JourneySummaryDto _$JourneySummaryDtoFromJson(Map<String, dynamic> json) =>
@@ -69,6 +81,15 @@ RouteLegDto _$RouteLegDtoFromJson(Map<String, dynamic> json) => RouteLegDto(
   to: json['to'] == null
       ? null
       : StopRefDto.fromJson(json['to'] as Map<String, dynamic>),
+  tripIds: (json['trip_ids'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  fromTripId: json['from_trip_id'] as String?,
+  toTripId: json['to_trip_id'] as String?,
+  fromTripName: json['from_trip_name'] as String?,
+  toTripName: json['to_trip_name'] as String?,
+  endStopId: (json['end_stop_id'] as num?)?.toInt(),
+  walkingDistanceMeters: (json['walking_distance_meters'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$RouteLegDtoToJson(RouteLegDto instance) =>
@@ -84,6 +105,13 @@ Map<String, dynamic> _$RouteLegDtoToJson(RouteLegDto instance) =>
       'fare': instance.fare,
       'from': instance.from?.toJson(),
       'to': instance.to?.toJson(),
+      'trip_ids': instance.tripIds,
+      'from_trip_id': instance.fromTripId,
+      'to_trip_id': instance.toTripId,
+      'from_trip_name': instance.fromTripName,
+      'to_trip_name': instance.toTripName,
+      'end_stop_id': instance.endStopId,
+      'walking_distance_meters': instance.walkingDistanceMeters,
     };
 
 StopRefDto _$StopRefDtoFromJson(Map<String, dynamic> json) => StopRefDto(

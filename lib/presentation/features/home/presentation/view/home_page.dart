@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/config/map_config.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
+import '../../../../../features/routing/presentation/cubit/routing_cubit.dart';
+import '../../../../../features/routing/presentation/cubit/routing_state.dart';
 import '../../../../features/map_picker/presentation/view/map_picker_page.dart';
 import '../controllers/place_search_controller.dart';
 import '../widgets/search_overlay.dart';
 import '../widgets/map_action_buttons.dart';
+import '../widgets/routing_bottom_sheet.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -33,6 +37,8 @@ class _HomePageState extends State<HomePage> {
   late final PlaceSearchController _fromSearch;
   late final PlaceSearchController _toSearch;
 
+  String? _lastRoutesKey;
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +50,10 @@ class _HomePageState extends State<HomePage> {
           markerId: 'from_pin',
           markerColor: AppColors.primaryTeal,
         )..addListener(() {
-          if (mounted) setState(() {});
+          if (mounted) {
+            setState(() {});
+            _maybeFetchRoutes();
+          }
         });
 
     _fromSearch.focusNode.addListener(() {
@@ -58,7 +67,10 @@ class _HomePageState extends State<HomePage> {
           markerId: 'to_pin',
           markerColor: AppColors.accentRed,
         )..addListener(() {
-          if (mounted) setState(() {});
+          if (mounted) {
+            setState(() {});
+            _maybeFetchRoutes();
+          }
         });
 
     _toSearch.focusNode.addListener(() {
@@ -120,6 +132,7 @@ class _HomePageState extends State<HomePage> {
         latitude: result.latitude,
         longitude: result.longitude,
       );
+      _maybeFetchRoutes();
     }
   }
 
@@ -132,7 +145,31 @@ class _HomePageState extends State<HomePage> {
         latitude: result.latitude,
         longitude: result.longitude,
       );
+      _maybeFetchRoutes();
     }
+  }
+
+  void _maybeFetchRoutes() {
+    final fromLat = _fromSearch.selectedLatitude;
+    final fromLon = _fromSearch.selectedLongitude;
+    final toLat = _toSearch.selectedLatitude;
+    final toLon = _toSearch.selectedLongitude;
+
+    if (fromLat == null || fromLon == null || toLat == null || toLon == null) {
+      return;
+    }
+
+    final key = '${fromLat.toStringAsFixed(6)},${fromLon.toStringAsFixed(6)}|'
+        '${toLat.toStringAsFixed(6)},${toLon.toStringAsFixed(6)}';
+    if (_lastRoutesKey == key) return;
+
+    _lastRoutesKey = key;
+    context.read<RoutingCubit>().fetchRoutes(
+          startLat: fromLat,
+          startLon: fromLon,
+          endLat: toLat,
+          endLon: toLon,
+        );
   }
 
   PlaceSearchController get _activeSearchController {
@@ -179,98 +216,131 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          // Mapbox Map
-          MapWidget(
-            key: const ValueKey('mapWidget'),
-            cameraOptions: MapConfig.defaultCamera,
-            styleUri: MapConfig.styleUrl,
-            textureView: true,
-            onMapCreated: (MapboxMap mapboxMap) {
-              _mapService.initialize(mapboxMap);
-              // Hide Mapbox ornaments
-              mapboxMap.scaleBar.updateSettings(
-                ScaleBarSettings(enabled: false),
-              );
-              mapboxMap.compass.updateSettings(CompassSettings(enabled: false));
-              // Smoothly move to user's current location once at startup.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _centerOnUserOnStartup();
-              });
-            },
-          ),
+      body: BlocListener<RoutingCubit, RoutingState>(
+        listenWhen: (previous, current) {
+          return previous.status != current.status ||
+              previous.selectedJourneyIndex != current.selectedJourneyIndex;
+        },
+        listener: (context, state) async {
+          if (state.status != RoutingStatus.success) return;
+          final journey = state.selectedJourney;
+          if (journey == null) return;
 
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x800F2123), // top: 50% dark
-                      Color(0x330F2123), // via: 20% dark
-                      Color(0x330F2123), // middle: transparent-ish
-                      Color(0xCC0F2123), // bottom: 80% dark
-                    ],
-                    stops: [0.0, 0.25, 0.6, 1.0],
+          final allPoints = <Position>[];
+          for (final leg in journey.legs) {
+            for (final p in leg.path) {
+              allPoints.add(Position(p.lon, p.lat));
+            }
+          }
+
+          if (allPoints.isEmpty) return;
+
+          await _mapService.removeRoute('active');
+          await _mapService.drawRoute(id: 'active', coordinates: allPoints);
+          await _mapService.fitToRoute(allPoints);
+        },
+        child: Stack(
+          children: [
+            // Mapbox Map
+            MapWidget(
+              key: const ValueKey('mapWidget'),
+              cameraOptions: MapConfig.defaultCamera,
+              styleUri: MapConfig.styleUrl,
+              textureView: true,
+              onMapCreated: (MapboxMap mapboxMap) {
+                _mapService.initialize(mapboxMap);
+                // Hide Mapbox ornaments
+                mapboxMap.scaleBar.updateSettings(
+                  ScaleBarSettings(enabled: false),
+                );
+                mapboxMap.compass.updateSettings(
+                  CompassSettings(enabled: false),
+                );
+                // Smoothly move to user's current location once at startup.
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _centerOnUserOnStartup();
+                });
+              },
+            ),
+
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x800F2123), // top: 50% dark
+                        Color(0x330F2123), // via: 20% dark
+                        Color(0x330F2123), // middle: transparent-ish
+                        Color(0xCC0F2123), // bottom: 80% dark
+                      ],
+                      stops: [0.0, 0.25, 0.6, 1.0],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // Top search UI overlay
-          SearchOverlay(
-            fromController: _fromSearch.textController,
-            toController: _toSearch.textController,
-            fromFocusNode: _fromSearch.focusNode,
-            toFocusNode: _toSearch.focusNode,
-            onFromChanged: _fromSearch.onChanged,
-            onToChanged: _toSearch.onChanged,
-            onFromSubmitted: (_) => _fromSearch.submit(),
-            onToSubmitted: (_) => _toSearch.submit(),
-            onFromTapped: () {
-              _fromSearch.onFieldTap();
-              setState(() {});
-            },
-            onToTapped: () {
-              _toSearch.onFieldTap();
-              setState(() {});
-            },
-            showQuickPlaces:
-                _fromSearch.focusNode.hasFocus || _toSearch.focusNode.hasFocus,
-            showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
-            onQuickPlaceSelected: (type) => _handleQuickPlaceSelected(type),
-            onQuickPlaceMore: _handleQuickPlaceMore,
-            fromSuggestions: _fromSearch.suggestions,
-            toSuggestions: _toSearch.suggestions,
-            onFromSuggestionSelected: _fromSearch.selectSuggestion,
-            onToSuggestionSelected: _toSearch.selectSuggestion,
-            showFromSuggestions: _fromSearch.showSuggestions,
-            showToSuggestions: _toSearch.showSuggestions,
-            onPreferencesPressed: _handlePreferencesPressed,
-            onFromMapPressed: _handleFromMapPick,
-            onToMapPressed: _handleToMapPick,
-          ),
-
-          // Bottom action buttons
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.only(
-                left: 20.w,
-                bottom: keyboardInset > 0
-                    ? keyboardInset + 12.h
-                    : 32.h + safeBottomInset,
-              ),
-              child: MapActionButtons(onChatPressed: _handleChatPressed),
+            // Top search UI overlay
+            SearchOverlay(
+              fromController: _fromSearch.textController,
+              toController: _toSearch.textController,
+              fromFocusNode: _fromSearch.focusNode,
+              toFocusNode: _toSearch.focusNode,
+              onFromChanged: _fromSearch.onChanged,
+              onToChanged: _toSearch.onChanged,
+              onFromSubmitted: (_) => _fromSearch.submit(),
+              onToSubmitted: (_) => _toSearch.submit(),
+              onFromTapped: () {
+                _fromSearch.onFieldTap();
+                setState(() {});
+              },
+              onToTapped: () {
+                _toSearch.onFieldTap();
+                setState(() {});
+              },
+              showQuickPlaces:
+                  _fromSearch.focusNode.hasFocus ||
+                  _toSearch.focusNode.hasFocus,
+              showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
+              onQuickPlaceSelected: (type) => _handleQuickPlaceSelected(type),
+              onQuickPlaceMore: _handleQuickPlaceMore,
+              fromSuggestions: _fromSearch.suggestions,
+              toSuggestions: _toSearch.suggestions,
+              onFromSuggestionSelected: _fromSearch.selectSuggestion,
+              onToSuggestionSelected: _toSearch.selectSuggestion,
+              showFromSuggestions: _fromSearch.showSuggestions,
+              showToSuggestions: _toSearch.showSuggestions,
+              onPreferencesPressed: _handlePreferencesPressed,
+              onFromMapPressed: _handleFromMapPick,
+              onToMapPressed: _handleToMapPick,
             ),
-          ),
-        ],
+
+            // Bottom action buttons
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(
+                  left: 20.w,
+                  bottom: keyboardInset > 0
+                      ? keyboardInset + 12.h
+                      : 32.h + safeBottomInset,
+                ),
+                child: MapActionButtons(onChatPressed: _handleChatPressed),
+              ),
+            ),
+
+            // Routing bottom sheet
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: RoutingBottomSheet(),
+            ),
+          ],
+        ),
       ),
     );
   }

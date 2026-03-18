@@ -10,10 +10,10 @@ extension RoutesRequestDtoMapper on RoutesRequest {
       startLon: startLon,
       endLat: endLat,
       endLon: endLon,
-      maxWalkingTimeMinutes: maxWalkingTimeMinutes,
-      priority: priority,
-      modes: modes,
-      avoidTransfers: avoidTransfers,
+      maxTransfers: maxTransfers,
+      walkingCutoff: walkingCutoff,
+      topK: topK,
+      restrictedModes: List<String>.unmodifiable(restrictedModes),
     );
   }
 }
@@ -32,6 +32,8 @@ extension JourneyMapper on JourneyDto {
     return Journey(
       summary: summary.toEntity(),
       legs: legs.map((l) => l.toEntity()).toList(growable: false),
+      textSummary: textSummary,
+      id: id,
     );
   }
 }
@@ -68,6 +70,13 @@ extension RouteLegMapper on RouteLegDto {
       fare: fare,
       from: from?.toEntity(),
       to: to?.toEntity(),
+      tripIds: tripIds == null ? null : List<String>.unmodifiable(tripIds!),
+      fromTripId: fromTripId,
+      toTripId: toTripId,
+      fromTripName: fromTripName,
+      toTripName: toTripName,
+      endStopId: endStopId,
+      walkingDistanceMeters: walkingDistanceMeters,
     );
   }
 }

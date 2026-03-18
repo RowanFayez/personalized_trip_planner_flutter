@@ -21,6 +21,12 @@ class PlaceSearchController extends ChangeNotifier {
   double? _proximityLatitude;
   double? _proximityLongitude;
 
+  double? _selectedLatitude;
+  double? _selectedLongitude;
+
+  double? get selectedLatitude => _selectedLatitude;
+  double? get selectedLongitude => _selectedLongitude;
+
   PlaceSearchController({
     required MapboxGeocodingService geocodingService,
     required MapService mapService,
@@ -102,6 +108,9 @@ class PlaceSearchController extends ChangeNotifier {
 
     _suggestions = const [];
     _showSuggestions = false;
+
+    _selectedLatitude = suggestion.latitude;
+    _selectedLongitude = suggestion.longitude;
     notifyListeners();
 
     await _mapService.animateCamera(
@@ -130,6 +139,9 @@ class PlaceSearchController extends ChangeNotifier {
 
     _suggestions = const [];
     _showSuggestions = false;
+
+    _selectedLatitude = latitude;
+    _selectedLongitude = longitude;
     notifyListeners();
 
     await _mapService.animateCamera(

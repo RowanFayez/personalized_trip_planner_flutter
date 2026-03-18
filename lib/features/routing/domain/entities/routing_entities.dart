@@ -15,8 +15,15 @@ class RoutingResult extends Equatable {
 class Journey extends Equatable {
   final JourneySummary summary;
   final List<RouteLeg> legs;
+  final String? textSummary;
+  final int? id;
 
-  const Journey({required this.summary, required this.legs});
+  const Journey({
+    required this.summary,
+    required this.legs,
+    this.textSummary,
+    this.id,
+  });
 
   @override
   List<Object?> get props => [summary, legs];
@@ -81,6 +88,16 @@ class RouteLeg extends Equatable {
   final StopRef? from;
   final StopRef? to;
 
+  final List<String>? tripIds;
+
+  // Transfer fields
+  final String? fromTripId;
+  final String? toTripId;
+  final String? fromTripName;
+  final String? toTripName;
+  final int? endStopId;
+  final int? walkingDistanceMeters;
+
   const RouteLeg({
     required this.type,
     required this.path,
@@ -93,10 +110,18 @@ class RouteLeg extends Equatable {
     this.fare,
     this.from,
     this.to,
+    this.tripIds,
+    this.fromTripId,
+    this.toTripId,
+    this.fromTripName,
+    this.toTripName,
+    this.endStopId,
+    this.walkingDistanceMeters,
   });
 
   bool get isWalk => type == 'walk';
   bool get isTrip => type == 'trip';
+  bool get isTransfer => type == 'transfer';
 
   @override
   List<Object?> get props => [
@@ -111,6 +136,13 @@ class RouteLeg extends Equatable {
     fare,
     from,
     to,
+    tripIds,
+    fromTripId,
+    toTripId,
+    fromTripName,
+    toTripName,
+    endStopId,
+    walkingDistanceMeters,
   ];
 }
 
@@ -120,20 +152,20 @@ class RoutesRequest extends Equatable {
   final double endLat;
   final double endLon;
 
-  final int? maxWalkingTimeMinutes;
-  final String? priority;
-  final List<String>? modes;
-  final bool? avoidTransfers;
+  final int maxTransfers;
+  final int walkingCutoff;
+  final int topK;
+  final List<String> restrictedModes;
 
   const RoutesRequest({
     required this.startLat,
     required this.startLon,
     required this.endLat,
     required this.endLon,
-    this.maxWalkingTimeMinutes,
-    this.priority,
-    this.modes,
-    this.avoidTransfers,
+    required this.maxTransfers,
+    required this.walkingCutoff,
+    required this.topK,
+    required this.restrictedModes,
   });
 
   @override
@@ -142,9 +174,9 @@ class RoutesRequest extends Equatable {
     startLon,
     endLat,
     endLon,
-    maxWalkingTimeMinutes,
-    priority,
-    modes,
-    avoidTransfers,
+    maxTransfers,
+    walkingCutoff,
+    topK,
+    restrictedModes,
   ];
 }

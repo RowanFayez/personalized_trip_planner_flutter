@@ -9,7 +9,25 @@ class RoutesResponseDto {
 
   final List<JourneyDto> journeys;
 
-  const RoutesResponseDto({required this.numJourneys, required this.journeys});
+  @JsonKey(name: 'start_trips_found')
+  final int? startTripsFound;
+
+  @JsonKey(name: 'end_trips_found')
+  final int? endTripsFound;
+
+  @JsonKey(name: 'total_routes_found')
+  final int? totalRoutesFound;
+
+  final Object? error;
+
+  const RoutesResponseDto({
+    required this.numJourneys,
+    required this.journeys,
+    this.startTripsFound,
+    this.endTripsFound,
+    this.totalRoutesFound,
+    this.error,
+  });
 
   factory RoutesResponseDto.fromJson(Map<String, dynamic> json) =>
       _$RoutesResponseDtoFromJson(json);
@@ -22,7 +40,17 @@ class JourneyDto {
   final JourneySummaryDto summary;
   final List<RouteLegDto> legs;
 
-  const JourneyDto({required this.summary, required this.legs});
+  @JsonKey(name: 'text_summary')
+  final String? textSummary;
+
+  final int? id;
+
+  const JourneyDto({
+    required this.summary,
+    required this.legs,
+    this.textSummary,
+    this.id,
+  });
 
   factory JourneyDto.fromJson(Map<String, dynamic> json) =>
       _$JourneyDtoFromJson(json);
@@ -89,6 +117,28 @@ class RouteLegDto {
   final StopRefDto? from;
   final StopRefDto? to;
 
+  @JsonKey(name: 'trip_ids')
+  final List<String>? tripIds;
+
+  // Transfer-only fields
+  @JsonKey(name: 'from_trip_id')
+  final String? fromTripId;
+
+  @JsonKey(name: 'to_trip_id')
+  final String? toTripId;
+
+  @JsonKey(name: 'from_trip_name')
+  final String? fromTripName;
+
+  @JsonKey(name: 'to_trip_name')
+  final String? toTripName;
+
+  @JsonKey(name: 'end_stop_id')
+  final int? endStopId;
+
+  @JsonKey(name: 'walking_distance_meters')
+  final int? walkingDistanceMeters;
+
   const RouteLegDto({
     required this.type,
     this.distanceMeters,
@@ -101,6 +151,13 @@ class RouteLegDto {
     this.fare,
     this.from,
     this.to,
+    this.tripIds,
+    this.fromTripId,
+    this.toTripId,
+    this.fromTripName,
+    this.toTripName,
+    this.endStopId,
+    this.walkingDistanceMeters,
   });
 
   factory RouteLegDto.fromJson(Map<String, dynamic> json) =>

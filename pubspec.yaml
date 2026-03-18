@@ -43,6 +43,9 @@ dependencies:
   google_places_flutter: ^2.1.1
   http: ^1.2.2
   json_annotation: ^4.9.0
+  get_it: ^7.7.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
   mapbox_maps_flutter: ^2.3.0
   retrofit: 4.4.2
   shared_preferences: ^2.3.3

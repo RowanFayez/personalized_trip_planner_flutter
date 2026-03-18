@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'routes_request_dto.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false)
 class RoutesRequestDto {
   @JsonKey(name: 'start_lat')
   final double startLat;
@@ -16,29 +16,27 @@ class RoutesRequestDto {
   @JsonKey(name: 'end_lon')
   final double endLon;
 
-  /// Optional: max walking time constraint (minutes).
-  @JsonKey(name: 'max_walking_time_minutes')
-  final int? maxWalkingTimeMinutes;
+  @JsonKey(name: 'max_transfers')
+  final int maxTransfers;
 
-  /// Optional: preference such as "fastest", "cheapest", "simplest", "less_walking".
-  final String? priority;
+  @JsonKey(name: 'walking_cutoff')
+  final int walkingCutoff;
 
-  /// Optional: allowed modes (e.g. ["microbus","tram","walking"]).
-  final List<String>? modes;
+  @JsonKey(name: 'top_k')
+  final int topK;
 
-  /// Optional: backend may support avoiding transfers.
-  @JsonKey(name: 'avoid_transfers')
-  final bool? avoidTransfers;
+  @JsonKey(name: 'restricted_modes')
+  final List<String> restrictedModes;
 
   const RoutesRequestDto({
     required this.startLat,
     required this.startLon,
     required this.endLat,
     required this.endLon,
-    this.maxWalkingTimeMinutes,
-    this.priority,
-    this.modes,
-    this.avoidTransfers,
+    required this.maxTransfers,
+    required this.walkingCutoff,
+    required this.topK,
+    required this.restrictedModes,
   });
 
   factory RoutesRequestDto.fromJson(Map<String, dynamic> json) =>

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/services/route_preferences_service.dart';
 import '../models/route_priority.dart';
 import '../widgets/divider_line.dart';
 import '../widgets/mode_row.dart';
@@ -21,6 +22,11 @@ class RoutePreferencesPage extends StatefulWidget {
 }
 
 class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
+  static const double _metersPerMinute = 80.0;
+
+  final RoutePreferencesService _routePreferencesService =
+      RoutePreferencesService();
+
   RoutePriority _priority = RoutePriority.fastest;
   double _maxWalkingMinutes = 30;
 
@@ -29,14 +35,67 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
   bool _minibus = false;
   bool _walking = true;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPreferences();
+  }
+
+  Future<void> _loadSavedPreferences() async {
+    final saved = await _routePreferencesService.load();
+    if (!mounted) return;
+
+    setState(() {
+      _maxWalkingMinutes =
+          (saved.walkingCutoffMeters / _metersPerMinute).clamp(0, 60);
+
+      _microbus = saved.restrictedModes.contains('microbus');
+      _tram = saved.restrictedModes.contains('tram');
+      _minibus = saved.restrictedModes.contains('minibus');
+      _walking = saved.restrictedModes.contains('walking');
+    });
+  }
+
+  Future<void> _applyPreferences() async {
+    final restrictedModes = <String>[
+      if (_microbus) 'microbus',
+      if (_tram) 'tram',
+      if (_minibus) 'minibus',
+      if (_walking) 'walking',
+    ];
+
+    final walkingCutoffMeters = (_maxWalkingMinutes * _metersPerMinute).round();
+
+    final current = await _routePreferencesService.load();
+    final updated = current.copyWith(
+      walkingCutoffMeters: walkingCutoffMeters,
+      restrictedModes: restrictedModes.isEmpty
+          ? RoutePreferencesService.defaultRestrictedModes
+          : restrictedModes,
+    );
+    await _routePreferencesService.save(updated);
+    if (!mounted) return;
+    context.pop();
+  }
+
   void _resetToDefault() {
     setState(() {
       _priority = RoutePriority.fastest;
-      _maxWalkingMinutes = 30;
-      _microbus = true;
-      _tram = true;
-      _minibus = false;
-      _walking = true;
+      _maxWalkingMinutes =
+          (RoutePreferencesService.defaultWalkingCutoffMeters /
+                  _metersPerMinute)
+              .clamp(0, 60);
+
+      _microbus = RoutePreferencesService.defaultRestrictedModes.contains(
+        'microbus',
+      );
+      _tram = RoutePreferencesService.defaultRestrictedModes.contains('tram');
+      _minibus = RoutePreferencesService.defaultRestrictedModes.contains(
+        'minibus',
+      );
+      _walking = RoutePreferencesService.defaultRestrictedModes.contains(
+        'walking',
+      );
     });
   }
 
@@ -196,7 +255,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                           width: double.infinity,
                           height: 54.h,
                           child: ElevatedButton(
-                            onPressed: () => context.pop(),
+                            onPressed: _applyPreferences,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryTeal,
                               foregroundColor: AppColors.textPrimary,
