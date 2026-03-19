@@ -33,7 +33,9 @@ class GeocodingRubyApiClient {
   final Dio _dio;
 
   GeocodingRubyApiClient({Dio? dio})
-      : _dio = dio ?? DioFactory.create(baseUrl: 'https://geocoding-ruby.vercel.app');
+    : _dio =
+          dio ??
+          DioFactory.create(baseUrl: 'https://geocoding-ruby.vercel.app');
 
   /// Calls `GET /geocode?address=...&bias=true`.
   ///

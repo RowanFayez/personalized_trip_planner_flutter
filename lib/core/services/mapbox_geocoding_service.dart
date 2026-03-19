@@ -32,9 +32,10 @@ class MapboxGeocodingService {
     Dio? mapboxDio,
     GeocodingRubyApiClient? ruby,
     String? accessToken,
-  })  : _mapboxDio = mapboxDio ?? DioFactory.create(baseUrl: 'https://api.mapbox.com'),
-        _ruby = ruby ?? GeocodingRubyApiClient(),
-        _accessToken = accessToken ?? MapConfig.accessToken;
+  }) : _mapboxDio =
+           mapboxDio ?? DioFactory.create(baseUrl: 'https://api.mapbox.com'),
+       _ruby = ruby ?? GeocodingRubyApiClient(),
+       _accessToken = accessToken ?? MapConfig.accessToken;
 
   Future<List<MapboxPlaceSuggestion>> autocomplete({
     required String query,
@@ -98,7 +99,10 @@ class MapboxGeocodingService {
     final idxArabicComma = candidate.indexOf('،');
     final idx = [idxComma, idxArabicComma]
         .where((v) => v >= 0)
-        .fold<int?>(null, (best, v) => best == null ? v : (v < best ? v : best));
+        .fold<int?>(
+          null,
+          (best, v) => best == null ? v : (v < best ? v : best),
+        );
 
     if (idx == null || idx <= 0) {
       return (candidate, candidate);

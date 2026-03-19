@@ -132,7 +132,9 @@ class PlaceSearchController extends ChangeNotifier {
     unawaited(_resolveSelectionCoordinates(suggestion));
   }
 
-  Future<void> _resolveSelectionCoordinates(MapboxPlaceSuggestion suggestion) async {
+  Future<void> _resolveSelectionCoordinates(
+    MapboxPlaceSuggestion suggestion,
+  ) async {
     final address = suggestion.subtitle.trim().isNotEmpty
         ? suggestion.subtitle
         : suggestion.title;
