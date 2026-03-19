@@ -55,7 +55,11 @@ class RoutePreferencesService {
 
     final rawModes = box.get(_kRestrictedModes);
     final List<String>? modes = rawModes is List
-        ? rawModes.whereType<String>().toList(growable: false)
+        ? rawModes
+              .whereType<String>()
+              // Legacy value (old UI) — no longer supported.
+              .where((m) => m.toLowerCase() != 'walking')
+              .toList(growable: false)
         : null;
 
     return RoutePreferences(

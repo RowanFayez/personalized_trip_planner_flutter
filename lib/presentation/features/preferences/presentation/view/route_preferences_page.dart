@@ -33,7 +33,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
   bool _microbus = true;
   bool _tram = true;
   bool _minibus = true;
-  bool _walking = true;
+  bool _bus = true;
 
   @override
   void initState() {
@@ -55,7 +55,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
       _microbus = !saved.restrictedModes.contains('microbus');
       _tram = !saved.restrictedModes.contains('tram');
       _minibus = !saved.restrictedModes.contains('minibus');
-      _walking = !saved.restrictedModes.contains('walking');
+      _bus = !saved.restrictedModes.contains('bus');
     });
   }
 
@@ -65,7 +65,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
       if (!_microbus) 'microbus',
       if (!_tram) 'tram',
       if (!_minibus) 'minibus',
-      if (!_walking) 'walking',
+      if (!_bus) 'bus',
     ];
 
     final walkingCutoffMeters = (_maxWalkingMinutes * _metersPerMinute).round();
@@ -92,7 +92,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
       _microbus = true;
       _tram = true;
       _minibus = true;
-      _walking = true;
+      _bus = true;
     });
   }
 
@@ -237,11 +237,10 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                 ),
                                 const PanelDivider(),
                                 ModeRow(
-                                  iconAsset: 'assets/icons/walking.svg',
-                                  label: 'Walking',
-                                  value: _walking,
-                                  onChanged: (v) =>
-                                      setState(() => _walking = v),
+                                  iconAsset: 'assets/icons/bus.svg',
+                                  label: 'Bus',
+                                  value: _bus,
+                                  onChanged: (v) => setState(() => _bus = v),
                                 ),
                               ],
                             ),

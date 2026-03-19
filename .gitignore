@@ -38,6 +38,9 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Local release artifacts
+abl_3ed.apk
+
 # Symbolication related
 app.*.symbols
 

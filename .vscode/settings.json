@@ -1,3 +1,10 @@
 {
-  "dart.flutterSdkPath": "C:\\flutter_sdk"
+  "dart.flutterSdkPath": "C:\\flutter_sdk",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell (No Profile)": {
+      "source": "PowerShell",
+      "args": ["-NoLogo", "-NoProfile"]
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell (No Profile)"
 }
