@@ -36,14 +36,11 @@ class RoutePreferencesService {
   static const _kRestrictedModes = 'route_pref_restricted_modes';
 
   static const int defaultMaxTransfers = 3;
-  static const int defaultWalkingCutoffMeters = 2400;
+  static const int defaultWalkingCutoffMeters = 1500;
   static const int defaultTopK = 5;
 
-  static const List<String> defaultRestrictedModes = <String>[
-    'microbus',
-    'tram',
-    'walking',
-  ];
+  /// Default is "no restrictions".
+  static const List<String> defaultRestrictedModes = <String>[];
 
   Future<RoutePreferences> load() async {
     final box = await HiveService.openBox<dynamic>(
@@ -65,7 +62,7 @@ class RoutePreferencesService {
       maxTransfers: maxTransfers,
       walkingCutoffMeters: walkingCutoff,
       topK: topK,
-      restrictedModes: (modes == null || modes.isEmpty)
+      restrictedModes: modes == null
           ? defaultRestrictedModes
           : List<String>.unmodifiable(modes),
     );

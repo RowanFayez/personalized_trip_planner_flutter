@@ -32,7 +32,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
 
   bool _microbus = true;
   bool _tram = true;
-  bool _minibus = false;
+  bool _minibus = true;
   bool _walking = true;
 
   @override
@@ -51,19 +51,21 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
         60,
       );
 
-      _microbus = saved.restrictedModes.contains('microbus');
-      _tram = saved.restrictedModes.contains('tram');
-      _minibus = saved.restrictedModes.contains('minibus');
-      _walking = saved.restrictedModes.contains('walking');
+      // Toggles represent "allowed" modes.
+      _microbus = !saved.restrictedModes.contains('microbus');
+      _tram = !saved.restrictedModes.contains('tram');
+      _minibus = !saved.restrictedModes.contains('minibus');
+      _walking = !saved.restrictedModes.contains('walking');
     });
   }
 
   Future<void> _applyPreferences() async {
+    // Any transport mode that is OFF becomes restricted.
     final restrictedModes = <String>[
-      if (_microbus) 'microbus',
-      if (_tram) 'tram',
-      if (_minibus) 'minibus',
-      if (_walking) 'walking',
+      if (!_microbus) 'microbus',
+      if (!_tram) 'tram',
+      if (!_minibus) 'minibus',
+      if (!_walking) 'walking',
     ];
 
     final walkingCutoffMeters = (_maxWalkingMinutes * _metersPerMinute).round();
@@ -71,13 +73,11 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     final current = await _routePreferencesService.load();
     final updated = current.copyWith(
       walkingCutoffMeters: walkingCutoffMeters,
-      restrictedModes: restrictedModes.isEmpty
-          ? RoutePreferencesService.defaultRestrictedModes
-          : restrictedModes,
+      restrictedModes: restrictedModes,
     );
     await _routePreferencesService.save(updated);
     if (!mounted) return;
-    context.pop();
+    context.pop(true);
   }
 
   void _resetToDefault() {
@@ -88,16 +88,11 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                   _metersPerMinute)
               .clamp(0, 60);
 
-      _microbus = RoutePreferencesService.defaultRestrictedModes.contains(
-        'microbus',
-      );
-      _tram = RoutePreferencesService.defaultRestrictedModes.contains('tram');
-      _minibus = RoutePreferencesService.defaultRestrictedModes.contains(
-        'minibus',
-      );
-      _walking = RoutePreferencesService.defaultRestrictedModes.contains(
-        'walking',
-      );
+      // Default is "no restrictions" => all modes allowed.
+      _microbus = true;
+      _tram = true;
+      _minibus = true;
+      _walking = true;
     });
   }
 
@@ -120,7 +115,9 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        RoutePreferencesHeader(onClose: () => context.pop()),
+                        RoutePreferencesHeader(
+                          onClose: () => context.pop(false),
+                        ),
                         SizedBox(height: 6.h),
                         Text(
                           'Prioritize by',

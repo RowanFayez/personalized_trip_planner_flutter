@@ -42,5 +42,11 @@ class RoutesRequestDto {
   factory RoutesRequestDto.fromJson(Map<String, dynamic> json) =>
       _$RoutesRequestDtoFromJson(json);
 
-  Map<String, dynamic> toJson() => _$RoutesRequestDtoToJson(this);
+  Map<String, dynamic> toJson() {
+    final map = _$RoutesRequestDtoToJson(this);
+    if (restrictedModes.isEmpty) {
+      map.remove('restricted_modes');
+    }
+    return map;
+  }
 }

@@ -38,6 +38,7 @@ class _HomePageState extends State<HomePage> {
   late final PlaceSearchController _toSearch;
 
   String? _lastRoutesKey;
+  String? _lastRoutingSnackKey;
 
   @override
   void initState() {
@@ -114,9 +115,15 @@ class _HomePageState extends State<HomePage> {
     await _goToCurrentLocation();
   }
 
-  void _handlePreferencesPressed() {
+  Future<void> _handlePreferencesPressed() async {
     if (!mounted) return;
-    context.push('/preferences');
+
+    final applied = await context.push<bool>('/preferences');
+    if (!mounted) return;
+
+    if (applied == true) {
+      _maybeFetchRoutes(force: true);
+    }
   }
 
   void _handleChatPressed() {
@@ -149,7 +156,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _maybeFetchRoutes() {
+  void _maybeFetchRoutes({bool force = false}) {
     final fromLat = _fromSearch.selectedLatitude;
     final fromLon = _fromSearch.selectedLongitude;
     final toLat = _toSearch.selectedLatitude;
@@ -162,7 +169,7 @@ class _HomePageState extends State<HomePage> {
     final key =
         '${fromLat.toStringAsFixed(6)},${fromLon.toStringAsFixed(6)}|'
         '${toLat.toStringAsFixed(6)},${toLon.toStringAsFixed(6)}';
-    if (_lastRoutesKey == key) return;
+    if (!force && _lastRoutesKey == key) return;
 
     _lastRoutesKey = key;
     context.read<RoutingCubit>().fetchRoutes(
@@ -170,6 +177,17 @@ class _HomePageState extends State<HomePage> {
       startLon: fromLon,
       endLat: toLat,
       endLon: toLon,
+    );
+  }
+
+  void _showRoutingSnackOnce(String message) {
+    final key = message.trim();
+    if (key.isEmpty) return;
+    if (_lastRoutingSnackKey == key) return;
+    _lastRoutingSnackKey = key;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -223,9 +241,24 @@ class _HomePageState extends State<HomePage> {
               previous.selectedJourneyIndex != current.selectedJourneyIndex;
         },
         listener: (context, state) async {
-          if (state.status != RoutingStatus.success) return;
+          if (state.status == RoutingStatus.failure) {
+            await _mapService.removeRoute('active');
+            _showRoutingSnackOnce(state.errorMessage ?? 'No routes found.');
+            return;
+          }
+
+          if (state.status != RoutingStatus.success) {
+            return;
+          }
+
           final journey = state.selectedJourney;
-          if (journey == null) return;
+          if (journey == null) {
+            await _mapService.removeRoute('active');
+            _showRoutingSnackOnce(
+              'No routes found with your current preferences.',
+            );
+            return;
+          }
 
           final allPoints = <Position>[];
           for (final leg in journey.legs) {
@@ -234,7 +267,11 @@ class _HomePageState extends State<HomePage> {
             }
           }
 
-          if (allPoints.isEmpty) return;
+          if (allPoints.isEmpty) {
+            await _mapService.removeRoute('active');
+            _showRoutingSnackOnce('No route path returned.');
+            return;
+          }
 
           await _mapService.removeRoute('active');
           await _mapService.drawRoute(id: 'active', coordinates: allPoints);
