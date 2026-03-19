@@ -186,9 +186,9 @@ class _HomePageState extends State<HomePage> {
     if (_lastRoutingSnackKey == key) return;
     _lastRoutingSnackKey = key;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   PlaceSearchController get _activeSearchController {
