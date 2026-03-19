@@ -125,6 +125,45 @@ class PlaceSearchController extends ChangeNotifier {
       longitude: suggestion.longitude,
       color: _markerColor,
     );
+
+    // Ensure coordinates are resolved from the forward-geocoding endpoint too.
+    // We keep the current UX snappy by using the suggestion coords immediately,
+    // then correcting only if the endpoint returns a different coordinate.
+    unawaited(_resolveSelectionCoordinates(suggestion));
+  }
+
+  Future<void> _resolveSelectionCoordinates(MapboxPlaceSuggestion suggestion) async {
+    final address = suggestion.subtitle.trim().isNotEmpty
+        ? suggestion.subtitle
+        : suggestion.title;
+
+    final resolved = await _geocodingService.forwardGeocode(address: address);
+    if (resolved == null) return;
+
+    final currentLat = _selectedLatitude;
+    final currentLon = _selectedLongitude;
+    if (currentLat == null || currentLon == null) return;
+
+    final latDiff = (resolved.latitude - currentLat).abs();
+    final lonDiff = (resolved.longitude - currentLon).abs();
+    if (latDiff < 1e-6 && lonDiff < 1e-6) return;
+
+    _selectedLatitude = resolved.latitude;
+    _selectedLongitude = resolved.longitude;
+    notifyListeners();
+
+    await _mapService.animateCamera(
+      latitude: resolved.latitude,
+      longitude: resolved.longitude,
+      zoom: 15.0,
+    );
+
+    await _mapService.upsertMarker(
+      id: _markerId,
+      latitude: resolved.latitude,
+      longitude: resolved.longitude,
+      color: _markerColor,
+    );
   }
 
   Future<void> goToLocation({

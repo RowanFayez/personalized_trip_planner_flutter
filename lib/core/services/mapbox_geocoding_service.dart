@@ -1,8 +1,8 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 import '../config/map_config.dart';
+import '../network/dio_factory.dart';
+import '../network/geocoding_ruby/geocoding_ruby_api_client.dart';
 
 class MapboxPlaceSuggestion {
   final String id;
@@ -24,12 +24,17 @@ class MapboxPlaceSuggestion {
 
 /// Minimal Mapbox Geocoding API client for autocomplete.
 class MapboxGeocodingService {
-  final http.Client _client;
+  final Dio _mapboxDio;
   final String _accessToken;
+  final GeocodingRubyApiClient _ruby;
 
-  MapboxGeocodingService({http.Client? client, String? accessToken})
-    : _client = client ?? http.Client(),
-      _accessToken = accessToken ?? MapConfig.accessToken;
+  MapboxGeocodingService({
+    Dio? mapboxDio,
+    GeocodingRubyApiClient? ruby,
+    String? accessToken,
+  })  : _mapboxDio = mapboxDio ?? DioFactory.create(baseUrl: 'https://api.mapbox.com'),
+        _ruby = ruby ?? GeocodingRubyApiClient(),
+        _accessToken = accessToken ?? MapConfig.accessToken;
 
   Future<List<MapboxPlaceSuggestion>> autocomplete({
     required String query,
@@ -42,61 +47,65 @@ class MapboxGeocodingService {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
 
-    final params = <String, String>{
-      'access_token': _accessToken,
-      'autocomplete': 'true',
-      'limit': limit.toString(),
-      'language': language,
-    };
+    // Search-bar autocomplete + forward-geocoding are powered by the Ruby
+    // endpoint (Google Places-backed). Alexandria-only via `bias=true`.
+    // We intentionally do NOT send user_lat/user_lng/language.
+    final items = await _ruby.geocode(address: trimmed, biasAlexandria: true);
 
-    final countryValue = (country ?? 'EG').trim();
-    if (countryValue.isNotEmpty) {
-      params['country'] = countryValue;
+    final results = <MapboxPlaceSuggestion>[];
+    for (final item in items) {
+      final (title, subtitle) = _splitTitleSubtitle(item.formattedAddress);
+      results.add(
+        MapboxPlaceSuggestion(
+          id: '${item.formattedAddress}|${item.latitude},${item.longitude}',
+          title: title,
+          subtitle: subtitle,
+          latitude: item.latitude,
+          longitude: item.longitude,
+        ),
+      );
+      if (results.length >= limit) break;
     }
 
-    if (proximityLatitude != null && proximityLongitude != null) {
-      params['proximity'] = '$proximityLongitude,$proximityLatitude';
-    }
+    return List<MapboxPlaceSuggestion>.unmodifiable(results);
+  }
 
-    // Restrict results to Alexandria, Egypt bounding box
-    params['bbox'] = '29.8233,31.1100,30.0800,31.3300';
+  /// Forward geocode to coordinates using the Ruby endpoint.
+  /// Returns null when there are no results.
+  Future<MapboxPlaceSuggestion?> forwardGeocode({
+    required String address,
+  }) async {
+    final items = await _ruby.geocode(address: address, biasAlexandria: true);
+    if (items.isEmpty) return null;
 
-    final uri = Uri.https(
-      'api.mapbox.com',
-      '/geocoding/v5/mapbox.places/$trimmed.json',
-      params,
+    final best = items.first;
+    final (title, subtitle) = _splitTitleSubtitle(best.formattedAddress);
+    return MapboxPlaceSuggestion(
+      id: '${best.formattedAddress}|${best.latitude},${best.longitude}',
+      title: title,
+      subtitle: subtitle,
+      latitude: best.latitude,
+      longitude: best.longitude,
     );
+  }
 
-    final response = await _client.get(uri);
-    if (response.statusCode != 200) {
-      return const [];
+  (String title, String subtitle) _splitTitleSubtitle(String formatted) {
+    final candidate = formatted.trim();
+    if (candidate.isEmpty) return ('', '');
+
+    // Prefer splitting on common separators to get a short title.
+    final idxComma = candidate.indexOf(',');
+    final idxArabicComma = candidate.indexOf('،');
+    final idx = [idxComma, idxArabicComma]
+        .where((v) => v >= 0)
+        .fold<int?>(null, (best, v) => best == null ? v : (v < best ? v : best));
+
+    if (idx == null || idx <= 0) {
+      return (candidate, candidate);
     }
 
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    final features = (decoded['features'] as List<dynamic>? ?? const [])
-        .cast<Map<String, dynamic>>();
-
-    return features
-        .map((feature) {
-          final id = (feature['id'] as String?) ?? '';
-          final title = (feature['text'] as String?) ?? '';
-          final placeName = (feature['place_name'] as String?) ?? '';
-          final center = (feature['center'] as List<dynamic>? ?? const []);
-          if (center.length < 2) return null;
-
-          final longitude = (center[0] as num).toDouble();
-          final latitude = (center[1] as num).toDouble();
-
-          return MapboxPlaceSuggestion(
-            id: id,
-            title: title,
-            subtitle: placeName,
-            latitude: latitude,
-            longitude: longitude,
-          );
-        })
-        .whereType<MapboxPlaceSuggestion>()
-        .toList(growable: false);
+    final title = candidate.substring(0, idx).trim();
+    return (title.isEmpty ? candidate : title, candidate);
   }
 
   /// Reverse geocode: convert coordinates to a place name.
@@ -106,25 +115,26 @@ class MapboxGeocodingService {
     required double longitude,
     String language = 'ar',
   }) async {
-    final params = <String, String>{
-      'access_token': _accessToken,
-      'language': language,
-      'limit': '1',
-      'types': 'address,poi,place,neighborhood,locality',
-    };
+    Response<Map<String, dynamic>> res;
+    try {
+      res = await _mapboxDio.get<Map<String, dynamic>>(
+        '/geocoding/v5/mapbox.places/$longitude,$latitude.json',
+        queryParameters: <String, dynamic>{
+          'access_token': _accessToken,
+          'language': language,
+          'limit': 1,
+          'types': 'address,poi,place,neighborhood,locality',
+        },
+      );
+    } catch (_) {
+      return null;
+    }
 
-    final uri = Uri.https(
-      'api.mapbox.com',
-      '/geocoding/v5/mapbox.places/$longitude,$latitude.json',
-      params,
-    );
-
-    final response = await _client.get(uri);
-    if (response.statusCode != 200) return null;
-
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    final features = (decoded['features'] as List<dynamic>? ?? const [])
-        .cast<Map<String, dynamic>>();
+    final decoded = res.data;
+    final featuresRaw = decoded?['features'];
+    final features = (featuresRaw is List)
+        ? featuresRaw.whereType<Map<String, dynamic>>().toList(growable: false)
+        : const <Map<String, dynamic>>[];
 
     if (features.isEmpty) return null;
 
