@@ -17,15 +17,13 @@ class AppColors {
   static const Color surfaceDark = Color(0xFF2A4858); // Card/surface dark blue
   static const Color surfaceLight = Color(0xFF355566); // Lighter surface blue
 
-  // // Transport Mode Colors
-  // static const Color walkColor = Color(0xFFFFC107); // Yellow/amber for walking
-  // static const Color tramColor = Color(0xFF2196F3); // Blue for tram
-  // static const Color microbusColor = Color(0xFFFF9800); // Orange for microbus
-  // static const Color minibusColor = Color(0xFF9C27B0); // Purple for minibus
-  // static const Color busColor = Color(0xFF4CAF50); // Green for bus
-  // static const Color tonayaColor = Color(
-  //   0xFFE91E63,
-  // ); 
+  // Transport Mode Colors
+  static const Color walkColor = Color(0xFFFFC107); // Yellow/amber for walking
+  static const Color tramColor = Color(0xFF2196F3); // Blue for tram
+  static const Color microbusColor = Color(0xFFFF9800); // Orange for microbus
+  static const Color minibusColor = Color(0xFF9C27B0); // Purple for minibus
+  static const Color busColor = Color(0xFF4CAF50); // Green for bus
+  static const Color tonayaColor = Color(0xFFE91E63);
 
   // Text Colors
   static const Color textPrimary = Color(0xFFFFFFFF); // White

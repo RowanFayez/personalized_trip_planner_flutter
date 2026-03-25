@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/config/map_config.dart';
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_strings.dart';
 import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
@@ -261,10 +262,21 @@ class _HomePageState extends State<HomePage> {
           }
 
           final allPoints = <Position>[];
+          final segments = <MapRouteSegment>[];
           for (final leg in journey.legs) {
-            for (final p in leg.path) {
-              allPoints.add(Position(p.lon, p.lat));
-            }
+            final coords = leg.path
+                .map((p) => Position(p.lon, p.lat))
+                .toList(growable: false);
+            if (coords.length < 2) continue;
+
+            final mode = leg.isWalk
+                ? AppStrings.modeWalking
+                : (leg.mode ?? '').trim().isNotEmpty
+                    ? leg.mode!.trim()
+                    : (leg.isTransfer ? AppStrings.modeWalking : 'unknown');
+
+            segments.add(MapRouteSegment(mode: mode, coordinates: coords));
+            allPoints.addAll(coords);
           }
 
           if (allPoints.isEmpty) {
@@ -274,7 +286,14 @@ class _HomePageState extends State<HomePage> {
           }
 
           await _mapService.removeRoute('active');
-          await _mapService.drawRoute(id: 'active', coordinates: allPoints);
+          if (segments.isNotEmpty) {
+            await _mapService.drawSegmentedRoute(
+              id: 'active',
+              segments: segments,
+            );
+          } else {
+            await _mapService.drawRoute(id: 'active', coordinates: allPoints);
+          }
           await _mapService.fitToRoute(allPoints);
         },
         child: Stack(

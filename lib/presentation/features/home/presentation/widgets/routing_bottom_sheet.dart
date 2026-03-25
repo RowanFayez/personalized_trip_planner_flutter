@@ -147,11 +147,14 @@ class _SheetContent extends StatelessWidget {
 
         final total = state.result?.journeys.length ?? 0;
         final index = state.selectedJourneyIndex;
+        final destinationName = _destinationName(journey.legs);
 
         return ListView(
           controller: scrollController,
           padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 16.h),
           children: [
+            const _ChatAboutRouteRow(),
+            SizedBox(height: 10.h),
             _HeaderRow(total: total, index: index),
             SizedBox(height: 10.h),
             AnimatedSwitcher(
@@ -166,16 +169,7 @@ class _SheetContent extends StatelessWidget {
               ),
             ),
             SizedBox(height: 12.h),
-            Text(
-              'Steps',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            ..._buildLegTiles(journey.legs),
+            ..._buildLegTiles(journey.legs, destinationName: destinationName),
           ],
         );
 
@@ -184,20 +178,102 @@ class _SheetContent extends StatelessWidget {
     }
   }
 
-  List<Widget> _buildLegTiles(List<RouteLeg> legs) {
+  String? _destinationName(List<RouteLeg> legs) {
+    for (var i = legs.length - 1; i >= 0; i--) {
+      final name = legs[i].to?.name;
+      if (name != null && name.trim().isNotEmpty) return name.trim();
+    }
+    return null;
+  }
+
+  List<Widget> _buildLegTiles(
+    List<RouteLeg> legs, {
+    required String? destinationName,
+  }) {
     final tiles = <Widget>[];
 
     for (var i = 0; i < legs.length; i++) {
       final leg = legs[i];
-      tiles.add(_LegTile(leg: leg, index: i + 1));
-      if (i != legs.length - 1) {
-        tiles.add(SizedBox(height: 8.h));
-        tiles.add(Divider(color: AppColors.divider, height: 1.h));
-        tiles.add(SizedBox(height: 8.h));
+      final nextLeg = i + 1 < legs.length ? legs[i + 1] : null;
+      final isFirst = i == 0;
+      final isLastLeg = i == legs.length - 1;
+      tiles.add(
+        _TimelineStepTile(
+          leg: leg,
+          nextLeg: nextLeg,
+          destinationName: destinationName,
+          showTopConnector: !isFirst,
+          showBottomConnector: true,
+        ),
+      );
+      if (i != legs.length - 1) tiles.add(SizedBox(height: 10.h));
+      if (isLastLeg) {
+        tiles.add(SizedBox(height: 10.h));
+        tiles.add(
+          _TimelineArrivalTile(
+            destinationName: destinationName,
+            showTopConnector: true,
+          ),
+        );
       }
     }
 
     return tiles;
+  }
+}
+
+class _ChatAboutRouteRow extends StatelessWidget {
+  const _ChatAboutRouteRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        // Keep UX minimal: placeholder until chat screen is wired.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Chat: coming soon.')),
+        );
+      },
+      borderRadius: BorderRadius.circular(16.r),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 30.r,
+              height: 30.r,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryTeal,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(Icons.chat_bubble_outline,
+                    color: Colors.white, size: 16.r),
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Text(
+              'Chat about this route',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -307,153 +383,433 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-class _LegTile extends StatelessWidget {
+class _TimelineStepTile extends StatelessWidget {
   final RouteLeg leg;
-  final int index;
+  final RouteLeg? nextLeg;
+  final String? destinationName;
+  final bool showTopConnector;
+  final bool showBottomConnector;
 
-  const _LegTile({required this.leg, required this.index});
+  const _TimelineStepTile({
+    required this.leg,
+    required this.nextLeg,
+    required this.destinationName,
+    required this.showTopConnector,
+    required this.showBottomConnector,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final title = _legTitle(leg);
-    final subtitle = _legSubtitle(leg);
+    final mode = _normalizeMode(leg);
+    final modeColor = _modeColor(mode);
+    final leadingIcon = _leadingIcon(leg);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _LegIndex(index: index, leg: leg),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              if (subtitle != null) ...[
-                SizedBox(height: 4.h),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12.5.sp,
-                    fontWeight: FontWeight.w500,
-                    height: 1.25,
+    final title = _title();
+    final subtitle = _subtitle();
+    final fare = leg.isTrip ? leg.fare : null;
+
+    const dotSize = 30.0;
+    final dotCenterY = 18.h;
+    final dotTop = dotCenterY - dotSize / 2;
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 34.w,
+            child: Stack(
+              children: [
+                if (showTopConnector)
+                  Positioned(
+                    left: (34.w - 2) / 2,
+                    top: 0,
+                    height: dotCenterY,
+                    child: Container(
+                      width: 2,
+                      color: AppColors.surfaceLight,
+                    ),
+                  ),
+                if (showBottomConnector)
+                  Positioned(
+                    left: (34.w - 2) / 2,
+                    top: dotCenterY,
+                    bottom: 0,
+                    child: Container(
+                      width: 2,
+                      color: AppColors.surfaceLight,
+                    ),
+                  ),
+                Positioned(
+                  top: dotTop,
+                  left: (34.w - dotSize) / 2,
+                  child: Container(
+                    width: dotSize,
+                    height: dotSize,
+                    decoration: BoxDecoration(
+                      color: AppColors.searchInputBackground,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        leadingIcon,
+                        size: 16.r,
+                        color: modeColor,
+                      ),
+                    ),
                   ),
                 ),
               ],
-            ],
+            ),
           ),
-        ),
-      ],
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: AppColors.searchInputBackground,
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        title,
+                        if (subtitle != null) ...[
+                          SizedBox(height: 6.h),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12.5.sp,
+                              fontWeight: FontWeight.w600,
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (fare != null) ...[
+                    SizedBox(width: 10.w),
+                    Text(
+                      '$fare EGP',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  String _legTitle(RouteLeg leg) {
+  Widget _title() {
     if (leg.isWalk) {
+      final target = _walkTargetName();
       final mins = leg.durationMinutes;
-      return mins == null ? 'Walk' : 'Walk ($mins min)';
-    }
+      final label = mins == null ? 'Walk' : 'Walk ($mins min)';
 
-    if (leg.isTransfer) {
-      return 'Transfer';
-    }
-
-    final mode = (leg.mode ?? 'trip').toUpperCase();
-    final route = leg.routeShortName;
-    if (route != null && route.trim().isNotEmpty) {
-      return '$mode • $route';
-    }
-
-    return mode;
-  }
-
-  String? _legSubtitle(RouteLeg leg) {
-    if (leg.isWalk) {
-      final meters = leg.distanceMeters;
-      if (meters == null) return null;
-      return '$meters m';
+      return Text(
+        target == null ? label : '$label to $target',
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w800,
+        ),
+      );
     }
 
     if (leg.isTransfer) {
       final fromName = leg.fromTripName ?? leg.fromTripId;
       final toName = leg.toTripName ?? leg.toTripId;
+      final text = (fromName != null && toName != null)
+          ? 'Get off at $fromName · Transfer to $toName'
+          : 'Transfer';
 
-      if (fromName != null && toName != null) {
-        return 'From $fromName to $toName';
-      }
+      return Text(
+        text,
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w800,
+        ),
+      );
+    }
 
+    final route = (leg.routeShortName ?? '').trim();
+    final modeLabel = _modeLabel((leg.mode ?? '').trim());
+
+    return Row(
+      children: [
+        Text(
+          'Take',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        if (route.isNotEmpty) ...[
+          SizedBox(width: 8.w),
+          _RouteChip(label: route, mode: _normalizeMode(leg)),
+        ] else if (modeLabel.isNotEmpty) ...[
+          SizedBox(width: 8.w),
+          _RouteChip(label: modeLabel, mode: _normalizeMode(leg)),
+        ],
+      ],
+    );
+  }
+
+  String? _subtitle() {
+    if (leg.isWalk) {
+      final mins = leg.durationMinutes;
+      final meters = leg.distanceMeters;
+      if (mins == null && meters == null) return null;
+      final parts = <String>[];
+      if (mins != null) parts.add('$mins min');
+      if (meters != null) parts.add('$meters m');
+      return parts.join(' • ');
+    }
+
+    if (leg.isTransfer) {
       final walk = leg.walkingDistanceMeters;
-      if (walk != null) return 'Walk $walk m';
-
-      return null;
+      if (walk == null) return null;
+      return 'Walk $walk m';
     }
 
     final from = leg.from?.name;
     final to = leg.to?.name;
+    final mins = leg.durationMinutes;
+    final modeLabel = _modeLabel((leg.mode ?? '').trim());
 
+    final lines = <String>[];
     if (from != null && to != null) {
-      final headsign = leg.headsign;
-      return headsign == null || headsign.trim().isEmpty
-          ? '$from → $to'
-          : '$from → $to\n$headsign';
+      lines.add('$from → $to');
     }
+    final meta = <String>[];
+    if (modeLabel.isNotEmpty) meta.add(modeLabel);
+    if (mins != null) meta.add('$mins min');
+    if (meta.isNotEmpty) lines.add(meta.join(' • '));
 
-    return leg.headsign;
+    if (lines.isEmpty) return leg.headsign;
+    return lines.join('\n');
+  }
+
+  String? _walkTargetName() {
+    final next = nextLeg;
+    if (next != null) {
+      final nextFrom = next.from?.name;
+      if (nextFrom != null && nextFrom.trim().isNotEmpty) {
+        return nextFrom.trim();
+      }
+    }
+    final dest = destinationName;
+    if (dest != null && dest.trim().isNotEmpty) return dest.trim();
+    return null;
+  }
+
+  IconData _leadingIcon(RouteLeg leg) {
+    if (leg.isWalk) return Icons.directions_walk;
+    if (leg.isTransfer) return Icons.compare_arrows;
+
+    final mode = (leg.mode ?? '').toLowerCase();
+    if (mode.contains('tram') ||
+        mode.contains('metro') ||
+        mode.contains('subway') ||
+        mode.contains('rail') ||
+        mode.contains('line')) {
+      return Icons.directions_subway;
+    }
+    if (mode.contains('bus') || mode.contains('micro') || mode.contains('mini')) {
+      return Icons.directions_bus;
+    }
+    if (mode.contains('tonaya') || mode.contains('taxi')) {
+      return Icons.local_taxi;
+    }
+    return Icons.directions_transit;
+  }
+
+  String _normalizeMode(RouteLeg leg) {
+    if (leg.isWalk || leg.isTransfer) return 'walking';
+    return (leg.mode ?? '').trim().toLowerCase();
+  }
+
+  String _modeLabel(String mode) {
+    final m = mode.trim();
+    if (m.isEmpty) return '';
+    return m[0].toUpperCase() + m.substring(1);
+  }
+
+  Color _modeColor(String mode) {
+    final m = mode.trim().toLowerCase();
+    if (m.contains('walk') || m == 'walking' || m.contains('transfer')) {
+      return AppColors.walkColor;
+    }
+    if (m.contains('micro')) return AppColors.tramColor; // requested: microbus blue
+    if (m.contains('mini')) return AppColors.minibusColor;
+    if (m.contains('bus')) return AppColors.busColor;
+    if (m.contains('tram') ||
+        m.contains('metro') ||
+        m.contains('subway') ||
+        m.contains('rail') ||
+        m.contains('line')) {
+      return AppColors.routeLine;
+    }
+    if (m.contains('tonaya') || m.contains('taxi')) return AppColors.tonayaColor;
+    return AppColors.routeLine;
   }
 }
 
-class _LegIndex extends StatelessWidget {
-  final int index;
-  final RouteLeg leg;
+class _TimelineArrivalTile extends StatelessWidget {
+  final String? destinationName;
+  final bool showTopConnector;
 
-  const _LegIndex({required this.index, required this.leg});
+  const _TimelineArrivalTile({
+    required this.destinationName,
+    required this.showTopConnector,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final icon = _iconData(leg);
+    const dotSize = 30.0;
+    final dotCenterY = 18.h;
+    final dotTop = dotCenterY - dotSize / 2;
+    final label = (destinationName ?? 'Destination').trim();
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 34.w,
+            child: Stack(
+              children: [
+                if (showTopConnector)
+                  Positioned(
+                    left: (34.w - 2) / 2,
+                    top: 0,
+                    height: dotCenterY,
+                    child: Container(
+                      width: 2,
+                      color: AppColors.surfaceLight,
+                    ),
+                  ),
+                Positioned(
+                  top: dotTop,
+                  left: (34.w - dotSize) / 2,
+                  child: Container(
+                    width: dotSize,
+                    height: dotSize,
+                    decoration: BoxDecoration(
+                      color: AppColors.searchInputBackground,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.location_on,
+                        size: 16.r,
+                        color: AppColors.primaryTeal,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: AppColors.searchInputBackground,
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    'You have arrived at your destination.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12.5.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RouteChip extends StatelessWidget {
+  final String label;
+  final String mode;
+
+  const _RouteChip({required this.label, required this.mode});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _modeColor(mode);
 
     return Container(
-      width: 32.r,
-      height: 32.r,
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.border),
+        color: color.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(color: color.withValues(alpha: 0.55)),
       ),
-      child: Center(
-        child: icon != null
-            ? Icon(icon, size: 16.r, color: AppColors.textPrimary)
-            : Text(
-                index.toString(),
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
 
-  IconData? _iconData(RouteLeg leg) {
-    if (leg.isWalk) return Icons.directions_walk;
-    if (leg.isTransfer) return Icons.compare_arrows;
-
-    switch ((leg.mode ?? '').toLowerCase()) {
-      case 'tram':
-        return Icons.tram;
-      case 'microbus':
-      case 'minibus':
-      case 'bus':
-        return Icons.directions_bus;
-      default:
-        return Icons.directions_transit;
+  Color _modeColor(String mode) {
+    final m = mode.trim().toLowerCase();
+    if (m.contains('walk') || m == 'walking') return AppColors.walkColor;
+    if (m.contains('micro')) return AppColors.tramColor;
+    if (m.contains('mini')) return AppColors.minibusColor;
+    if (m.contains('bus')) return AppColors.busColor;
+    if (m.contains('tram') ||
+        m.contains('metro') ||
+        m.contains('subway') ||
+        m.contains('rail') ||
+        m.contains('line')) {
+      return AppColors.routeLine;
     }
+    if (m.contains('tonaya') || m.contains('taxi')) return AppColors.tonayaColor;
+    return AppColors.routeLine;
   }
 }
