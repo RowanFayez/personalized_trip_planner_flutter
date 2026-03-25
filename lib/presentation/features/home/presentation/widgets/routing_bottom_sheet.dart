@@ -230,9 +230,9 @@ class _ChatAboutRouteRow extends StatelessWidget {
     return InkWell(
       onTap: () {
         // Keep UX minimal: placeholder until chat screen is wired.
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Chat: coming soon.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Chat: coming soon.')));
       },
       borderRadius: BorderRadius.circular(16.r),
       child: Container(
@@ -252,8 +252,11 @@ class _ChatAboutRouteRow extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: Icon(Icons.chat_bubble_outline,
-                    color: Colors.white, size: 16.r),
+                child: Icon(
+                  Icons.chat_bubble_outline,
+                  color: Colors.white,
+                  size: 16.r,
+                ),
               ),
             ),
             SizedBox(width: 10.w),
@@ -266,10 +269,7 @@ class _ChatAboutRouteRow extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.textSecondary,
-            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
         ),
       ),
@@ -425,20 +425,14 @@ class _TimelineStepTile extends StatelessWidget {
                     left: (34.w - 2) / 2,
                     top: 0,
                     height: dotCenterY,
-                    child: Container(
-                      width: 2,
-                      color: AppColors.surfaceLight,
-                    ),
+                    child: Container(width: 2, color: AppColors.surfaceLight),
                   ),
                 if (showBottomConnector)
                   Positioned(
                     left: (34.w - 2) / 2,
                     top: dotCenterY,
                     bottom: 0,
-                    child: Container(
-                      width: 2,
-                      color: AppColors.surfaceLight,
-                    ),
+                    child: Container(width: 2, color: AppColors.surfaceLight),
                   ),
                 Positioned(
                   top: dotTop,
@@ -452,11 +446,7 @@ class _TimelineStepTile extends StatelessWidget {
                       border: Border.all(color: AppColors.border),
                     ),
                     child: Center(
-                      child: Icon(
-                        leadingIcon,
-                        size: 16.r,
-                        color: modeColor,
-                      ),
+                      child: Icon(leadingIcon, size: 16.r, color: modeColor),
                     ),
                   ),
                 ),
@@ -632,7 +622,9 @@ class _TimelineStepTile extends StatelessWidget {
         mode.contains('line')) {
       return Icons.directions_subway;
     }
-    if (mode.contains('bus') || mode.contains('micro') || mode.contains('mini')) {
+    if (mode.contains('bus') ||
+        mode.contains('micro') ||
+        mode.contains('mini')) {
       return Icons.directions_bus;
     }
     if (mode.contains('tonaya') || mode.contains('taxi')) {
@@ -657,7 +649,8 @@ class _TimelineStepTile extends StatelessWidget {
     if (m.contains('walk') || m == 'walking' || m.contains('transfer')) {
       return AppColors.walkColor;
     }
-    if (m.contains('micro')) return AppColors.tramColor; // requested: microbus blue
+    if (m.contains('micro'))
+      return AppColors.tramColor; // requested: microbus blue
     if (m.contains('mini')) return AppColors.minibusColor;
     if (m.contains('bus')) return AppColors.busColor;
     if (m.contains('tram') ||
@@ -667,7 +660,8 @@ class _TimelineStepTile extends StatelessWidget {
         m.contains('line')) {
       return AppColors.routeLine;
     }
-    if (m.contains('tonaya') || m.contains('taxi')) return AppColors.tonayaColor;
+    if (m.contains('tonaya') || m.contains('taxi'))
+      return AppColors.tonayaColor;
     return AppColors.routeLine;
   }
 }
@@ -701,10 +695,7 @@ class _TimelineArrivalTile extends StatelessWidget {
                     left: (34.w - 2) / 2,
                     top: 0,
                     height: dotCenterY,
-                    child: Container(
-                      width: 2,
-                      color: AppColors.surfaceLight,
-                    ),
+                    child: Container(width: 2, color: AppColors.surfaceLight),
                   ),
                 Positioned(
                   top: dotTop,
@@ -809,7 +800,8 @@ class _RouteChip extends StatelessWidget {
         m.contains('line')) {
       return AppColors.routeLine;
     }
-    if (m.contains('tonaya') || m.contains('taxi')) return AppColors.tonayaColor;
+    if (m.contains('tonaya') || m.contains('taxi'))
+      return AppColors.tonayaColor;
     return AppColors.routeLine;
   }
 }

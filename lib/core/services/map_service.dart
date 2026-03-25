@@ -346,10 +346,7 @@ class MapService {
       options.add(
         PointAnnotationOptions(
           geometry: Point(
-            coordinates: Position(
-              coords[0].toDouble(),
-              coords[1].toDouble(),
-            ),
+            coordinates: Position(coords[0].toDouble(), coords[1].toDouble()),
           ),
           image: imageBytes,
         ),
@@ -379,8 +376,9 @@ class MapService {
 
     // Best-effort cleanup in case the manager existed but wasn't tracked.
     try {
-      await _mapboxMap!.annotations
-          .removeAnnotationManagerById('${routeId}_segment_icons');
+      await _mapboxMap!.annotations.removeAnnotationManagerById(
+        '${routeId}_segment_icons',
+      );
     } catch (_) {
       // Ignore.
     }
@@ -408,7 +406,8 @@ class MapService {
     if (m.contains('mini')) return AppStrings.modeMinibus;
     if (m.contains('bus')) return AppStrings.modeBus;
     if (m.contains('tram')) return AppStrings.modeTram;
-    if (m.contains('tonaya') || m.contains('taxi')) return AppStrings.modeTonaya;
+    if (m.contains('tonaya') || m.contains('taxi'))
+      return AppStrings.modeTonaya;
 
     return m;
   }
@@ -456,8 +455,7 @@ class MapService {
         heightPx: sizePx,
       );
       try {
-        final byteData =
-            await image.toByteData(format: ui.ImageByteFormat.png);
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
         if (byteData == null) return null;
 
         final bytes = byteData.buffer.asUint8List();

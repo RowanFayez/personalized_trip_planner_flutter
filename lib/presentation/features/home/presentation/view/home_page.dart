@@ -272,8 +272,8 @@ class _HomePageState extends State<HomePage> {
             final mode = leg.isWalk
                 ? AppStrings.modeWalking
                 : (leg.mode ?? '').trim().isNotEmpty
-                    ? leg.mode!.trim()
-                    : (leg.isTransfer ? AppStrings.modeWalking : 'unknown');
+                ? leg.mode!.trim()
+                : (leg.isTransfer ? AppStrings.modeWalking : 'unknown');
 
             segments.add(MapRouteSegment(mode: mode, coordinates: coords));
             allPoints.addAll(coords);

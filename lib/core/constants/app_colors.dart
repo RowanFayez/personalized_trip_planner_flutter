@@ -9,7 +9,7 @@ class AppColors {
   static const Color primaryDarkTeal = Color(0xFF008FA1); // Darker teal
   static const Color accentRed = Color(0xFFE53935); // Location pin red
 
-  // Background Colors - 
+  // Background Colors -
   static const Color backgroundDark = Color(0xFF0E1D25); // Main background
   static const Color searchInputBackground = Color(
     0xFF1E3A47,
