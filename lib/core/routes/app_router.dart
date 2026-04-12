@@ -15,7 +15,9 @@ class AppRouter {
   AppRouter._();
 
   static final GoRouter router = GoRouter(
-    refreshListenable: GoRouterRefreshStream(sl<AuthService>().authStateChanges()),
+    refreshListenable: GoRouterRefreshStream(
+      sl<AuthService>().authStateChanges(),
+    ),
     redirect: (context, state) {
       final signedIn = sl<AuthService>().currentUser != null;
       final isLoggingIn = state.matchedLocation == '/login';
@@ -25,10 +27,7 @@ class AppRouter {
       return null;
     },
     routes: <RouteBase>[
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/',
         builder: (context, state) {

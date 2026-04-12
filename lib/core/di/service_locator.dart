@@ -27,15 +27,13 @@ class ServiceLocator {
     sl.registerLazySingleton<AuthService>(() => AuthService());
 
     // Core
-    sl.registerLazySingleton<Dio>(
-      () {
-        final dio = DioFactory.create(baseUrl: ApiConstants.baseUrl);
-        dio.interceptors.add(
-          FirebaseIdTokenInterceptor(authService: sl<AuthService>()),
-        );
-        return dio;
-      },
-    );
+    sl.registerLazySingleton<Dio>(() {
+      final dio = DioFactory.create(baseUrl: ApiConstants.baseUrl);
+      dio.interceptors.add(
+        FirebaseIdTokenInterceptor(authService: sl<AuthService>()),
+      );
+      return dio;
+    });
     sl.registerLazySingleton<RoutePreferencesService>(
       () => RoutePreferencesService(),
     );

@@ -31,9 +31,9 @@ class _SessionTokenSectionState extends State<SessionTokenSection> {
       if (!mounted) return;
 
       if (token == null || token.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No token available.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No token available.')));
         return;
       }
 
@@ -57,9 +57,9 @@ class _SessionTokenSectionState extends State<SessionTokenSection> {
     final token = await widget.authService.getIdToken();
     if (!mounted) return;
     if (token == null || token.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No token available.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No token available.')));
       return;
     }
 
@@ -148,10 +148,7 @@ class _SessionTokenSectionState extends State<SessionTokenSection> {
             email.isNotEmpty
                 ? 'Signed in as $email'
                 : 'Signed in (email not available)',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12.sp,
-            ),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12.sp),
           ),
           SizedBox(height: 12.h),
           Wrap(
@@ -166,7 +163,9 @@ class _SessionTokenSectionState extends State<SessionTokenSection> {
               _ActionChip(
                 label: 'Refresh token',
                 icon: Icons.refresh,
-                onPressed: _isLoading ? null : () => _copyIdToken(forceRefresh: true),
+                onPressed: _isLoading
+                    ? null
+                    : () => _copyIdToken(forceRefresh: true),
               ),
               if (kDebugMode)
                 _ActionChip(
@@ -179,10 +178,7 @@ class _SessionTokenSectionState extends State<SessionTokenSection> {
           SizedBox(height: 10.h),
           Text(
             'This JWT is the Firebase ID token that the app sends as Authorization: Bearer <token> to your backend.',
-            style: TextStyle(
-              color: AppColors.textTertiary,
-              fontSize: 11.sp,
-            ),
+            style: TextStyle(color: AppColors.textTertiary, fontSize: 11.sp),
           ),
         ],
       ),

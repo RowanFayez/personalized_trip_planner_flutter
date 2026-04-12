@@ -17,11 +17,7 @@ class AuthBrandHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(
-          Icons.route,
-          size: 64.r,
-          color: AppColors.primaryTeal,
-        ),
+        Icon(Icons.route, size: 64.r, color: AppColors.primaryTeal),
         SizedBox(height: 18.h),
         Text(
           title,
@@ -37,10 +33,7 @@ class AuthBrandHeader extends StatelessWidget {
         Text(
           subtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: AppColors.textSecondary,
-          ),
+          style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondary),
         ),
       ],
     );

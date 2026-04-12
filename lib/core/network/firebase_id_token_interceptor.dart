@@ -9,10 +9,14 @@ class FirebaseIdTokenInterceptor extends Interceptor {
     : _authService = authService;
 
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     // Respect any existing auth header (for example, third-party services).
-    final hasAuthHeader =
-        options.headers.keys.any((k) => k.toLowerCase() == 'authorization');
+    final hasAuthHeader = options.headers.keys.any(
+      (k) => k.toLowerCase() == 'authorization',
+    );
     if (hasAuthHeader) {
       handler.next(options);
       return;
