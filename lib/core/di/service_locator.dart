@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 
 import '../network/api_constants.dart';
 import '../network/dio_factory.dart';
+import '../network/firebase_id_token_interceptor.dart';
+import '../services/auth_service.dart';
 import '../services/route_preferences_service.dart';
 import '../storage/hive/hive_service.dart';
 import '../../features/routing/data/datasources/routes_remote_data_source.dart';
@@ -21,9 +23,18 @@ class ServiceLocator {
     // Hive
     await HiveService.init();
 
+    // Auth
+    sl.registerLazySingleton<AuthService>(() => AuthService());
+
     // Core
     sl.registerLazySingleton<Dio>(
-      () => DioFactory.create(baseUrl: ApiConstants.baseUrl),
+      () {
+        final dio = DioFactory.create(baseUrl: ApiConstants.baseUrl);
+        dio.interceptors.add(
+          FirebaseIdTokenInterceptor(authService: sl<AuthService>()),
+        );
+        return dio;
+      },
     );
     sl.registerLazySingleton<RoutePreferencesService>(
       () => RoutePreferencesService(),

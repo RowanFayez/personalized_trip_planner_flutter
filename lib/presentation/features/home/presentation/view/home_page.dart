@@ -6,10 +6,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/config/map_config.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_strings.dart';
+import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
+import '../../../../../core/services/auth_service.dart';
 import '../../../../../features/routing/presentation/cubit/routing_cubit.dart';
 import '../../../../../features/routing/presentation/cubit/routing_state.dart';
 import '../../../../features/map_picker/presentation/view/map_picker_page.dart';
@@ -131,6 +133,10 @@ class _HomePageState extends State<HomePage> {
     // TODO: Open AI chat interface
   }
 
+  void _handleProfilePressed() {
+    context.push('/profile');
+  }
+
   Future<void> _handleFromMapPick() async {
     _fromSearch.focusNode.unfocus();
     final result = await context.push<MapPickerResult>('/map-picker/from');
@@ -233,6 +239,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final safeBottomInset = MediaQuery.paddingOf(context).bottom;
+    final user = sl<AuthService>().currentUser;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -387,7 +394,12 @@ class _HomePageState extends State<HomePage> {
                       ? keyboardInset + 12.h
                       : 32.h + safeBottomInset,
                 ),
-                child: MapActionButtons(onChatPressed: _handleChatPressed),
+                child: MapActionButtons(
+                  onChatPressed: _handleChatPressed,
+                  onProfilePressed: _handleProfilePressed,
+                  userPhotoUrl: user?.photoURL,
+                  userEmail: user?.email,
+                ),
               ),
             ),
 

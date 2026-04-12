@@ -5,12 +5,32 @@ import '../../../../../core/constants/app_colors.dart';
 /// Bottom action button for chat with AI
 class MapActionButtons extends StatelessWidget {
   final VoidCallback onChatPressed;
+  final VoidCallback onProfilePressed;
+  final String? userPhotoUrl;
+  final String? userEmail;
 
-  const MapActionButtons({super.key, required this.onChatPressed});
+  const MapActionButtons({
+    super.key,
+    required this.onChatPressed,
+    required this.onProfilePressed,
+    this.userPhotoUrl,
+    this.userEmail,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return _ChatButton(onPressed: onChatPressed);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ChatButton(onPressed: onChatPressed),
+        SizedBox(width: 12.w),
+        _ProfileButton(
+          onPressed: onProfilePressed,
+          photoUrl: userPhotoUrl,
+          email: userEmail,
+        ),
+      ],
+    );
   }
 }
 
@@ -74,6 +94,88 @@ class _ChatButton extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final String? photoUrl;
+  final String? email;
+
+  const _ProfileButton({
+    required this.onPressed,
+    required this.photoUrl,
+    required this.email,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = 56.h;
+    final initial = (email ?? '').trim().isNotEmpty
+        ? (email!.trim()[0].toUpperCase())
+        : 'U';
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.searchInputBackground,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 12.r,
+            offset: Offset(0, 4.h),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: Padding(
+            padding: EdgeInsets.all(4.r),
+            child: ClipOval(
+              child: (photoUrl == null || photoUrl!.trim().isEmpty)
+                  ? Container(
+                      color: AppColors.surfaceDark,
+                      child: Center(
+                        child: Text(
+                          initial,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Image.network(
+                      photoUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, _, __) {
+                        return Container(
+                          color: AppColors.surfaceDark,
+                          child: Center(
+                            child: Text(
+                              initial,
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ),
         ),

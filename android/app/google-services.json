@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "415440307090",
+    "project_id": "personalized-trip-planne-88bf1",
+    "storage_bucket": "personalized-trip-planne-88bf1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:415440307090:android:239d7fb634b8893613f74b",
+        "android_client_info": {
+          "package_name": "com.example.nextstation"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "415440307090-loekmevohq7r6fg1er0fnhb4tnfa6rj5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.nextstation",
+            "certificate_hash": "bf5fc8ccc3bfb4244c9a9abe6cd51ba2753c0db0"
+          }
+        },
+        {
+          "client_id": "415440307090-bfh9rsknatconob48p1vckbi9da7um0j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJCNbRHXiTWYb6diAHhjvXtMJpDtKOomo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "415440307090-bfh9rsknatconob48p1vckbi9da7um0j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

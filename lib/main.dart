@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/config/env_config.dart';
@@ -12,6 +13,9 @@ void main() async {
 
   // Load environment variables
   await EnvConfig.init();
+
+  // Firebase (required for Google Sign-In auth)
+  await Firebase.initializeApp();
 
   // Dependency injection + local storage
   await ServiceLocator.init();
