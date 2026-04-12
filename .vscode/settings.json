@@ -1,5 +1,10 @@
 {
-  "dart.flutterSdkPath": "C:\\flutter_sdk",
+  "dart.flutterSdkPath": "C:\\src\\flutter",
+  "dart.env": {
+    "FLUTTER_ROOT": "C:\\src\\flutter"
+  },
+  "dart.flutterDaemonLogFile": "C:\\Users\\Rowan\\flutter_daemon_${workspaceName}.log",
+  "dart.extensionLogFile": "C:\\Users\\Rowan\\dart_extension_${workspaceName}.log",
   "terminal.integrated.profiles.windows": {
     "PowerShell (No Profile)": {
       "source": "PowerShell",
