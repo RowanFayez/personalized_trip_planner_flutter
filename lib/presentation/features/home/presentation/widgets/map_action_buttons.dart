@@ -20,9 +20,9 @@ class MapActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: MainAxisSize.max,
       children: [
-        _ChatButton(onPressed: onChatPressed),
+        Expanded(child: _ChatButton(onPressed: onChatPressed)),
         SizedBox(width: 12.w),
         _ProfileButton(
           onPressed: onProfilePressed,
@@ -42,7 +42,6 @@ class _ChatButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 286.w,
       height: 56.h,
       decoration: BoxDecoration(
         color: AppColors.searchInputBackground,
@@ -116,9 +115,6 @@ class _ProfileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = 56.h;
-    final initial = (email ?? '').trim().isNotEmpty
-        ? (email!.trim()[0].toUpperCase())
-        : 'U';
 
     return Container(
       width: size,
@@ -147,13 +143,10 @@ class _ProfileButton extends StatelessWidget {
                   ? Container(
                       color: AppColors.surfaceDark,
                       child: Center(
-                        child: Text(
-                          initial,
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        child: Icon(
+                          Icons.account_circle,
+                          color: AppColors.textSecondary,
+                          size: (size * 0.72).clamp(18.0, 40.0),
                         ),
                       ),
                     )
@@ -164,13 +157,10 @@ class _ProfileButton extends StatelessWidget {
                         return Container(
                           color: AppColors.surfaceDark,
                           child: Center(
-                            child: Text(
-                              initial,
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
+                            child: Icon(
+                              Icons.account_circle,
+                              color: AppColors.textSecondary,
+                              size: (size * 0.72).clamp(18.0, 40.0),
                             ),
                           ),
                         );

@@ -12,9 +12,11 @@ import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
 import '../../../../../core/services/auth_service.dart';
+import '../../../../../core/services/user_activity_service.dart';
 import '../../../../../features/routing/presentation/cubit/routing_cubit.dart';
 import '../../../../../features/routing/presentation/cubit/routing_state.dart';
 import '../../../../features/map_picker/presentation/view/map_picker_page.dart';
+import '../../../auth/presentation/widgets/google_sign_in_dialog.dart';
 import '../controllers/place_search_controller.dart';
 import '../widgets/search_overlay.dart';
 import '../widgets/map_action_buttons.dart';
@@ -32,6 +34,7 @@ class _HomePageState extends State<HomePage> {
   final LocationService _locationService = LocationService();
   final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
   final SavedPlacesService _savedPlacesService = SavedPlacesService();
+  final UserActivityService _userActivityService = sl<UserActivityService>();
   bool _didCenterOnUser = false;
 
   double? _proximityLatitude;
@@ -42,6 +45,8 @@ class _HomePageState extends State<HomePage> {
 
   String? _lastRoutesKey;
   String? _lastRoutingSnackKey;
+  String? _lastFromSelectionKey;
+  String? _lastToSelectionKey;
 
   @override
   void initState() {
@@ -56,6 +61,7 @@ class _HomePageState extends State<HomePage> {
         )..addListener(() {
           if (mounted) {
             setState(() {});
+            _maybeStoreLastSearch(isFrom: true);
             _maybeFetchRoutes();
           }
         });
@@ -73,6 +79,7 @@ class _HomePageState extends State<HomePage> {
         )..addListener(() {
           if (mounted) {
             setState(() {});
+            _maybeStoreLastSearch(isFrom: false);
             _maybeFetchRoutes();
           }
         });
@@ -134,7 +141,33 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handleProfilePressed() {
-    context.push('/profile');
+    final signedIn = sl<AuthService>().currentUser != null;
+    if (signedIn) {
+      context.push('/profile');
+      return;
+    }
+
+    showGoogleSignInDialog(context);
+  }
+
+  void _maybeStoreLastSearch({required bool isFrom}) {
+    final controller = isFrom ? _fromSearch : _toSearch;
+    final lat = controller.selectedLatitude;
+    final lon = controller.selectedLongitude;
+    if (lat == null || lon == null) return;
+
+    final key = '${lat.toStringAsFixed(6)},${lon.toStringAsFixed(6)}';
+    if (isFrom) {
+      if (_lastFromSelectionKey == key) return;
+      _lastFromSelectionKey = key;
+    } else {
+      if (_lastToSelectionKey == key) return;
+      _lastToSelectionKey = key;
+    }
+
+    final title = controller.textController.text.trim();
+    if (title.isEmpty) return;
+    _userActivityService.setLastSearch(title);
   }
 
   Future<void> _handleFromMapPick() async {
@@ -179,6 +212,13 @@ class _HomePageState extends State<HomePage> {
     if (!force && _lastRoutesKey == key) return;
 
     _lastRoutesKey = key;
+
+    final fromTitle = _fromSearch.textController.text.trim();
+    final toTitle = _toSearch.textController.text.trim();
+    if (fromTitle.isNotEmpty && toTitle.isNotEmpty) {
+      _userActivityService.setLastRoute(from: fromTitle, to: toTitle);
+    }
+
     context.read<RoutingCubit>().fetchRoutes(
       startLat: fromLat,
       startLon: fromLon,
@@ -207,23 +247,58 @@ class _HomePageState extends State<HomePage> {
     final place = await _savedPlacesService.getPlace(type);
     if (!mounted) return;
 
-    if (place == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Set this location in preferences first.'),
-        ),
-      );
-      return;
-    }
-
-    final title = switch (type) {
+    final label = switch (type) {
       SavedPlaceType.home => 'Home',
       SavedPlaceType.work => 'Work',
       SavedPlaceType.college => 'College',
     };
 
+    if (place == null) {
+      // Prefer saving from the currently selected search location.
+      final selectedLat = _activeSearchController.selectedLatitude;
+      final selectedLon = _activeSearchController.selectedLongitude;
+      final selectedTitle = _activeSearchController.textController.text.trim();
+
+      if (selectedLat != null && selectedLon != null) {
+        await _savedPlacesService.setPlace(
+          type,
+          SavedPlace(
+            latitude: selectedLat,
+            longitude: selectedLon,
+            name: selectedTitle,
+          ),
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$label saved.')),
+        );
+        return;
+      }
+
+      // Otherwise, let the user pick it on the map.
+      final result = await context.push<MapPickerResult>(
+        '/map-picker/${type.name}',
+      );
+      if (!mounted) return;
+      if (result == null) return;
+
+      await _savedPlacesService.setPlace(
+        type,
+        SavedPlace(
+          latitude: result.latitude,
+          longitude: result.longitude,
+          name: result.placeName,
+        ),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$label saved.')),
+      );
+      return;
+    }
+
     await _activeSearchController.goToLocation(
-      title: title,
+      title: label,
       latitude: place.latitude,
       longitude: place.longitude,
     );
@@ -239,7 +314,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final safeBottomInset = MediaQuery.paddingOf(context).bottom;
-    final user = sl<AuthService>().currentUser;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -394,11 +468,20 @@ class _HomePageState extends State<HomePage> {
                       ? keyboardInset + 12.h
                       : 32.h + safeBottomInset,
                 ),
-                child: MapActionButtons(
-                  onChatPressed: _handleChatPressed,
-                  onProfilePressed: _handleProfilePressed,
-                  userPhotoUrl: user?.photoURL,
-                  userEmail: user?.email,
+                child: SizedBox(
+                  width: 1.sw - 40.w,
+                  child: StreamBuilder<Object?>(
+                    stream: sl<AuthService>().authStateChanges(),
+                    builder: (context, _) {
+                      final user = sl<AuthService>().currentUser;
+                      return MapActionButtons(
+                        onChatPressed: _handleChatPressed,
+                        onProfilePressed: _handleProfilePressed,
+                        userPhotoUrl: user?.photoURL,
+                        userEmail: user?.email,
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

@@ -8,8 +8,9 @@ enum SavedPlaceType { home, work, college }
 class SavedPlace {
   final double latitude;
   final double longitude;
+  final String? name;
 
-  const SavedPlace({required this.latitude, required this.longitude});
+  const SavedPlace({required this.latitude, required this.longitude, this.name});
 }
 
 class SavedPlacesService {
@@ -55,8 +56,13 @@ class SavedPlacesService {
     if (value is Map) {
       final lat = value['lat'];
       final lng = value['lng'];
+      final name = value['name'];
       if (lat is num && lng is num) {
-        return SavedPlace(latitude: lat.toDouble(), longitude: lng.toDouble());
+        return SavedPlace(
+          latitude: lat.toDouble(),
+          longitude: lng.toDouble(),
+          name: name is String && name.trim().isNotEmpty ? name.trim() : null,
+        );
       }
     }
 
@@ -65,9 +71,16 @@ class SavedPlacesService {
 
   Future<void> setPlace(SavedPlaceType type, SavedPlace place) async {
     final box = await HiveService.openBox<dynamic>(CoreHiveBoxes.savedPlaces);
-    await box.put(_placeKey(type), <String, double>{
+
+    final payload = <String, dynamic>{
       'lat': place.latitude,
       'lng': place.longitude,
-    });
+    };
+    final normalizedName = place.name?.trim();
+    if (normalizedName != null && normalizedName.isNotEmpty) {
+      payload['name'] = normalizedName;
+    }
+
+    await box.put(_placeKey(type), payload);
   }
 }

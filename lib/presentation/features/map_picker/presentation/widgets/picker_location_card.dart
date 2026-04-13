@@ -25,6 +25,14 @@ class PickerLocationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final safePadding = MediaQuery.paddingOf(context).bottom;
+    final label = switch (fieldLabel) {
+      'from' => 'Pickup point',
+      'to' => 'Drop-off point',
+      'home' => 'Home',
+      'work' => 'Work',
+      'college' => 'College',
+      _ => fieldLabel,
+    };
 
     return Container(
       decoration: BoxDecoration(
@@ -45,7 +53,7 @@ class PickerLocationCard extends StatelessWidget {
         children: [
           // Small label
           Text(
-            fieldLabel == 'from' ? 'Pickup point' : 'Drop-off point',
+            label,
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13.sp),
           ),
           SizedBox(height: 6.h),

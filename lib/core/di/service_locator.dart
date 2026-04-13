@@ -6,6 +6,7 @@ import '../network/dio_factory.dart';
 import '../network/firebase_id_token_interceptor.dart';
 import '../services/auth_service.dart';
 import '../services/route_preferences_service.dart';
+import '../services/user_activity_service.dart';
 import '../storage/hive/hive_service.dart';
 import '../../features/routing/data/datasources/routes_remote_data_source.dart';
 import '../../features/routing/data/remote/routes_api_service.dart';
@@ -25,6 +26,9 @@ class ServiceLocator {
 
     // Auth
     sl.registerLazySingleton<AuthService>(() => AuthService());
+
+    // User activity (last search / last route)
+    sl.registerLazySingleton<UserActivityService>(() => UserActivityService());
 
     // Core
     sl.registerLazySingleton<Dio>(() {

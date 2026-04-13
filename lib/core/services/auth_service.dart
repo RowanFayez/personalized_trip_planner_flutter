@@ -27,13 +27,27 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
-  Future<UserCredential> signInWithGoogle() async {
+  Future<UserCredential> signInWithGoogle({bool forceAccountSelection = false}) async {
     await _ensureGoogleInitialized();
 
     if (!_googleSignIn.supportsAuthenticate()) {
       throw UnsupportedError(
         'Google sign-in is not supported on this platform.',
       );
+    }
+
+    if (forceAccountSelection) {
+      // Allow selecting a different account after logout.
+      // Disconnect revokes authorization; if it fails, fall back to signOut.
+      try {
+        await _googleSignIn.disconnect();
+      } catch (_) {
+        try {
+          await _googleSignIn.signOut();
+        } catch (_) {
+          // Ignore Google sign-out issues; FirebaseAuth controls app session.
+        }
+      }
     }
 
     late final GoogleSignInAccount googleUser;
@@ -56,7 +70,19 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
+    // Always end the app session first.
+    await _auth.signOut();
+
+    // Then clear Google authorization so next login can switch accounts.
+    try {
+      await _googleSignIn.disconnect();
+    } catch (_) {
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {
+        // Ignore; user is already signed out of Firebase.
+      }
+    }
   }
 
   Future<String?> getIdToken({bool forceRefresh = false}) async {
