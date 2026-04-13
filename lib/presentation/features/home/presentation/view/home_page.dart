@@ -269,9 +269,9 @@ class _HomePageState extends State<HomePage> {
           ),
         );
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$label saved.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$label saved.')));
         return;
       }
 
@@ -291,9 +291,9 @@ class _HomePageState extends State<HomePage> {
         ),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$label saved.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('$label saved.')));
       return;
     }
 

@@ -79,9 +79,9 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label saved.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$label saved.')));
     await _load();
   }
 
@@ -231,10 +231,7 @@ class _GuestHeader extends StatelessWidget {
             ),
           ),
           SizedBox(width: 10.w),
-          TextButton(
-            onPressed: onSignIn,
-            child: const Text('Sign in'),
-          ),
+          TextButton(onPressed: onSignIn, child: const Text('Sign in')),
         ],
       ),
     );
@@ -310,10 +307,7 @@ class _SavedLocationsCard extends StatelessWidget {
           SizedBox(height: 10.h),
           Text(
             'Tip: On the Home screen, choose a place using search (or the map button) then tap Home/Work/College to save it.',
-            style: TextStyle(
-              color: AppColors.textTertiary,
-              fontSize: 11.sp,
-            ),
+            style: TextStyle(color: AppColors.textTertiary, fontSize: 11.sp),
           ),
         ],
       ),
@@ -373,10 +367,7 @@ class _SavedLocationRow extends StatelessWidget {
             ],
           ),
         ),
-        TextButton(
-          onPressed: onSet,
-          child: const Text('Set'),
-        ),
+        TextButton(onPressed: onSet, child: const Text('Set')),
       ],
     );
   }

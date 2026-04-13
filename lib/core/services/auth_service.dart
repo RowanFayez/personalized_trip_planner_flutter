@@ -27,7 +27,9 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
-  Future<UserCredential> signInWithGoogle({bool forceAccountSelection = false}) async {
+  Future<UserCredential> signInWithGoogle({
+    bool forceAccountSelection = false,
+  }) async {
     await _ensureGoogleInitialized();
 
     if (!_googleSignIn.supportsAuthenticate()) {

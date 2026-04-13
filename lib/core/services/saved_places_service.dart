@@ -10,7 +10,11 @@ class SavedPlace {
   final double longitude;
   final String? name;
 
-  const SavedPlace({required this.latitude, required this.longitude, this.name});
+  const SavedPlace({
+    required this.latitude,
+    required this.longitude,
+    this.name,
+  });
 }
 
 class SavedPlacesService {

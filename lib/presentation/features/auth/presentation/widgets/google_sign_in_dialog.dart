@@ -66,10 +66,7 @@ class _GoogleSignInDialogState extends State<_GoogleSignInDialog> {
           children: [
             Text(
               'Sign in with your Google account to continue.',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12.sp,
-              ),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12.sp),
             ),
             SizedBox(height: 16.h),
             GoogleSignInButton(onPressed: _signIn, isLoading: _isLoading),
