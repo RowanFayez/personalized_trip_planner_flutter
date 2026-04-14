@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../storage/hive/core_hive_boxes.dart';
 import '../storage/hive/hive_service.dart';
+import 'auth_service.dart';
 
 enum SavedPlaceType { home, work, college }
 
@@ -18,7 +19,22 @@ class SavedPlace {
 }
 
 class SavedPlacesService {
-  static String _placeKey(SavedPlaceType type) => 'saved_place_${type.name}';
+  final AuthService _authService;
+
+  SavedPlacesService({required AuthService authService})
+    : _authService = authService;
+
+  String? get _currentUserId => _authService.currentUser?.uid;
+
+  /// Public helper for UI widgets that need to listen to Hive changes.
+  static String storageKeyFor({
+    required String userId,
+    required SavedPlaceType type,
+  }) =>
+      '${userId}_${type.name}_location';
+
+  static String _legacyHiveKey(SavedPlaceType type) =>
+      'saved_place_${type.name}';
 
   static String _latKey(SavedPlaceType type) => 'saved_${type.name}_lat';
   static String _lngKey(SavedPlaceType type) => 'saved_${type.name}_lng';
@@ -26,9 +42,26 @@ class SavedPlacesService {
   static String _legacyFactoryLatKey() => 'saved_factory_lat';
   static String _legacyFactoryLngKey() => 'saved_factory_lng';
 
-  Future<void> _migrateIfNeeded(SavedPlaceType type) async {
+  Future<void> _migrateIfNeeded({
+    required String userId,
+    required SavedPlaceType type,
+  }) async {
     final box = await HiveService.openBox<dynamic>(CoreHiveBoxes.savedPlaces);
-    if (box.containsKey(_placeKey(type))) return;
+    final key = storageKeyFor(userId: userId, type: type);
+    if (box.containsKey(key)) return;
+
+    // One-time migration from older app versions that stored places without
+    // scoping by user. We migrate to the *current* signed-in user and remove
+    // the legacy key to avoid leaking data across accounts.
+    final legacyKey = _legacyHiveKey(type);
+    if (box.containsKey(legacyKey)) {
+      final legacyValue = box.get(legacyKey);
+      if (legacyValue != null) {
+        await box.put(key, legacyValue);
+      }
+      await box.delete(legacyKey);
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     double? lat = prefs.getDouble(_latKey(type));
@@ -41,7 +74,7 @@ class SavedPlacesService {
 
     if (lat == null || lng == null) return;
 
-    await box.put(_placeKey(type), <String, double>{'lat': lat, 'lng': lng});
+    await box.put(key, <String, double>{'lat': lat, 'lng': lng});
 
     // Optional cleanup of legacy keys.
     await prefs.remove(_latKey(type));
@@ -53,9 +86,12 @@ class SavedPlacesService {
   }
 
   Future<SavedPlace?> getPlace(SavedPlaceType type) async {
-    await _migrateIfNeeded(type);
+    final userId = _currentUserId;
+    if (userId == null) return null;
+
+    await _migrateIfNeeded(userId: userId, type: type);
     final box = await HiveService.openBox<dynamic>(CoreHiveBoxes.savedPlaces);
-    final value = box.get(_placeKey(type));
+    final value = box.get(storageKeyFor(userId: userId, type: type));
 
     if (value is Map) {
       final lat = value['lat'];
@@ -74,6 +110,8 @@ class SavedPlacesService {
   }
 
   Future<void> setPlace(SavedPlaceType type, SavedPlace place) async {
+    final userId = _currentUserId;
+    if (userId == null) return;
     final box = await HiveService.openBox<dynamic>(CoreHiveBoxes.savedPlaces);
 
     final payload = <String, dynamic>{
@@ -85,6 +123,6 @@ class SavedPlacesService {
       payload['name'] = normalizedName;
     }
 
-    await box.put(_placeKey(type), payload);
+    await box.put(storageKeyFor(userId: userId, type: type), payload);
   }
 }

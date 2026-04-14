@@ -19,7 +19,10 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final SavedPlacesService _savedPlacesService = SavedPlacesService();
+  final AuthService _authService = sl<AuthService>();
+  late final SavedPlacesService _savedPlacesService = SavedPlacesService(
+    authService: _authService,
+  );
   final UserActivityService _userActivityService = sl<UserActivityService>();
 
   bool _isLoading = true;
@@ -32,10 +35,27 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    if (_authService.currentUser != null) {
+      _load();
+    } else {
+      _isLoading = false;
+    }
   }
 
   Future<void> _load() async {
+    if (_authService.currentUser == null) {
+      if (!mounted) return;
+      setState(() {
+        _home = null;
+        _work = null;
+        _college = null;
+        _lastSearch = null;
+        _lastRoute = null;
+        _isLoading = false;
+      });
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
@@ -106,7 +126,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = sl<AuthService>().currentUser;
+    final user = _authService.currentUser;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
@@ -122,27 +142,30 @@ class _ProfilePageState extends State<ProfilePage> {
                 _GuestHeader(
                   onSignIn: () {
                     showGoogleSignInDialog(context).then((_) {
-                      if (mounted) setState(() {});
+                      if (!mounted) return;
+                      setState(() {});
+                      _load();
                     });
                   },
                 ),
-              SizedBox(height: 18.h),
-              _SavedLocationsCard(
-                isLoading: _isLoading,
-                home: _home,
-                work: _work,
-                college: _college,
-                onSetHome: () => _pickAndSave(SavedPlaceType.home),
-                onSetWork: () => _pickAndSave(SavedPlaceType.work),
-                onSetCollege: () => _pickAndSave(SavedPlaceType.college),
-              ),
-              SizedBox(height: 18.h),
-              _RecentActivityCard(
-                isLoading: _isLoading,
-                lastSearch: _lastSearch,
-                lastRoute: _lastRoute,
-              ),
+
               if (user != null) ...[
+                SizedBox(height: 18.h),
+                _SavedLocationsCard(
+                  isLoading: _isLoading,
+                  home: _home,
+                  work: _work,
+                  college: _college,
+                  onSetHome: () => _pickAndSave(SavedPlaceType.home),
+                  onSetWork: () => _pickAndSave(SavedPlaceType.work),
+                  onSetCollege: () => _pickAndSave(SavedPlaceType.college),
+                ),
+                SizedBox(height: 18.h),
+                _RecentActivityCard(
+                  isLoading: _isLoading,
+                  lastSearch: _lastSearch,
+                  lastRoute: _lastRoute,
+                ),
                 SizedBox(height: 18.h),
                 SizedBox(
                   height: 52.h,

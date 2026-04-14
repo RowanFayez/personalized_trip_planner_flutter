@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -72,10 +74,21 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    // Always end the app session first.
+    // End the app session first (this is the only awaited step so UI stays snappy).
     await _auth.signOut();
 
-    // Then clear Google authorization so next login can switch accounts.
+    // Clear Google authorization in the background so next login can switch accounts.
+    // This can be slow on some devices; we avoid blocking the logout UX.
+    unawaited(_clearGoogleAuthorization());
+  }
+
+  Future<void> _clearGoogleAuthorization() async {
+    try {
+      await _ensureGoogleInitialized();
+    } catch (_) {
+      // Ignore initialization failures.
+    }
+
     try {
       await _googleSignIn.disconnect();
     } catch (_) {

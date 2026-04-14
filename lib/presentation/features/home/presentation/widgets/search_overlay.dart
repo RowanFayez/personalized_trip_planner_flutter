@@ -22,6 +22,8 @@ class SearchOverlay extends StatelessWidget {
   final VoidCallback onToTapped;
   final bool showQuickPlaces;
   final bool showQuickPlacesUnderFrom;
+  final String? signedInUserId;
+  final SavedPlacesService savedPlacesService;
   final ValueChanged<SavedPlaceType> onQuickPlaceSelected;
   final VoidCallback onQuickPlaceMore;
   final List<MapboxPlaceSuggestion> fromSuggestions;
@@ -48,6 +50,8 @@ class SearchOverlay extends StatelessWidget {
     required this.onToTapped,
     required this.showQuickPlaces,
     required this.showQuickPlacesUnderFrom,
+    required this.signedInUserId,
+    required this.savedPlacesService,
     required this.onQuickPlaceSelected,
     required this.onQuickPlaceMore,
     required this.fromSuggestions,
@@ -137,6 +141,7 @@ class SearchOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userId = signedInUserId;
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
@@ -160,9 +165,12 @@ class SearchOverlay extends StatelessWidget {
               onSuffixTap: onFromMapPressed,
             ),
 
-            if (showQuickPlaces && showQuickPlacesUnderFrom) ...[
+            if (showQuickPlaces && showQuickPlacesUnderFrom && userId != null)
+              ...[
               SizedBox(height: 10.h),
               QuickPlaceChips(
+                userId: userId,
+                savedPlacesService: savedPlacesService,
                 onSelected: onQuickPlaceSelected,
                 onMore: onQuickPlaceMore,
               ),
@@ -194,9 +202,12 @@ class SearchOverlay extends StatelessWidget {
               onSuffixTap: onToMapPressed,
             ),
 
-            if (showQuickPlaces && !showQuickPlacesUnderFrom) ...[
+            if (showQuickPlaces && !showQuickPlacesUnderFrom && userId != null)
+              ...[
               SizedBox(height: 10.h),
               QuickPlaceChips(
+                userId: userId,
+                savedPlacesService: savedPlacesService,
                 onSelected: onQuickPlaceSelected,
                 onMore: onQuickPlaceMore,
               ),

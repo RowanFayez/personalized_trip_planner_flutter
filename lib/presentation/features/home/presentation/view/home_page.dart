@@ -33,7 +33,10 @@ class _HomePageState extends State<HomePage> {
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
   final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
-  final SavedPlacesService _savedPlacesService = SavedPlacesService();
+  final AuthService _authService = sl<AuthService>();
+  late final SavedPlacesService _savedPlacesService = SavedPlacesService(
+    authService: _authService,
+  );
   final UserActivityService _userActivityService = sl<UserActivityService>();
   bool _didCenterOnUser = false;
 
@@ -141,7 +144,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handleProfilePressed() {
-    final signedIn = sl<AuthService>().currentUser != null;
+    final signedIn = _authService.currentUser != null;
     if (signedIn) {
       context.push('/profile');
       return;
@@ -298,7 +301,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     await _activeSearchController.goToLocation(
-      title: label,
+      title: place.name?.trim().isNotEmpty == true ? place.name!.trim() : label,
       latitude: place.latitude,
       longitude: place.longitude,
     );
@@ -422,38 +425,50 @@ class _HomePageState extends State<HomePage> {
             ),
 
             // Top search UI overlay
-            SearchOverlay(
-              fromController: _fromSearch.textController,
-              toController: _toSearch.textController,
-              fromFocusNode: _fromSearch.focusNode,
-              toFocusNode: _toSearch.focusNode,
-              onFromChanged: _fromSearch.onChanged,
-              onToChanged: _toSearch.onChanged,
-              onFromSubmitted: (_) => _fromSearch.submit(),
-              onToSubmitted: (_) => _toSearch.submit(),
-              onFromTapped: () {
-                _fromSearch.onFieldTap();
-                setState(() {});
+            StreamBuilder<Object?>(
+              stream: _authService.authStateChanges(),
+              builder: (context, _) {
+                final user = _authService.currentUser;
+                final signedIn = user != null;
+
+                return SearchOverlay(
+                  fromController: _fromSearch.textController,
+                  toController: _toSearch.textController,
+                  fromFocusNode: _fromSearch.focusNode,
+                  toFocusNode: _toSearch.focusNode,
+                  onFromChanged: _fromSearch.onChanged,
+                  onToChanged: _toSearch.onChanged,
+                  onFromSubmitted: (_) => _fromSearch.submit(),
+                  onToSubmitted: (_) => _toSearch.submit(),
+                  onFromTapped: () {
+                    _fromSearch.onFieldTap();
+                    setState(() {});
+                  },
+                  onToTapped: () {
+                    _toSearch.onFieldTap();
+                    setState(() {});
+                  },
+                  showQuickPlaces:
+                      signedIn &&
+                      (_fromSearch.focusNode.hasFocus ||
+                          _toSearch.focusNode.hasFocus),
+                  showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
+                  signedInUserId: user?.uid,
+                    savedPlacesService: _savedPlacesService,
+                  onQuickPlaceSelected: (type) =>
+                      _handleQuickPlaceSelected(type),
+                  onQuickPlaceMore: _handleQuickPlaceMore,
+                  fromSuggestions: _fromSearch.suggestions,
+                  toSuggestions: _toSearch.suggestions,
+                  onFromSuggestionSelected: _fromSearch.selectSuggestion,
+                  onToSuggestionSelected: _toSearch.selectSuggestion,
+                  showFromSuggestions: _fromSearch.showSuggestions,
+                  showToSuggestions: _toSearch.showSuggestions,
+                  onPreferencesPressed: _handlePreferencesPressed,
+                  onFromMapPressed: _handleFromMapPick,
+                  onToMapPressed: _handleToMapPick,
+                );
               },
-              onToTapped: () {
-                _toSearch.onFieldTap();
-                setState(() {});
-              },
-              showQuickPlaces:
-                  _fromSearch.focusNode.hasFocus ||
-                  _toSearch.focusNode.hasFocus,
-              showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
-              onQuickPlaceSelected: (type) => _handleQuickPlaceSelected(type),
-              onQuickPlaceMore: _handleQuickPlaceMore,
-              fromSuggestions: _fromSearch.suggestions,
-              toSuggestions: _toSearch.suggestions,
-              onFromSuggestionSelected: _fromSearch.selectSuggestion,
-              onToSuggestionSelected: _toSearch.selectSuggestion,
-              showFromSuggestions: _fromSearch.showSuggestions,
-              showToSuggestions: _toSearch.showSuggestions,
-              onPreferencesPressed: _handlePreferencesPressed,
-              onFromMapPressed: _handleFromMapPick,
-              onToMapPressed: _handleToMapPick,
             ),
 
             // Bottom action buttons
@@ -471,9 +486,9 @@ class _HomePageState extends State<HomePage> {
                 child: SizedBox(
                   width: 1.sw - 40.w,
                   child: StreamBuilder<Object?>(
-                    stream: sl<AuthService>().authStateChanges(),
+                    stream: _authService.authStateChanges(),
                     builder: (context, _) {
-                      final user = sl<AuthService>().currentUser;
+                      final user = _authService.currentUser;
                       return MapActionButtons(
                         onChatPressed: _handleChatPressed,
                         onProfilePressed: _handleProfilePressed,

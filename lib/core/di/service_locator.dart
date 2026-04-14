@@ -28,7 +28,9 @@ class ServiceLocator {
     sl.registerLazySingleton<AuthService>(() => AuthService());
 
     // User activity (last search / last route)
-    sl.registerLazySingleton<UserActivityService>(() => UserActivityService());
+    sl.registerLazySingleton<UserActivityService>(
+      () => UserActivityService(authService: sl<AuthService>()),
+    );
 
     // Core
     sl.registerLazySingleton<Dio>(() {
