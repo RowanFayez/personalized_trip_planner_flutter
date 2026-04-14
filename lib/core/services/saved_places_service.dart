@@ -30,8 +30,7 @@ class SavedPlacesService {
   static String storageKeyFor({
     required String userId,
     required SavedPlaceType type,
-  }) =>
-      '${userId}_${type.name}_location';
+  }) => '${userId}_${type.name}_location';
 
   static String _legacyHiveKey(SavedPlaceType type) =>
       'saved_place_${type.name}';

@@ -454,7 +454,7 @@ class _HomePageState extends State<HomePage> {
                           _toSearch.focusNode.hasFocus),
                   showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
                   signedInUserId: user?.uid,
-                    savedPlacesService: _savedPlacesService,
+                  savedPlacesService: _savedPlacesService,
                   onQuickPlaceSelected: (type) =>
                       _handleQuickPlaceSelected(type),
                   onQuickPlaceMore: _handleQuickPlaceMore,

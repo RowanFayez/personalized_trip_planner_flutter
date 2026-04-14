@@ -165,8 +165,9 @@ class SearchOverlay extends StatelessWidget {
               onSuffixTap: onFromMapPressed,
             ),
 
-            if (showQuickPlaces && showQuickPlacesUnderFrom && userId != null)
-              ...[
+            if (showQuickPlaces &&
+                showQuickPlacesUnderFrom &&
+                userId != null) ...[
               SizedBox(height: 10.h),
               QuickPlaceChips(
                 userId: userId,
@@ -202,8 +203,9 @@ class SearchOverlay extends StatelessWidget {
               onSuffixTap: onToMapPressed,
             ),
 
-            if (showQuickPlaces && !showQuickPlacesUnderFrom && userId != null)
-              ...[
+            if (showQuickPlaces &&
+                !showQuickPlacesUnderFrom &&
+                userId != null) ...[
               SizedBox(height: 10.h),
               QuickPlaceChips(
                 userId: userId,
