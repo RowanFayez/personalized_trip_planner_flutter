@@ -4,6 +4,15 @@ part 'routes_response_dto.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class RoutesResponseDto {
+  @JsonKey(name: 'geometry_encoding')
+  final String? geometryEncoding;
+
+  @JsonKey(name: 'selected_priority')
+  final String? selectedPriority;
+
+  @JsonKey(name: 'weights_used')
+  final Map<String, double>? weightsUsed;
+
   @JsonKey(name: 'num_journeys')
   final int numJourneys;
 
@@ -18,14 +27,21 @@ class RoutesResponseDto {
   @JsonKey(name: 'total_routes_found')
   final int? totalRoutesFound;
 
+  @JsonKey(name: 'total_after_dedup')
+  final int? totalAfterDedup;
+
   final Object? error;
 
   const RoutesResponseDto({
+    this.geometryEncoding,
+    this.selectedPriority,
+    this.weightsUsed,
     required this.numJourneys,
     required this.journeys,
     this.startTripsFound,
     this.endTripsFound,
     this.totalRoutesFound,
+    this.totalAfterDedup,
     this.error,
   });
 
@@ -43,13 +59,25 @@ class JourneyDto {
   @JsonKey(name: 'text_summary')
   final String? textSummary;
 
+  @JsonKey(name: 'text_summary_en')
+  final String? textSummaryEn;
+
   final int? id;
+
+  @JsonKey(defaultValue: <String>[], name: 'labels')
+  final List<String> labels;
+
+  @JsonKey(defaultValue: <String>[], name: 'labels_ar')
+  final List<String> labelsAr;
 
   const JourneyDto({
     required this.summary,
     required this.legs,
     this.textSummary,
+    this.textSummaryEn,
     this.id,
+    this.labels = const <String>[],
+    this.labelsAr = const <String>[],
   });
 
   factory JourneyDto.fromJson(Map<String, dynamic> json) =>
@@ -69,17 +97,35 @@ class JourneySummaryDto {
   @JsonKey(name: 'walking_distance_meters')
   final int walkingDistanceMeters;
 
+  @JsonKey(name: 'transit_distance_meters')
+  final int? transitDistanceMeters;
+
   final int transfers;
   final int cost;
-  final List<String> modes;
+
+  @JsonKey(name: 'modes_en', defaultValue: <String>[]) 
+  final List<String> modesEn;
+
+  @JsonKey(name: 'modes_ar', defaultValue: <String>[]) 
+  final List<String> modesAr;
+
+  @JsonKey(name: 'main_streets_en', defaultValue: <String>[]) 
+  final List<String> mainStreetsEn;
+
+  @JsonKey(name: 'main_streets_ar', defaultValue: <String>[]) 
+  final List<String> mainStreetsAr;
 
   const JourneySummaryDto({
     required this.totalTimeMinutes,
     required this.totalDistanceMeters,
     required this.walkingDistanceMeters,
+    this.transitDistanceMeters,
     required this.transfers,
     required this.cost,
-    required this.modes,
+    this.modesEn = const <String>[],
+    this.modesAr = const <String>[],
+    this.mainStreetsEn = const <String>[],
+    this.mainStreetsAr = const <String>[],
   });
 
   factory JourneySummaryDto.fromJson(Map<String, dynamic> json) =>
@@ -98,20 +144,29 @@ class RouteLegDto {
   @JsonKey(name: 'duration_minutes')
   final int? durationMinutes;
 
-  /// Path coordinates are returned as [lat, lon] pairs.
-  @JsonKey(fromJson: _toDouble2D, toJson: _fromDouble2D)
-  final List<List<double>>? path;
+  /// Encoded path (polyline5) returned per leg.
+  final String? polyline;
 
   // Trip-only fields
   @JsonKey(name: 'trip_id')
   final String? tripId;
 
-  final String? mode;
+  @JsonKey(name: 'mode_en')
+  final String? modeEn;
+
+  @JsonKey(name: 'mode_ar')
+  final String? modeAr;
 
   @JsonKey(name: 'route_short_name')
   final String? routeShortName;
 
+  @JsonKey(name: 'route_short_name_ar')
+  final String? routeShortNameAr;
+
   final String? headsign;
+
+  @JsonKey(name: 'headsign_ar')
+  final String? headsignAr;
   final int? fare;
 
   final StopRefDto? from;
@@ -130,8 +185,14 @@ class RouteLegDto {
   @JsonKey(name: 'from_trip_name')
   final String? fromTripName;
 
+  @JsonKey(name: 'from_trip_name_ar')
+  final String? fromTripNameAr;
+
   @JsonKey(name: 'to_trip_name')
   final String? toTripName;
+
+  @JsonKey(name: 'to_trip_name_ar')
+  final String? toTripNameAr;
 
   @JsonKey(name: 'end_stop_id')
   final int? endStopId;
@@ -143,11 +204,14 @@ class RouteLegDto {
     required this.type,
     this.distanceMeters,
     this.durationMinutes,
-    this.path,
+    this.polyline,
     this.tripId,
-    this.mode,
+    this.modeEn,
+    this.modeAr,
     this.routeShortName,
+    this.routeShortNameAr,
     this.headsign,
+    this.headsignAr,
     this.fare,
     this.from,
     this.to,
@@ -155,7 +219,9 @@ class RouteLegDto {
     this.fromTripId,
     this.toTripId,
     this.fromTripName,
+    this.fromTripNameAr,
     this.toTripName,
+    this.toTripNameAr,
     this.endStopId,
     this.walkingDistanceMeters,
   });
@@ -165,22 +231,7 @@ class RouteLegDto {
 
   Map<String, dynamic> toJson() => _$RouteLegDtoToJson(this);
 
-  static List<List<double>>? _toDouble2D(dynamic value) {
-    if (value is! List) return null;
-    return value
-        .whereType<List>()
-        .map(
-          (pair) => pair
-              .whereType<num>()
-              .take(2)
-              .map((n) => n.toDouble())
-              .toList(growable: false),
-        )
-        .where((pair) => pair.length == 2)
-        .toList(growable: false);
-  }
-
-  static dynamic _fromDouble2D(List<List<double>>? value) => value;
+  // No custom converters needed; polyline is decoded in the mapper.
 }
 
 @JsonSerializable()
@@ -190,6 +241,9 @@ class StopRefDto {
 
   final String name;
 
+  @JsonKey(name: 'name_ar')
+  final String? nameAr;
+
   /// [lat, lon]
   @JsonKey(fromJson: _toDouble1D, toJson: _fromDouble1D)
   final List<double> coord;
@@ -197,6 +251,7 @@ class StopRefDto {
   const StopRefDto({
     required this.stopId,
     required this.name,
+    this.nameAr,
     required this.coord,
   });
 

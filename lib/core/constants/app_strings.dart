@@ -25,7 +25,8 @@ class AppStrings {
   // Route Preferences
   static const String prefFastest = 'fastest';
   static const String prefCheapest = 'cheapest';
-  static const String prefSimplest = 'simplest';
+  static const String prefBalanced = 'balanced';
+  static const String prefSimplest = prefBalanced;
 
   // Storage Keys
   static const String keyOnboardingComplete = 'onboarding_complete';

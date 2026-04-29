@@ -16,34 +16,50 @@ class Journey extends Equatable {
   final JourneySummary summary;
   final List<RouteLeg> legs;
   final String? textSummary;
+  final String? textSummaryEn;
   final int? id;
+
+  final List<String> labels;
+  final List<String> labelsAr;
 
   const Journey({
     required this.summary,
     required this.legs,
     this.textSummary,
+    this.textSummaryEn,
     this.id,
+    this.labels = const <String>[],
+    this.labelsAr = const <String>[],
   });
 
   @override
-  List<Object?> get props => [summary, legs];
+  List<Object?> get props => [summary, legs, textSummary, textSummaryEn, id, labels, labelsAr];
 }
 
 class JourneySummary extends Equatable {
   final int totalTimeMinutes;
   final int totalDistanceMeters;
   final int walkingDistanceMeters;
+  final int? transitDistanceMeters;
   final int transfers;
   final int cost;
-  final List<String> modes;
+
+  final List<String> modesEn;
+  final List<String> modesAr;
+  final List<String> mainStreetsEn;
+  final List<String> mainStreetsAr;
 
   const JourneySummary({
     required this.totalTimeMinutes,
     required this.totalDistanceMeters,
     required this.walkingDistanceMeters,
+    this.transitDistanceMeters,
     required this.transfers,
     required this.cost,
-    required this.modes,
+    this.modesEn = const <String>[],
+    this.modesAr = const <String>[],
+    this.mainStreetsEn = const <String>[],
+    this.mainStreetsAr = const <String>[],
   });
 
   @override
@@ -51,25 +67,31 @@ class JourneySummary extends Equatable {
     totalTimeMinutes,
     totalDistanceMeters,
     walkingDistanceMeters,
+    transitDistanceMeters,
     transfers,
     cost,
-    modes,
+    modesEn,
+    modesAr,
+    mainStreetsEn,
+    mainStreetsAr,
   ];
 }
 
 class StopRef extends Equatable {
   final int stopId;
   final String name;
+  final String? nameAr;
   final GeoPoint coord;
 
   const StopRef({
     required this.stopId,
     required this.name,
+    this.nameAr,
     required this.coord,
   });
 
   @override
-  List<Object?> get props => [stopId, name, coord];
+  List<Object?> get props => [stopId, name, nameAr, coord];
 }
 
 class RouteLeg extends Equatable {
@@ -82,8 +104,11 @@ class RouteLeg extends Equatable {
   // Trip fields
   final String? tripId;
   final String? mode;
+  final String? modeAr;
   final String? routeShortName;
+  final String? routeShortNameAr;
   final String? headsign;
+  final String? headsignAr;
   final int? fare;
   final StopRef? from;
   final StopRef? to;
@@ -94,7 +119,9 @@ class RouteLeg extends Equatable {
   final String? fromTripId;
   final String? toTripId;
   final String? fromTripName;
+  final String? fromTripNameAr;
   final String? toTripName;
+  final String? toTripNameAr;
   final int? endStopId;
   final int? walkingDistanceMeters;
 
@@ -105,8 +132,11 @@ class RouteLeg extends Equatable {
     this.durationMinutes,
     this.tripId,
     this.mode,
+    this.modeAr,
     this.routeShortName,
+    this.routeShortNameAr,
     this.headsign,
+    this.headsignAr,
     this.fare,
     this.from,
     this.to,
@@ -114,7 +144,9 @@ class RouteLeg extends Equatable {
     this.fromTripId,
     this.toTripId,
     this.fromTripName,
+    this.fromTripNameAr,
     this.toTripName,
+    this.toTripNameAr,
     this.endStopId,
     this.walkingDistanceMeters,
   });
@@ -131,8 +163,11 @@ class RouteLeg extends Equatable {
     path,
     tripId,
     mode,
+    modeAr,
     routeShortName,
+    routeShortNameAr,
     headsign,
+    headsignAr,
     fare,
     from,
     to,
@@ -140,10 +175,64 @@ class RouteLeg extends Equatable {
     fromTripId,
     toTripId,
     fromTripName,
+    fromTripNameAr,
     toTripName,
+    toTripNameAr,
     endStopId,
     walkingDistanceMeters,
   ];
+}
+
+class RouteWeights extends Equatable {
+  final double time;
+  final double cost;
+  final double walk;
+  final double transfer;
+
+  const RouteWeights({
+    required this.time,
+    required this.cost,
+    required this.walk,
+    required this.transfer,
+  });
+
+  static const RouteWeights allOnes = RouteWeights(
+    time: 1.0,
+    cost: 1.0,
+    walk: 1.0,
+    transfer: 1.0,
+  );
+
+  @override
+  List<Object?> get props => [time, cost, walk, transfer];
+}
+
+class ModeFilter extends Equatable {
+  final List<String> include;
+  final List<String> exclude;
+  final String includeMatch;
+
+  const ModeFilter({
+    this.include = const <String>[],
+    this.exclude = const <String>[],
+    this.includeMatch = 'any',
+  });
+
+  @override
+  List<Object?> get props => [include, exclude, includeMatch];
+}
+
+class RouteFilters extends Equatable {
+  final ModeFilter modes;
+  final ModeFilter mainStreets;
+
+  const RouteFilters({
+    this.modes = const ModeFilter(),
+    this.mainStreets = const ModeFilter(),
+  });
+
+  @override
+  List<Object?> get props => [modes, mainStreets];
 }
 
 class RoutesRequest extends Equatable {
@@ -154,8 +243,11 @@ class RoutesRequest extends Equatable {
 
   final int maxTransfers;
   final int walkingCutoff;
+  final String priority;
   final int topK;
-  final List<String> restrictedModes;
+
+  final RouteWeights weights;
+  final RouteFilters filters;
 
   const RoutesRequest({
     required this.startLat,
@@ -164,8 +256,10 @@ class RoutesRequest extends Equatable {
     required this.endLon,
     required this.maxTransfers,
     required this.walkingCutoff,
+    required this.priority,
     required this.topK,
-    required this.restrictedModes,
+    required this.weights,
+    required this.filters,
   });
 
   @override
@@ -176,7 +270,9 @@ class RoutesRequest extends Equatable {
     endLon,
     maxTransfers,
     walkingCutoff,
+    priority,
     topK,
-    restrictedModes,
+    weights,
+    filters,
   ];
 }

@@ -27,8 +27,13 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
   final RoutePreferencesService _routePreferencesService =
       RoutePreferencesService();
 
-  RoutePriority _priority = RoutePriority.fastest;
+  RoutePriority _priority = RoutePriority.balanced;
   double _maxWalkingMinutes = 30;
+
+  int _maxTransfers = RoutePreferencesService.defaultMaxTransfers;
+
+  final TextEditingController _streetController = TextEditingController();
+  List<String> _excludedStreets = <String>[];
 
   bool _microbus = true;
   bool _tram = true;
@@ -46,16 +51,66 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     if (!mounted) return;
 
     setState(() {
+      _maxTransfers = saved.maxTransfers.clamp(
+        RoutePreferencesService.minTransfers,
+        RoutePreferencesService.maxTransfersLimit,
+      ).toInt();
       _maxWalkingMinutes = (saved.walkingCutoffMeters / _metersPerMinute).clamp(
         0,
         60,
       );
+
+      _priority = _priorityFromString(saved.priority);
+
+      _excludedStreets = saved.excludedMainStreets.toList(growable: false);
 
       // Toggles represent "allowed" modes.
       _microbus = !saved.restrictedModes.contains('microbus');
       _tram = !saved.restrictedModes.contains('tram');
       _minibus = !saved.restrictedModes.contains('minibus');
       _bus = !saved.restrictedModes.contains('bus');
+    });
+  }
+
+  @override
+  void dispose() {
+    _streetController.dispose();
+    super.dispose();
+  }
+
+  RoutePriority _priorityFromString(String value) {
+    final v = value.trim().toLowerCase();
+    return switch (v) {
+      'fastest' => RoutePriority.fastest,
+      'cheapest' => RoutePriority.cheapest,
+      _ => RoutePriority.balanced,
+    };
+  }
+
+  String _priorityToString(RoutePriority value) {
+    return switch (value) {
+      RoutePriority.fastest => 'fastest',
+      RoutePriority.cheapest => 'cheapest',
+      RoutePriority.balanced => 'balanced',
+    };
+  }
+
+  void _addStreetChip(String raw) {
+    final normalized = raw.trim();
+    if (normalized.isEmpty) return;
+    setState(() {
+      final set = _excludedStreets.map((s) => s.trim()).where((s) => s.isNotEmpty).toSet();
+      set.add(normalized);
+      _excludedStreets = set.toList(growable: false);
+      _streetController.clear();
+    });
+  }
+
+  void _removeStreetChip(String value) {
+    final key = value.trim();
+    if (key.isEmpty) return;
+    setState(() {
+      _excludedStreets = _excludedStreets.where((s) => s.trim() != key).toList(growable: false);
     });
   }
 
@@ -72,8 +127,11 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
 
     final current = await _routePreferencesService.load();
     final updated = current.copyWith(
+      maxTransfers: _maxTransfers,
       walkingCutoffMeters: walkingCutoffMeters,
       restrictedModes: restrictedModes,
+      priority: _priorityToString(_priority),
+      excludedMainStreets: _excludedStreets,
     );
     await _routePreferencesService.save(updated);
     if (!mounted) return;
@@ -82,11 +140,15 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
 
   void _resetToDefault() {
     setState(() {
-      _priority = RoutePriority.fastest;
+      _priority = RoutePriority.balanced;
+      _maxTransfers = RoutePreferencesService.defaultMaxTransfers;
       _maxWalkingMinutes =
           (RoutePreferencesService.defaultWalkingCutoffMeters /
                   _metersPerMinute)
               .clamp(0, 60);
+
+      _excludedStreets = const <String>[];
+      _streetController.clear();
 
       // Default is "no restrictions" => all modes allowed.
       _microbus = true;
@@ -150,15 +212,35 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         PriorityTile(
                           width: 358.w,
                           height: 54,
-                          label: 'Less Walking',
-                          selected: _priority == RoutePriority.simplest,
+                          label: 'Balanced',
+                          selected: _priority == RoutePriority.balanced,
                           onTap: () => setState(
-                            () => _priority = RoutePriority.simplest,
+                            () => _priority = RoutePriority.balanced,
                           ),
                         ),
                         SizedBox(height: 8.h),
                         const DividerLine(),
                         SizedBox(height: 6.h),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Max Transfers',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            _TransfersStepper(
+                              value: _maxTransfers,
+                              min: RoutePreferencesService.minTransfers,
+                              max: RoutePreferencesService.maxTransfersLimit,
+                              onChanged: (v) => setState(() => _maxTransfers = v),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8.h),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -249,6 +331,83 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         SizedBox(height: 6.h),
                         const DividerLine(),
                         SizedBox(height: 10.h),
+                        const SectionHeading(
+                          text: 'Street Preferences',
+                          fontSize: 17,
+                        ),
+                        SizedBox(height: 4.h),
+                        SizedBox(
+                          width: 358.w,
+                          child: PreferencesPanel(
+                            child: Padding(
+                              padding: EdgeInsets.all(12.r),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextField(
+                                    controller: _streetController,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: _addStreetChip,
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'Type a street name and press Enter',
+                                      hintStyle: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12.5.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      isDense: true,
+                                      filled: true,
+                                      fillColor: AppColors.searchInputBackground,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(14.r),
+                                        borderSide: const BorderSide(
+                                          color: AppColors.border,
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(14.r),
+                                        borderSide: const BorderSide(
+                                          color: AppColors.border,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(14.r),
+                                        borderSide: const BorderSide(
+                                          color: AppColors.primaryTeal,
+                                        ),
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12.w,
+                                        vertical: 10.h,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_excludedStreets.isNotEmpty) ...[
+                                    SizedBox(height: 10.h),
+                                    Wrap(
+                                      spacing: 8.w,
+                                      runSpacing: 8.h,
+                                      children: _excludedStreets
+                                          .map(
+                                            (s) => _StreetChip(
+                                              label: s,
+                                              onRemove: () => _removeStreetChip(s),
+                                            ),
+                                          )
+                                          .toList(growable: false),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10.h),
                         SizedBox(
                           width: double.infinity,
                           height: 54.h,
@@ -300,6 +459,113 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                   ),
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransfersStepper extends StatelessWidget {
+  final int value;
+  final int min;
+  final int max;
+  final ValueChanged<int> onChanged;
+
+  const _TransfersStepper({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final canUp = value < max;
+    final canDown = value > min;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: AppColors.searchInputBackground,
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$value',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                onTap: canUp ? () => onChanged(value + 1) : null,
+                child: Icon(
+                  Icons.keyboard_arrow_up,
+                  size: 18.r,
+                  color: canUp ? AppColors.textPrimary : AppColors.textSecondary,
+                ),
+              ),
+              InkWell(
+                onTap: canDown ? () => onChanged(value - 1) : null,
+                child: Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 18.r,
+                  color: canDown ? AppColors.textPrimary : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StreetChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onRemove;
+
+  const _StreetChip({required this.label, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = label.trim();
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: AppColors.searchInputBackground,
+        borderRadius: BorderRadius.circular(999.r),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            text,
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(width: 6.w),
+          InkWell(
+            onTap: onRemove,
+            child: Icon(
+              Icons.close,
+              size: 16.r,
+              color: AppColors.textSecondary,
             ),
           ),
         ],

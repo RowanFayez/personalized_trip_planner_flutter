@@ -1,19 +1,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/services/route_preferences_service.dart';
+import '../../../../features/preferences/data/managers/preferences_manager.dart';
 import '../../domain/entities/routing_entities.dart';
 import '../../domain/usecases/get_routes_usecase.dart';
 import 'routing_state.dart';
 
 class RoutingCubit extends Cubit<RoutingState> {
   final GetRoutesUseCase _getRoutesUseCase;
-  final RoutePreferencesService _routePreferencesService;
+  final PreferencesManager _preferencesManager;
 
   RoutingCubit({
     required GetRoutesUseCase getRoutesUseCase,
-    required RoutePreferencesService routePreferencesService,
+    required PreferencesManager preferencesManager,
   }) : _getRoutesUseCase = getRoutesUseCase,
-       _routePreferencesService = routePreferencesService,
+       _preferencesManager = preferencesManager,
        super(RoutingState.initial());
 
   Future<void> fetchRoutes({
@@ -24,17 +24,21 @@ class RoutingCubit extends Cubit<RoutingState> {
   }) async {
     emit(state.copyWith(status: RoutingStatus.loading, errorMessage: null));
 
-    final prefs = await _routePreferencesService.load();
+    // Load all preference data at once for cleaner request building
+    final prefData = await _preferencesManager.loadPreferenceData();
 
+    // Build request with all preferences applied
     final request = RoutesRequest(
       startLat: startLat,
       startLon: startLon,
       endLat: endLat,
       endLon: endLon,
-      maxTransfers: prefs.maxTransfers,
-      walkingCutoff: prefs.walkingCutoffMeters,
-      topK: prefs.topK,
-      restrictedModes: prefs.restrictedModes,
+      maxTransfers: prefData.maxTransfers,
+      walkingCutoff: prefData.walkingCutoffMeters,
+      priority: prefData.priority,
+      topK: prefData.topK,
+      weights: prefData.weights,
+      filters: prefData.filters,
     );
 
     final result = await _getRoutesUseCase(request);

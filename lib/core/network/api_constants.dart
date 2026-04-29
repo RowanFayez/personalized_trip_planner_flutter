@@ -4,11 +4,10 @@ class ApiConstants {
   ApiConstants._();
 
   static const String defaultBaseUrl =
-      'https://routing-demo-eval.azurewebsites.net';
+  'https://routing-api-production-54ce.up.railway.app';
 
   /// Backend base URL.
   ///
-  /// Default points to the provided Azure demo, but can be overridden via `.env`.
   static String get baseUrl {
     final fromEnv = EnvConfig.apiBaseUrl.trim();
     if (fromEnv.isNotEmpty && fromEnv != 'http://localhost:8000/api') {
@@ -28,5 +27,5 @@ class ApiConstants {
     return normalized;
   }
 
-  static const String routesEndpoint = '/api/routes';
+  static const String routesEndpoint = '/api/v1/journeys';
 }

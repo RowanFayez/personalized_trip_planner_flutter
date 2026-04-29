@@ -1,1 +1,1 @@
-enum RoutePriority { fastest, cheapest, simplest }
+enum RoutePriority { fastest, cheapest, balanced }
