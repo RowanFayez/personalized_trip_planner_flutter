@@ -4,7 +4,7 @@ class ApiConstants {
   ApiConstants._();
 
   static const String defaultBaseUrl =
-  'https://routing-api-production-54ce.up.railway.app';
+      'https://routing-api-production-54ce.up.railway.app';
 
   /// Backend base URL.
   ///

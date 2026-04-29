@@ -56,7 +56,9 @@ class JourneyDtoConverter {
       fare: dto.fare,
       from: dto.from != null ? _stopRefToDomain(dto.from!) : null,
       to: dto.to != null ? _stopRefToDomain(dto.to!) : null,
-      tripIds: dto.tripIds != null ? List<String>.unmodifiable(dto.tripIds!) : null,
+      tripIds: dto.tripIds != null
+          ? List<String>.unmodifiable(dto.tripIds!)
+          : null,
       fromTripId: dto.fromTripId,
       toTripId: dto.toTripId,
       fromTripName: dto.fromTripName,

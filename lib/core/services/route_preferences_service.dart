@@ -72,17 +72,18 @@ class RoutePreferencesService {
     );
 
     final rawMaxTransfers =
-      (box.get(_kMaxTransfers) as int?) ?? defaultMaxTransfers;
-    final maxTransfers =
-      rawMaxTransfers.clamp(minTransfers, maxTransfersLimit).toInt();
+        (box.get(_kMaxTransfers) as int?) ?? defaultMaxTransfers;
+    final maxTransfers = rawMaxTransfers
+        .clamp(minTransfers, maxTransfersLimit)
+        .toInt();
     final walkingCutoff =
         (box.get(_kWalkingCutoff) as int?) ?? defaultWalkingCutoffMeters;
     final topK = (box.get(_kTopK) as int?) ?? defaultTopK;
 
     final rawPriority = (box.get(_kPriority) as String?)?.trim().toLowerCase();
     final priority = allowedPriorities.contains(rawPriority)
-      ? rawPriority!
-      : defaultPriority;
+        ? rawPriority!
+        : defaultPriority;
 
     final rawModes = box.get(_kRestrictedModes);
     final List<String>? modes = rawModes is List

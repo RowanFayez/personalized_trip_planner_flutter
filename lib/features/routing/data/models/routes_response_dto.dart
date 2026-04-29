@@ -103,16 +103,16 @@ class JourneySummaryDto {
   final int transfers;
   final int cost;
 
-  @JsonKey(name: 'modes_en', defaultValue: <String>[]) 
+  @JsonKey(name: 'modes_en', defaultValue: <String>[])
   final List<String> modesEn;
 
-  @JsonKey(name: 'modes_ar', defaultValue: <String>[]) 
+  @JsonKey(name: 'modes_ar', defaultValue: <String>[])
   final List<String> modesAr;
 
-  @JsonKey(name: 'main_streets_en', defaultValue: <String>[]) 
+  @JsonKey(name: 'main_streets_en', defaultValue: <String>[])
   final List<String> mainStreetsEn;
 
-  @JsonKey(name: 'main_streets_ar', defaultValue: <String>[]) 
+  @JsonKey(name: 'main_streets_ar', defaultValue: <String>[])
   final List<String> mainStreetsAr;
 
   const JourneySummaryDto({

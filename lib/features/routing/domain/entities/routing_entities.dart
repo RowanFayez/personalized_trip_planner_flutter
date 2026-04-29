@@ -33,7 +33,15 @@ class Journey extends Equatable {
   });
 
   @override
-  List<Object?> get props => [summary, legs, textSummary, textSummaryEn, id, labels, labelsAr];
+  List<Object?> get props => [
+    summary,
+    legs,
+    textSummary,
+    textSummaryEn,
+    id,
+    labels,
+    labelsAr,
+  ];
 }
 
 class JourneySummary extends Equatable {

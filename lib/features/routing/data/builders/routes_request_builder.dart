@@ -29,8 +29,12 @@ class RoutesRequestBuilder {
           includeMatch: request.filters.modes.includeMatch,
         ),
         mainStreets: ModeFilterDto(
-          include: List<String>.unmodifiable(request.filters.mainStreets.include),
-          exclude: List<String>.unmodifiable(request.filters.mainStreets.exclude),
+          include: List<String>.unmodifiable(
+            request.filters.mainStreets.include,
+          ),
+          exclude: List<String>.unmodifiable(
+            request.filters.mainStreets.exclude,
+          ),
           includeMatch: request.filters.mainStreets.includeMatch,
         ),
       ),

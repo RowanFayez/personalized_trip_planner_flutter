@@ -9,14 +9,15 @@ import '../remote/routes_api_service.dart';
 class RoutesRepository {
   final RoutesApiService _apiService;
 
-  RoutesRepository({required RoutesApiService apiService}) : _apiService = apiService;
+  RoutesRepository({required RoutesApiService apiService})
+    : _apiService = apiService;
 
   /// Fetches routes from the backend API.
   /// Returns a list of Journey domain entities with decoded polylines.
   Future<List<Journey>> getRoutes(RoutesRequest request) async {
     final dto = RoutesRequestBuilder.build(request);
     final response = await _apiService.getRoutes(dto);
-    
+
     return response.journeys
         .map((journeyDto) => JourneyDtoConverter.toDomain(journeyDto))
         .toList(growable: false);

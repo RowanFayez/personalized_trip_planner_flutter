@@ -15,7 +15,8 @@ class TextPreference {
     if (trimmed.isEmpty) return '';
     // Check if first character is ASCII letter
     final first = trimmed.codeUnitAt(0);
-    final isAsciiLetter = (first >= 65 && first <= 90) || (first >= 97 && first <= 122);
+    final isAsciiLetter =
+        (first >= 65 && first <= 90) || (first >= 97 && first <= 122);
     if (!isAsciiLetter) return trimmed;
     return trimmed[0].toUpperCase() + trimmed.substring(1);
   }

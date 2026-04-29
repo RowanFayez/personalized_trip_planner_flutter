@@ -45,7 +45,8 @@ class ServiceLocator {
       () => RoutePreferencesService(),
     );
     sl.registerLazySingleton<PreferencesManager>(
-      () => PreferencesManager(preferencesService: sl<RoutePreferencesService>()),
+      () =>
+          PreferencesManager(preferencesService: sl<RoutePreferencesService>()),
     );
 
     // Routing (data)

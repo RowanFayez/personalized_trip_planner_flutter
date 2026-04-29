@@ -182,7 +182,10 @@ class _SheetContent extends StatelessWidget {
 
   String? _destinationName(List<RouteLeg> legs) {
     for (var i = legs.length - 1; i >= 0; i--) {
-      final name = TextPreference.preferred(legs[i].to?.nameAr, legs[i].to?.name);
+      final name = TextPreference.preferred(
+        legs[i].to?.nameAr,
+        legs[i].to?.name,
+      );
       if (name != null) return name;
     }
     return null;
@@ -522,9 +525,11 @@ class _TimelineStepTile extends StatelessWidget {
     }
 
     if (leg.isTransfer) {
-      final fromName = TextPreference.preferred(leg.fromTripNameAr, leg.fromTripName) ??
+      final fromName =
+          TextPreference.preferred(leg.fromTripNameAr, leg.fromTripName) ??
           leg.fromTripId;
-      final toName = TextPreference.preferred(leg.toTripNameAr, leg.toTripName) ??
+      final toName =
+          TextPreference.preferred(leg.toTripNameAr, leg.toTripName) ??
           leg.toTripId;
       final text = (fromName != null && toName != null)
           ? 'Get off at $fromName · Transfer to $toName'
@@ -589,7 +594,9 @@ class _TimelineStepTile extends StatelessWidget {
     final from = TextPreference.preferred(leg.from?.nameAr, leg.from?.name);
     final to = TextPreference.preferred(leg.to?.nameAr, leg.to?.name);
     final mins = leg.durationMinutes;
-    final modeLabel = TextPreference.capitalize(TextPreference.preferred(leg.modeAr, leg.mode) ?? '');
+    final modeLabel = TextPreference.capitalize(
+      TextPreference.preferred(leg.modeAr, leg.mode) ?? '',
+    );
 
     final lines = <String>[];
     if (from != null && to != null) {
@@ -600,14 +607,18 @@ class _TimelineStepTile extends StatelessWidget {
     if (mins != null) meta.add('$mins min');
     if (meta.isNotEmpty) lines.add(meta.join(' • '));
 
-    if (lines.isEmpty) return TextPreference.preferred(leg.headsignAr, leg.headsign);
+    if (lines.isEmpty)
+      return TextPreference.preferred(leg.headsignAr, leg.headsign);
     return lines.join('\n');
   }
 
   String? _walkTargetName() {
     final next = nextLeg;
     if (next != null) {
-      final nextFrom = TextPreference.preferred(next.from?.nameAr, next.from?.name);
+      final nextFrom = TextPreference.preferred(
+        next.from?.nameAr,
+        next.from?.name,
+      );
       if (nextFrom != null && nextFrom.trim().isNotEmpty) {
         return nextFrom.trim();
       }
@@ -650,7 +661,8 @@ class _TimelineStepTile extends StatelessWidget {
     if (m.isEmpty) return '';
     // Keep Arabic text as-is.
     final first = m.codeUnitAt(0);
-    final isAsciiLetter = (first >= 65 && first <= 90) || (first >= 97 && first <= 122);
+    final isAsciiLetter =
+        (first >= 65 && first <= 90) || (first >= 97 && first <= 122);
     if (!isAsciiLetter) return m;
     return m[0].toUpperCase() + m.substring(1);
   }

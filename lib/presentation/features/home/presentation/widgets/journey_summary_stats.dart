@@ -40,10 +40,12 @@ class JourneySummaryStats extends StatelessWidget {
             runSpacing: 8.h,
             children: labelsAr
                 .where((s) => s.trim().isNotEmpty)
-                .map((t) => JourneyLabelChip(
-                  label: t,
-                  textDirection: TextDirection.rtl,
-                ))
+                .map(
+                  (t) => JourneyLabelChip(
+                    label: t,
+                    textDirection: TextDirection.rtl,
+                  ),
+                )
                 .toList(growable: false),
           ),
         ],
@@ -54,10 +56,12 @@ class JourneySummaryStats extends StatelessWidget {
             runSpacing: 8.h,
             children: mainStreetsAr
                 .where((s) => s.trim().isNotEmpty)
-                .map((t) => JourneyLabelChip(
-                  label: t,
-                  textDirection: TextDirection.rtl,
-                ))
+                .map(
+                  (t) => JourneyLabelChip(
+                    label: t,
+                    textDirection: TextDirection.rtl,
+                  ),
+                )
                 .toList(growable: false),
           ),
         ],

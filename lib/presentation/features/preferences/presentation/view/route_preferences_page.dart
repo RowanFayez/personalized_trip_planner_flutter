@@ -51,10 +51,12 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     if (!mounted) return;
 
     setState(() {
-      _maxTransfers = saved.maxTransfers.clamp(
-        RoutePreferencesService.minTransfers,
-        RoutePreferencesService.maxTransfersLimit,
-      ).toInt();
+      _maxTransfers = saved.maxTransfers
+          .clamp(
+            RoutePreferencesService.minTransfers,
+            RoutePreferencesService.maxTransfersLimit,
+          )
+          .toInt();
       _maxWalkingMinutes = (saved.walkingCutoffMeters / _metersPerMinute).clamp(
         0,
         60,
@@ -99,7 +101,10 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     final normalized = raw.trim();
     if (normalized.isEmpty) return;
     setState(() {
-      final set = _excludedStreets.map((s) => s.trim()).where((s) => s.isNotEmpty).toSet();
+      final set = _excludedStreets
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toSet();
       set.add(normalized);
       _excludedStreets = set.toList(growable: false);
       _streetController.clear();
@@ -110,7 +115,9 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     final key = value.trim();
     if (key.isEmpty) return;
     setState(() {
-      _excludedStreets = _excludedStreets.where((s) => s.trim() != key).toList(growable: false);
+      _excludedStreets = _excludedStreets
+          .where((s) => s.trim() != key)
+          .toList(growable: false);
     });
   }
 
@@ -236,7 +243,8 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                               value: _maxTransfers,
                               min: RoutePreferencesService.minTransfers,
                               max: RoutePreferencesService.maxTransfersLimit,
-                              onChanged: (v) => setState(() => _maxTransfers = v),
+                              onChanged: (v) =>
+                                  setState(() => _maxTransfers = v),
                             ),
                           ],
                         ),
@@ -354,7 +362,8 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                     decoration: InputDecoration(
-                                      hintText: 'Type a street name and press Enter',
+                                      hintText:
+                                          'Type a street name and press Enter',
                                       hintStyle: TextStyle(
                                         color: AppColors.textSecondary,
                                         fontSize: 12.5.sp,
@@ -362,21 +371,28 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                       ),
                                       isDense: true,
                                       filled: true,
-                                      fillColor: AppColors.searchInputBackground,
+                                      fillColor:
+                                          AppColors.searchInputBackground,
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14.r),
+                                        borderRadius: BorderRadius.circular(
+                                          14.r,
+                                        ),
                                         borderSide: const BorderSide(
                                           color: AppColors.border,
                                         ),
                                       ),
                                       enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14.r),
+                                        borderRadius: BorderRadius.circular(
+                                          14.r,
+                                        ),
                                         borderSide: const BorderSide(
                                           color: AppColors.border,
                                         ),
                                       ),
                                       focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(14.r),
+                                        borderRadius: BorderRadius.circular(
+                                          14.r,
+                                        ),
                                         borderSide: const BorderSide(
                                           color: AppColors.primaryTeal,
                                         ),
@@ -396,7 +412,8 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                           .map(
                                             (s) => _StreetChip(
                                               label: s,
-                                              onRemove: () => _removeStreetChip(s),
+                                              onRemove: () =>
+                                                  _removeStreetChip(s),
                                             ),
                                           )
                                           .toList(growable: false),
@@ -512,7 +529,9 @@ class _TransfersStepper extends StatelessWidget {
                 child: Icon(
                   Icons.keyboard_arrow_up,
                   size: 18.r,
-                  color: canUp ? AppColors.textPrimary : AppColors.textSecondary,
+                  color: canUp
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
                 ),
               ),
               InkWell(
@@ -520,7 +539,9 @@ class _TransfersStepper extends StatelessWidget {
                 child: Icon(
                   Icons.keyboard_arrow_down,
                   size: 18.r,
-                  color: canDown ? AppColors.textPrimary : AppColors.textSecondary,
+                  color: canDown
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
                 ),
               ),
             ],

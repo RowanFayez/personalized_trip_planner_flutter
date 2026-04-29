@@ -9,7 +9,7 @@ class PreferencesManager {
   final RoutePreferencesService _preferencesService;
 
   PreferencesManager({required RoutePreferencesService preferencesService})
-      : _preferencesService = preferencesService;
+    : _preferencesService = preferencesService;
 
   /// Loads saved preferences and builds filters/weights for routing.
   Future<RouteFilters> buildFilters() async {

@@ -7,7 +7,7 @@ class ModeFilterBuilder {
     'microbus',
     'tram',
     'minibus',
-    'bus'
+    'bus',
   ];
 
   /// Builds a ModeFilter from a list of restricted modes.

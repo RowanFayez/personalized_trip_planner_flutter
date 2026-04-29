@@ -142,12 +142,7 @@ List<GeoPoint> _decodePolyline5(String? encoded) {
       index = lonResult.nextIndex;
       lon += lonResult.delta;
 
-      points.add(
-        GeoPoint(
-          lat: lat / 1e5,
-          lon: lon / 1e5,
-        ),
-      );
+      points.add(GeoPoint(lat: lat / 1e5, lon: lon / 1e5));
     }
   } catch (_) {
     // If decoding fails, return best-effort points collected so far.
