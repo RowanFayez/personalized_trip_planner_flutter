@@ -6,20 +6,20 @@ part of 'routes_request_dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-RoutesRequestDto _$RoutesRequestDtoFromJson(
-  Map<String, dynamic> json,
-) => RoutesRequestDto(
-  startLat: (json['start_lat'] as num).toDouble(),
-  startLon: (json['start_lon'] as num).toDouble(),
-  endLat: (json['end_lat'] as num).toDouble(),
-  endLon: (json['end_lon'] as num).toDouble(),
-  maxTransfers: (json['max_transfers'] as num).toInt(),
-  walkingCutoff: (json['walking_cutoff'] as num).toInt(),
-  priority: json['priority'] as String,
-  topK: (json['top_k'] as num).toInt(),
-  weights: RouteWeightsDto.fromJson(json['weights'] as Map<String, dynamic>),
-  filters: RouteFiltersDto.fromJson(json['filters'] as Map<String, dynamic>),
-);
+RoutesRequestDto _$RoutesRequestDtoFromJson(Map<String, dynamic> json) =>
+    RoutesRequestDto(
+      startLat: (json['start_lat'] as num).toDouble(),
+      startLon: (json['start_lon'] as num).toDouble(),
+      endLat: (json['end_lat'] as num).toDouble(),
+      endLon: (json['end_lon'] as num).toDouble(),
+      maxTransfers: (json['max_transfers'] as num).toInt(),
+      walkingCutoff: (json['walking_cutoff'] as num).toInt(),
+      priority: json['priority'] as String,
+      topK: (json['top_k'] as num).toInt(),
+      filters: RouteFiltersDto.fromJson(
+        json['filters'] as Map<String, dynamic>,
+      ),
+    );
 
 Map<String, dynamic> _$RoutesRequestDtoToJson(RoutesRequestDto instance) =>
     <String, dynamic>{
@@ -31,24 +31,7 @@ Map<String, dynamic> _$RoutesRequestDtoToJson(RoutesRequestDto instance) =>
       'walking_cutoff': instance.walkingCutoff,
       'priority': instance.priority,
       'top_k': instance.topK,
-      'weights': instance.weights,
       'filters': instance.filters,
-    };
-
-RouteWeightsDto _$RouteWeightsDtoFromJson(Map<String, dynamic> json) =>
-    RouteWeightsDto(
-      time: (json['time'] as num).toDouble(),
-      cost: (json['cost'] as num).toDouble(),
-      walk: (json['walk'] as num).toDouble(),
-      transfer: (json['transfer'] as num).toDouble(),
-    );
-
-Map<String, dynamic> _$RouteWeightsDtoToJson(RouteWeightsDto instance) =>
-    <String, dynamic>{
-      'time': instance.time,
-      'cost': instance.cost,
-      'walk': instance.walk,
-      'transfer': instance.transfer,
     };
 
 RouteFiltersDto _$RouteFiltersDtoFromJson(Map<String, dynamic> json) =>

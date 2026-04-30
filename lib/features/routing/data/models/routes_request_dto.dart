@@ -28,9 +28,6 @@ class RoutesRequestDto {
   @JsonKey(name: 'top_k')
   final int topK;
 
-  /// Weights are mandatory in the new API.
-  final RouteWeightsDto weights;
-
   final RouteFiltersDto filters;
 
   const RoutesRequestDto({
@@ -42,7 +39,6 @@ class RoutesRequestDto {
     required this.walkingCutoff,
     required this.priority,
     required this.topK,
-    required this.weights,
     required this.filters,
   });
 
@@ -50,26 +46,6 @@ class RoutesRequestDto {
       _$RoutesRequestDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$RoutesRequestDtoToJson(this);
-}
-
-@JsonSerializable()
-class RouteWeightsDto {
-  final double time;
-  final double cost;
-  final double walk;
-  final double transfer;
-
-  const RouteWeightsDto({
-    required this.time,
-    required this.cost,
-    required this.walk,
-    required this.transfer,
-  });
-
-  factory RouteWeightsDto.fromJson(Map<String, dynamic> json) =>
-      _$RouteWeightsDtoFromJson(json);
-
-  Map<String, dynamic> toJson() => _$RouteWeightsDtoToJson(this);
 }
 
 @JsonSerializable(explicitToJson: true)

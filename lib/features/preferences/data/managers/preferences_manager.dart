@@ -11,7 +11,7 @@ class PreferencesManager {
   PreferencesManager({required RoutePreferencesService preferencesService})
     : _preferencesService = preferencesService;
 
-  /// Loads saved preferences and builds filters/weights for routing.
+  /// Loads saved preferences and builds filters for routing.
   Future<RouteFilters> buildFilters() async {
     final prefs = await _preferencesService.load();
 
@@ -34,10 +34,9 @@ class PreferencesManager {
 
     return PreferenceData(
       maxTransfers: prefs.maxTransfers,
-      walkingCutoffMeters: prefs.walkingCutoffMeters,
+      walkingCutoffMinutes: prefs.walkingCutoffMinutes,
       priority: prefs.priority,
       topK: prefs.topK,
-      weights: RouteWeights.allOnes,
       filters: filters,
     );
   }
@@ -46,18 +45,16 @@ class PreferencesManager {
 /// Container for preference data used in routing requests.
 class PreferenceData {
   final int maxTransfers;
-  final int walkingCutoffMeters;
+  final int walkingCutoffMinutes;
   final String priority;
   final int topK;
-  final RouteWeights weights;
   final RouteFilters filters;
 
   const PreferenceData({
     required this.maxTransfers,
-    required this.walkingCutoffMeters,
+    required this.walkingCutoffMinutes,
     required this.priority,
     required this.topK,
-    required this.weights,
     required this.filters,
   });
 }

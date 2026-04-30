@@ -5,7 +5,6 @@ import 'package:nextstation/features/routing/domain/entities/routing_entities.da
 class ModeFilterBuilder {
   static const List<String> supportedModes = <String>[
     'microbus',
-    'tram',
     'minibus',
     'bus',
   ];

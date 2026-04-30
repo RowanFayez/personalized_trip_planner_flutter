@@ -34,10 +34,9 @@ class RoutingCubit extends Cubit<RoutingState> {
       endLat: endLat,
       endLon: endLon,
       maxTransfers: prefData.maxTransfers,
-      walkingCutoff: prefData.walkingCutoffMeters,
+      walkingCutoffMinutes: prefData.walkingCutoffMinutes,
       priority: prefData.priority,
       topK: prefData.topK,
-      weights: prefData.weights,
       filters: prefData.filters,
     );
 

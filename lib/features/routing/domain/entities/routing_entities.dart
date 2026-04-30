@@ -191,30 +191,6 @@ class RouteLeg extends Equatable {
   ];
 }
 
-class RouteWeights extends Equatable {
-  final double time;
-  final double cost;
-  final double walk;
-  final double transfer;
-
-  const RouteWeights({
-    required this.time,
-    required this.cost,
-    required this.walk,
-    required this.transfer,
-  });
-
-  static const RouteWeights allOnes = RouteWeights(
-    time: 1.0,
-    cost: 1.0,
-    walk: 1.0,
-    transfer: 1.0,
-  );
-
-  @override
-  List<Object?> get props => [time, cost, walk, transfer];
-}
-
 class ModeFilter extends Equatable {
   final List<String> include;
   final List<String> exclude;
@@ -250,11 +226,10 @@ class RoutesRequest extends Equatable {
   final double endLon;
 
   final int maxTransfers;
-  final int walkingCutoff;
+  final int walkingCutoffMinutes;
   final String priority;
   final int topK;
 
-  final RouteWeights weights;
   final RouteFilters filters;
 
   const RoutesRequest({
@@ -263,10 +238,9 @@ class RoutesRequest extends Equatable {
     required this.endLat,
     required this.endLon,
     required this.maxTransfers,
-    required this.walkingCutoff,
+    required this.walkingCutoffMinutes,
     required this.priority,
     required this.topK,
-    required this.weights,
     required this.filters,
   });
 
@@ -277,10 +251,9 @@ class RoutesRequest extends Equatable {
     endLat,
     endLon,
     maxTransfers,
-    walkingCutoff,
+    walkingCutoffMinutes,
     priority,
     topK,
-    weights,
     filters,
   ];
 }

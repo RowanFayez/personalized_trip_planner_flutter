@@ -5,29 +5,26 @@ import '../models/routes_response_dto.dart';
 
 extension RoutesRequestDtoMapper on RoutesRequest {
   RoutesRequestDto toDto() {
+    const metersPerMinute = 80;
+    final walkingCutoffMeters = walkingCutoffMinutes * metersPerMinute;
+
     return RoutesRequestDto(
       startLat: startLat,
       startLon: startLon,
       endLat: endLat,
       endLon: endLon,
       maxTransfers: maxTransfers,
-      walkingCutoff: walkingCutoff,
+      walkingCutoff: walkingCutoffMeters,
       priority: priority,
       topK: topK,
-      weights: RouteWeightsDto(
-        time: weights.time,
-        cost: weights.cost,
-        walk: weights.walk,
-        transfer: weights.transfer,
-      ),
       filters: RouteFiltersDto(
         modes: ModeFilterDto(
-          include: List<String>.unmodifiable(filters.modes.include),
+          include: const <String>[],
           exclude: List<String>.unmodifiable(filters.modes.exclude),
           includeMatch: filters.modes.includeMatch,
         ),
         mainStreets: ModeFilterDto(
-          include: List<String>.unmodifiable(filters.mainStreets.include),
+          include: const <String>[],
           exclude: List<String>.unmodifiable(filters.mainStreets.exclude),
           includeMatch: filters.mainStreets.includeMatch,
         ),

@@ -1,12 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/route_preferences_service.dart';
-import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../models/route_priority.dart';
 import '../widgets/divider_line.dart';
 import '../widgets/mode_row.dart';
@@ -25,26 +22,24 @@ class RoutePreferencesPage extends StatefulWidget {
 }
 
 class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
-  static const double _metersPerMinute = 80.0;
+  static const List<_MainStreetOption> _mainStreetOptions = <_MainStreetOption>[
+    _MainStreetOption(arabicLabel: 'كورنيش الإسكندرية', id: 'Coastal'),
+    _MainStreetOption(arabicLabel: 'شارع أبو قير', id: 'Abou Qir'),
+    _MainStreetOption(arabicLabel: 'ترعة المحمودية', id: 'Mahmoudia'),
+  ];
 
   final RoutePreferencesService _routePreferencesService =
       RoutePreferencesService();
 
   RoutePriority _priority = RoutePriority.balanced;
-  double _maxWalkingMinutes = 30;
+  double _maxWalkingMinutes =
+      RoutePreferencesService.defaultWalkingCutoffMinutes.toDouble();
 
   int _maxTransfers = RoutePreferencesService.defaultMaxTransfers;
 
-  final TextEditingController _streetController = TextEditingController();
-  List<String> _excludedStreets = <String>[];
-
-  final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
-  Timer? _streetDebounce;
-  List<MapboxPlaceSuggestion> _streetSuggestions = const <MapboxPlaceSuggestion>[];
-  bool _showStreetSuggestions = false;
+  Set<String> _excludedMainStreetIds = <String>{};
 
   bool _microbus = true;
-  bool _tram = true;
   bool _minibus = true;
   bool _bus = true;
 
@@ -65,18 +60,19 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
             RoutePreferencesService.maxTransfersLimit,
           )
           .toInt();
-      _maxWalkingMinutes = (saved.walkingCutoffMeters / _metersPerMinute).clamp(
-        0,
-        60,
-      );
+      _maxWalkingMinutes = saved.walkingCutoffMinutes
+          .clamp(
+            RoutePreferencesService.minWalkingMinutes,
+            RoutePreferencesService.maxWalkingMinutes,
+          )
+          .toDouble();
 
       _priority = _priorityFromString(saved.priority);
 
-      _excludedStreets = saved.excludedMainStreets.toList(growable: false);
+      _excludedMainStreetIds = saved.excludedMainStreets.toSet();
 
       // Toggles represent "allowed" modes.
       _microbus = !saved.restrictedModes.contains('microbus');
-      _tram = !saved.restrictedModes.contains('tram');
       _minibus = !saved.restrictedModes.contains('minibus');
       _bus = !saved.restrictedModes.contains('bus');
     });
@@ -84,140 +80,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
 
   @override
   void dispose() {
-    _streetDebounce?.cancel();
-    _streetController.dispose();
     super.dispose();
-  }
-
-  void _onStreetChanged(String value) {
-    _streetDebounce?.cancel();
-    _showStreetSuggestions = true;
-
-    final query = value.trim();
-    if (query.isEmpty) {
-      setState(() {
-        _streetSuggestions = const <MapboxPlaceSuggestion>[];
-      });
-      return;
-    }
-
-    _streetDebounce = Timer(const Duration(milliseconds: 800), () async {
-      final results = await _geocodingService.autocomplete(
-        query: query,
-        country: 'EG',
-        limit: 6,
-      );
-      if (!mounted) return;
-      setState(() {
-        _streetSuggestions = results;
-      });
-    });
-  }
-
-  bool get _shouldShowStreetSuggestions {
-    final query = _streetController.text.trim();
-    return _showStreetSuggestions && _streetSuggestions.isNotEmpty && query.isNotEmpty;
-  }
-
-  Future<void> _submitStreetQuery() async {
-    final query = _streetController.text.trim();
-    if (query.isEmpty) return;
-
-    // If suggestions exist, select the top one (same behavior as Home search).
-    if (_streetSuggestions.isNotEmpty) {
-      _selectStreetSuggestion(_streetSuggestions.first);
-      return;
-    }
-
-    // Otherwise do a 1-shot lookup and pick first if available.
-    final results = await _geocodingService.autocomplete(
-      query: query,
-      country: 'EG',
-      limit: 1,
-    );
-    if (!mounted) return;
-    if (results.isNotEmpty) {
-      _selectStreetSuggestion(results.first);
-      return;
-    }
-
-    // Fallback: allow raw entry.
-    _addStreetChip(query);
-  }
-
-  void _selectStreetSuggestion(MapboxPlaceSuggestion suggestion) {
-    _addStreetChip(suggestion.title);
-  }
-
-  Widget _buildStreetSuggestionsList() {
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(maxHeight: 220.h),
-      decoration: BoxDecoration(
-        color: AppColors.searchInputBackground,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.surfaceLight),
-      ),
-      child: ListView.separated(
-        padding: EdgeInsets.zero,
-        shrinkWrap: true,
-        itemCount: _streetSuggestions.length,
-        separatorBuilder: (_, __) =>
-            Divider(height: 1, thickness: 1, color: AppColors.divider),
-        itemBuilder: (context, index) {
-          final suggestion = _streetSuggestions[index];
-          return InkWell(
-            onTap: () => _selectStreetSuggestion(suggestion),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.place_outlined,
-                        color: AppColors.textSecondary,
-                        size: 18.r,
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: Text(
-                          suggestion.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 14.sp,
-                            height: 1.1,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.north_west,
-                        color: AppColors.textTertiary,
-                        size: 18.r,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    suggestion.subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12.sp,
-                      height: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 
   RoutePriority _priorityFromString(String value) {
@@ -237,29 +100,15 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     };
   }
 
-  void _addStreetChip(String raw) {
-    final normalized = raw.trim();
-    if (normalized.isEmpty) return;
+  void _toggleMainStreet(String id) {
     setState(() {
-      final set = _excludedStreets
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toSet();
-      set.add(normalized);
-      _excludedStreets = set.toList(growable: false);
-      _streetController.clear();
-      _streetSuggestions = const <MapboxPlaceSuggestion>[];
-      _showStreetSuggestions = false;
-    });
-  }
-
-  void _removeStreetChip(String value) {
-    final key = value.trim();
-    if (key.isEmpty) return;
-    setState(() {
-      _excludedStreets = _excludedStreets
-          .where((s) => s.trim() != key)
-          .toList(growable: false);
+      final next = _excludedMainStreetIds.toSet();
+      if (next.contains(id)) {
+        next.remove(id);
+      } else {
+        next.add(id);
+      }
+      _excludedMainStreetIds = next;
     });
   }
 
@@ -267,20 +116,25 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     // Any transport mode that is OFF becomes restricted.
     final restrictedModes = <String>[
       if (!_microbus) 'microbus',
-      if (!_tram) 'tram',
       if (!_minibus) 'minibus',
       if (!_bus) 'bus',
     ];
 
-    final walkingCutoffMeters = (_maxWalkingMinutes * _metersPerMinute).round();
+    final walkingCutoffMinutes = _maxWalkingMinutes
+        .round()
+        .clamp(
+          RoutePreferencesService.minWalkingMinutes,
+          RoutePreferencesService.maxWalkingMinutes,
+        )
+        .toInt();
 
     final current = await _routePreferencesService.load();
     final updated = current.copyWith(
       maxTransfers: _maxTransfers,
-      walkingCutoffMeters: walkingCutoffMeters,
+      walkingCutoffMinutes: walkingCutoffMinutes,
       restrictedModes: restrictedModes,
       priority: _priorityToString(_priority),
-      excludedMainStreets: _excludedStreets,
+      excludedMainStreets: _excludedMainStreetIds.toList(growable: false),
     );
     await _routePreferencesService.save(updated);
     if (!mounted) return;
@@ -291,17 +145,14 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     setState(() {
       _priority = RoutePriority.balanced;
       _maxTransfers = RoutePreferencesService.defaultMaxTransfers;
-      _maxWalkingMinutes =
-          (RoutePreferencesService.defaultWalkingCutoffMeters /
-                  _metersPerMinute)
-              .clamp(0, 60);
 
-      _excludedStreets = const <String>[];
-      _streetController.clear();
+        _maxWalkingMinutes =
+          RoutePreferencesService.defaultWalkingCutoffMinutes.toDouble();
+
+        _excludedMainStreetIds = <String>{};
 
       // Default is "no restrictions" => all modes allowed.
       _microbus = true;
-      _tram = true;
       _minibus = true;
       _bus = true;
     });
@@ -454,13 +305,6 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                 ),
                                 const PanelDivider(),
                                 ModeRow(
-                                  iconAsset: 'assets/icons/tram.svg',
-                                  label: 'Tram',
-                                  value: _tram,
-                                  onChanged: (v) => setState(() => _tram = v),
-                                ),
-                                const PanelDivider(),
-                                ModeRow(
                                   iconAsset: 'assets/icons/minibus.svg',
                                   label: 'Minibus',
                                   value: _minibus,
@@ -494,80 +338,22 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  TextField(
-                                    controller: _streetController,
-                                    textInputAction: TextInputAction.done,
-                                    onTap: () =>
-                                        setState(() => _showStreetSuggestions = true),
-                                    onChanged: _onStreetChanged,
-                                    onSubmitted: (_) =>
-                                        unawaited(_submitStreetQuery()),
-                                    style: TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Search a street to exclude',
-                                      hintStyle: TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 12.5.sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      isDense: true,
-                                      filled: true,
-                                      fillColor:
-                                          AppColors.searchInputBackground,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          14.r,
-                                        ),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.border,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          14.r,
-                                        ),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.border,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          14.r,
-                                        ),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.primaryTeal,
-                                        ),
-                                      ),
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 12.w,
-                                        vertical: 10.h,
-                                      ),
-                                    ),
-                                  ),
-                                  if (_shouldShowStreetSuggestions) ...[
-                                    SizedBox(height: 10.h),
-                                    _buildStreetSuggestionsList(),
-                                  ],
-                                  if (_excludedStreets.isNotEmpty) ...[
-                                    SizedBox(height: 10.h),
-                                    Wrap(
-                                      spacing: 8.w,
-                                      runSpacing: 8.h,
-                                      children: _excludedStreets
-                                          .map(
-                                            (s) => _StreetChip(
-                                              label: s,
-                                              onRemove: () =>
-                                                  _removeStreetChip(s),
+                                  Wrap(
+                                    spacing: 8.w,
+                                    runSpacing: 8.h,
+                                    children: _mainStreetOptions
+                                        .map(
+                                          (opt) => _SelectableStreetChip(
+                                            label: opt.arabicLabel,
+                                            selected: _excludedMainStreetIds
+                                                .contains(opt.id),
+                                            onTap: () => _toggleMainStreet(
+                                              opt.id,
                                             ),
-                                          )
-                                          .toList(growable: false),
-                                    ),
-                                  ],
+                                          ),
+                                        )
+                                        .toList(growable: false),
+                                  ),
                                 ],
                               ),
                             ),
@@ -701,44 +487,58 @@ class _TransfersStepper extends StatelessWidget {
   }
 }
 
-class _StreetChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onRemove;
+class _MainStreetOption {
+  final String arabicLabel;
+  final String id;
 
-  const _StreetChip({required this.label, required this.onRemove});
+  const _MainStreetOption({required this.arabicLabel, required this.id});
+}
+
+class _SelectableStreetChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SelectableStreetChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final text = label.trim();
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: AppColors.searchInputBackground,
-        borderRadius: BorderRadius.circular(999.r),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            text,
-            textDirection: TextDirection.rtl,
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w700,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: AppColors.searchInputBackground,
+          borderRadius: BorderRadius.circular(999.r),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              textDirection: TextDirection.rtl,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          SizedBox(width: 6.w),
-          InkWell(
-            onTap: onRemove,
-            child: Icon(
-              Icons.close,
-              size: 16.r,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
+            if (selected) ...[
+              SizedBox(width: 6.w),
+              Icon(
+                Icons.close,
+                size: 16.r,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
