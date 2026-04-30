@@ -17,23 +17,16 @@ class ModeFilterBuilder {
         .where((m) => m.isNotEmpty)
         .toSet();
 
-    // Exclude: modes that are OFF.
+    // IMPORTANT:
+    // We only use `exclude` to block disabled modes.
+    // Sending a non-empty `include` can inadvertently block walking/transfer
+    // legs and cause "No routes" even when the excluded mode isn't used.
     final excludedModes = supportedModes
         .where(normalized.contains)
         .toList(growable: false);
 
-    // Include: modes that are ON.
-    // If all are ON, send empty include => backend treats as "all allowed".
-    final includedModes = supportedModes
-        .where((m) => !normalized.contains(m))
-        .toList(growable: false);
-
-    final include = includedModes.length == supportedModes.length
-        ? const <String>[]
-        : includedModes;
-
     return ModeFilter(
-      include: include,
+      include: const <String>[],
       exclude: excludedModes,
       includeMatch: 'any',
     );

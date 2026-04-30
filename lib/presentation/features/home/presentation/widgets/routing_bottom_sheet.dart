@@ -23,6 +23,8 @@ class RoutingBottomSheet extends StatelessWidget {
           minChildSize: 0.16,
           initialChildSize: 0.26,
           maxChildSize: 0.78,
+          snap: true,
+          snapSizes: const <double>[0.16, 0.26, 0.78],
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
@@ -80,6 +82,10 @@ class _SheetContent extends StatelessWidget {
 
   const _SheetContent({required this.state, required this.scrollController});
 
+  double _safeBottomSpacing(BuildContext context) {
+    return MediaQuery.paddingOf(context).bottom + 16.h;
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (state.status) {
@@ -125,6 +131,7 @@ class _SheetContent extends StatelessWidget {
                 child: const Text('Close'),
               ),
             ),
+            SizedBox(height: _safeBottomSpacing(context)),
           ],
         );
 
@@ -143,6 +150,7 @@ class _SheetContent extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              SizedBox(height: _safeBottomSpacing(context)),
             ],
           );
         }
@@ -172,6 +180,7 @@ class _SheetContent extends StatelessWidget {
             ),
             SizedBox(height: 12.h),
             ..._buildLegTiles(journey.legs, destinationName: destinationName),
+            SizedBox(height: _safeBottomSpacing(context)),
           ],
         );
 
