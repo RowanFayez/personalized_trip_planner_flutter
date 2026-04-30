@@ -7,7 +7,7 @@ import '../models/routes_response_dto.dart';
 
 part 'routes_api_service.g.dart';
 
-@RestApi(baseUrl: ApiConstants.defaultBaseUrl)
+@RestApi(baseUrl: ApiConstants.baseUrl)
 abstract class RoutesApiService {
   factory RoutesApiService(Dio dio, {String? baseUrl}) = _RoutesApiService;
 

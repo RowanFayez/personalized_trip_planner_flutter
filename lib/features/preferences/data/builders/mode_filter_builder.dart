@@ -17,13 +17,24 @@ class ModeFilterBuilder {
         .where((m) => m.isNotEmpty)
         .toSet();
 
-    final allowedModes = supportedModes
+    // Exclude: modes that are OFF.
+    final excludedModes = supportedModes
+        .where(normalized.contains)
+        .toList(growable: false);
+
+    // Include: modes that are ON.
+    // If all are ON, send empty include => backend treats as "all allowed".
+    final includedModes = supportedModes
         .where((m) => !normalized.contains(m))
         .toList(growable: false);
 
+    final include = includedModes.length == supportedModes.length
+        ? const <String>[]
+        : includedModes;
+
     return ModeFilter(
-      include: allowedModes,
-      exclude: normalized.toList(growable: false),
+      include: include,
+      exclude: excludedModes,
       includeMatch: 'any',
     );
   }

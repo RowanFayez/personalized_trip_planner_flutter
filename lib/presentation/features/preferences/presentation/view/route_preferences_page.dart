@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/services/route_preferences_service.dart';
+import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../models/route_priority.dart';
 import '../widgets/divider_line.dart';
 import '../widgets/mode_row.dart';
@@ -34,6 +37,11 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
 
   final TextEditingController _streetController = TextEditingController();
   List<String> _excludedStreets = <String>[];
+
+  final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
+  Timer? _streetDebounce;
+  List<MapboxPlaceSuggestion> _streetSuggestions = const <MapboxPlaceSuggestion>[];
+  bool _showStreetSuggestions = false;
 
   bool _microbus = true;
   bool _tram = true;
@@ -76,8 +84,140 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
 
   @override
   void dispose() {
+    _streetDebounce?.cancel();
     _streetController.dispose();
     super.dispose();
+  }
+
+  void _onStreetChanged(String value) {
+    _streetDebounce?.cancel();
+    _showStreetSuggestions = true;
+
+    final query = value.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _streetSuggestions = const <MapboxPlaceSuggestion>[];
+      });
+      return;
+    }
+
+    _streetDebounce = Timer(const Duration(milliseconds: 800), () async {
+      final results = await _geocodingService.autocomplete(
+        query: query,
+        country: 'EG',
+        limit: 6,
+      );
+      if (!mounted) return;
+      setState(() {
+        _streetSuggestions = results;
+      });
+    });
+  }
+
+  bool get _shouldShowStreetSuggestions {
+    final query = _streetController.text.trim();
+    return _showStreetSuggestions && _streetSuggestions.isNotEmpty && query.isNotEmpty;
+  }
+
+  Future<void> _submitStreetQuery() async {
+    final query = _streetController.text.trim();
+    if (query.isEmpty) return;
+
+    // If suggestions exist, select the top one (same behavior as Home search).
+    if (_streetSuggestions.isNotEmpty) {
+      _selectStreetSuggestion(_streetSuggestions.first);
+      return;
+    }
+
+    // Otherwise do a 1-shot lookup and pick first if available.
+    final results = await _geocodingService.autocomplete(
+      query: query,
+      country: 'EG',
+      limit: 1,
+    );
+    if (!mounted) return;
+    if (results.isNotEmpty) {
+      _selectStreetSuggestion(results.first);
+      return;
+    }
+
+    // Fallback: allow raw entry.
+    _addStreetChip(query);
+  }
+
+  void _selectStreetSuggestion(MapboxPlaceSuggestion suggestion) {
+    _addStreetChip(suggestion.title);
+  }
+
+  Widget _buildStreetSuggestionsList() {
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(maxHeight: 220.h),
+      decoration: BoxDecoration(
+        color: AppColors.searchInputBackground,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        itemCount: _streetSuggestions.length,
+        separatorBuilder: (_, __) =>
+            Divider(height: 1, thickness: 1, color: AppColors.divider),
+        itemBuilder: (context, index) {
+          final suggestion = _streetSuggestions[index];
+          return InkWell(
+            onTap: () => _selectStreetSuggestion(suggestion),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.place_outlined,
+                        color: AppColors.textSecondary,
+                        size: 18.r,
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          suggestion.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14.sp,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.north_west,
+                        color: AppColors.textTertiary,
+                        size: 18.r,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    suggestion.subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12.sp,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   RoutePriority _priorityFromString(String value) {
@@ -108,6 +248,8 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
       set.add(normalized);
       _excludedStreets = set.toList(growable: false);
       _streetController.clear();
+      _streetSuggestions = const <MapboxPlaceSuggestion>[];
+      _showStreetSuggestions = false;
     });
   }
 
@@ -355,15 +497,18 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                   TextField(
                                     controller: _streetController,
                                     textInputAction: TextInputAction.done,
-                                    onSubmitted: _addStreetChip,
+                                    onTap: () =>
+                                        setState(() => _showStreetSuggestions = true),
+                                    onChanged: _onStreetChanged,
+                                    onSubmitted: (_) =>
+                                        unawaited(_submitStreetQuery()),
                                     style: TextStyle(
                                       color: AppColors.textPrimary,
                                       fontSize: 13.sp,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     decoration: InputDecoration(
-                                      hintText:
-                                          'Type a street name and press Enter',
+                                      hintText: 'Search a street to exclude',
                                       hintStyle: TextStyle(
                                         color: AppColors.textSecondary,
                                         fontSize: 12.5.sp,
@@ -403,6 +548,10 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                       ),
                                     ),
                                   ),
+                                  if (_shouldShowStreetSuggestions) ...[
+                                    SizedBox(height: 10.h),
+                                    _buildStreetSuggestionsList(),
+                                  ],
                                   if (_excludedStreets.isNotEmpty) ...[
                                     SizedBox(height: 10.h),
                                     Wrap(
