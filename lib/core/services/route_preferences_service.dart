@@ -105,12 +105,12 @@ class RoutePreferencesService {
     } else {
       final legacyMeters = box.get(_kWalkingCutoffMetersLegacy) as int?;
       walkingMinutes = legacyMeters != null
-        ? (legacyMeters / metersPerMinute).round()
-        : defaultWalkingCutoffMinutes;
+          ? (legacyMeters / metersPerMinute).round()
+          : defaultWalkingCutoffMinutes;
     }
     walkingMinutes = walkingMinutes
-      .clamp(minWalkingMinutes, maxWalkingMinutes)
-      .toInt();
+        .clamp(minWalkingMinutes, maxWalkingMinutes)
+        .toInt();
 
     final topK = (box.get(_kTopK) as int?) ?? defaultTopK;
 
@@ -125,8 +125,8 @@ class RoutePreferencesService {
               .whereType<String>()
               // Legacy value (old UI) — no longer supported.
               .where((m) => m.toLowerCase() != 'walking')
-          // No longer supported.
-          .where((m) => m.toLowerCase() != 'tram')
+              // No longer supported.
+              .where((m) => m.toLowerCase() != 'tram')
               .toList(growable: false)
         : null;
 

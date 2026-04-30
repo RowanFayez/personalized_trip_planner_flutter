@@ -9,8 +9,7 @@ class RoutesRequestBuilder {
   /// Builds a RoutesRequestDto from a RoutesRequest domain entity.
   /// Applies filters for the backend API.
   static RoutesRequestDto build(RoutesRequest request) {
-    final walkingCutoffMeters = request.walkingCutoffMinutes *
-        _metersPerMinute;
+    final walkingCutoffMeters = request.walkingCutoffMinutes * _metersPerMinute;
 
     return RoutesRequestDto(
       startLat: request.startLat,

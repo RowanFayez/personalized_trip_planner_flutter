@@ -32,8 +32,9 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
       RoutePreferencesService();
 
   RoutePriority _priority = RoutePriority.balanced;
-  double _maxWalkingMinutes =
-      RoutePreferencesService.defaultWalkingCutoffMinutes.toDouble();
+  double _maxWalkingMinutes = RoutePreferencesService
+      .defaultWalkingCutoffMinutes
+      .toDouble();
 
   int _maxTransfers = RoutePreferencesService.defaultMaxTransfers;
 
@@ -146,10 +147,10 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
       _priority = RoutePriority.balanced;
       _maxTransfers = RoutePreferencesService.defaultMaxTransfers;
 
-        _maxWalkingMinutes =
-          RoutePreferencesService.defaultWalkingCutoffMinutes.toDouble();
+      _maxWalkingMinutes = RoutePreferencesService.defaultWalkingCutoffMinutes
+          .toDouble();
 
-        _excludedMainStreetIds = <String>{};
+      _excludedMainStreetIds = <String>{};
 
       // Default is "no restrictions" => all modes allowed.
       _microbus = true;
@@ -347,9 +348,8 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                             label: opt.arabicLabel,
                                             selected: _excludedMainStreetIds
                                                 .contains(opt.id),
-                                            onTap: () => _toggleMainStreet(
-                                              opt.id,
-                                            ),
+                                            onTap: () =>
+                                                _toggleMainStreet(opt.id),
                                           ),
                                         )
                                         .toList(growable: false),
@@ -531,11 +531,7 @@ class _SelectableStreetChip extends StatelessWidget {
             ),
             if (selected) ...[
               SizedBox(width: 6.w),
-              Icon(
-                Icons.close,
-                size: 16.r,
-                color: AppColors.textSecondary,
-              ),
+              Icon(Icons.close, size: 16.r, color: AppColors.textSecondary),
             ],
           ],
         ),
