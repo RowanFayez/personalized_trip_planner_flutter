@@ -32,10 +32,10 @@ class ModeFilterBuilder {
     // Sending a non-empty `include` can inadvertently block walking/transfer
     // legs and cause "No routes" even when the excluded mode isn't used.
     final excludedModes = supportedModes
-      .where(normalized.contains)
-      .map((modeKey) => _backendExcludeByModeKey[modeKey])
-      .whereType<String>()
-      .toList(growable: false);
+        .where(normalized.contains)
+        .map((modeKey) => _backendExcludeByModeKey[modeKey])
+        .whereType<String>()
+        .toList(growable: false);
 
     return ModeFilter(
       include: const <String>[],
