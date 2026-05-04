@@ -1,13 +1,24 @@
-import 'package:nextstation/features/routing/domain/entities/routing_entities.dart';
+import '../../../routing/domain/entities/routing_entities.dart';
 
 /// Builds mode filters from restricted modes list.
 /// Converts restriction list to include/exclude format for API.
 class ModeFilterBuilder {
   static const List<String> supportedModes = <String>[
     'microbus',
+    'tomnaya',
     'minibus',
     'bus',
   ];
+
+  /// Maps internal mode keys (stored in preferences) to backend exclude IDs.
+  ///
+  /// IMPORTANT: These values must match the backend exactly (case-sensitive).
+  static const Map<String, String> _backendExcludeByModeKey = <String, String>{
+    'microbus': 'P_O_14',
+    'tomnaya': 'P_B_8',
+    'bus': 'Bus',
+    'minibus': 'Minibus',
+  };
 
   /// Builds a ModeFilter from a list of restricted modes.
   static ModeFilter build(List<String> restrictedModes) {
@@ -21,8 +32,10 @@ class ModeFilterBuilder {
     // Sending a non-empty `include` can inadvertently block walking/transfer
     // legs and cause "No routes" even when the excluded mode isn't used.
     final excludedModes = supportedModes
-        .where(normalized.contains)
-        .toList(growable: false);
+      .where(normalized.contains)
+      .map((modeKey) => _backendExcludeByModeKey[modeKey])
+      .whereType<String>()
+      .toList(growable: false);
 
     return ModeFilter(
       include: const <String>[],

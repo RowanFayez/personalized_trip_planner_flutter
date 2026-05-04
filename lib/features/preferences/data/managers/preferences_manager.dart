@@ -1,5 +1,5 @@
-import 'package:nextstation/core/services/route_preferences_service.dart';
-import 'package:nextstation/features/routing/domain/entities/routing_entities.dart';
+import '../../../../core/services/route_preferences_service.dart';
+import '../../../routing/domain/entities/routing_entities.dart';
 
 import '../builders/mode_filter_builder.dart';
 

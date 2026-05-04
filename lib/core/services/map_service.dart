@@ -419,8 +419,7 @@ class MapService {
       AppStrings.modeTram => 'assets/icons/tram.svg',
       AppStrings.modeMicrobus => 'assets/icons/microbus.svg',
       AppStrings.modeMinibus => 'assets/icons/minibus.svg',
-      // No dedicated tonaya/taxi SVG in assets; use bus as fallback.
-      AppStrings.modeTonaya => 'assets/icons/bus.svg',
+      AppStrings.modeTonaya => 'assets/icons/tomnaya.svg',
       _ => null,
     };
   }

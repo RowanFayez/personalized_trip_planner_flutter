@@ -35,6 +35,11 @@ class RoutePreferences {
       excludedMainStreets: excludedMainStreets ?? this.excludedMainStreets,
     );
   }
+
+  bool get isMicrobusAllowed => !restrictedModes.contains('microbus');
+  bool get isTomnayaAllowed => !restrictedModes.contains('tomnaya');
+  bool get isMinibusAllowed => !restrictedModes.contains('minibus');
+  bool get isBusAllowed => !restrictedModes.contains('bus');
 }
 
 class RoutePreferencesService {
@@ -75,10 +80,23 @@ class RoutePreferencesService {
     'cheapest',
   };
 
+  /// Internal keys for transport modes supported by the preferences UI.
+  ///
+  /// Values are stored in Hive as restricted mode keys (OFF toggles).
+  static const Set<String> allowedRestrictedModeKeys = <String>{
+    'microbus',
+    'tomnaya',
+    'minibus',
+    'bus',
+  };
+
   static const Map<String, String> arabicMainStreetToId = <String, String>{
     'كورنيش الإسكندرية': 'Coastal',
+    'كورنيش اسكندرية': 'Coastal',
     'شارع أبو قير': 'Abou Qir',
+    'شارع ابو قير': 'Abou Qir',
     'ترعة المحمودية': 'Mahmoudia',
+    'ترعة المحودية': 'Mahmoudia',
   };
 
   static const Set<String> allowedMainStreetIds = <String>{
@@ -123,10 +141,9 @@ class RoutePreferencesService {
     final List<String>? modes = rawModes is List
         ? rawModes
               .whereType<String>()
-              // Legacy value (old UI) — no longer supported.
-              .where((m) => m.toLowerCase() != 'walking')
-              // No longer supported.
-              .where((m) => m.toLowerCase() != 'tram')
+              .map((m) => m.trim().toLowerCase())
+              .where((m) => allowedRestrictedModeKeys.contains(m))
+              .toSet()
               .toList(growable: false)
         : null;
 

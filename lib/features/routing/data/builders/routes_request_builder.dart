@@ -1,4 +1,4 @@
-import 'package:nextstation/features/routing/domain/entities/routing_entities.dart';
+import '../../domain/entities/routing_entities.dart';
 import '../models/routes_request_dto.dart';
 
 /// Builds routing requests from domain entities with preference filtering.

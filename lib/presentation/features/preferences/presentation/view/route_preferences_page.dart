@@ -23,9 +23,9 @@ class RoutePreferencesPage extends StatefulWidget {
 
 class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
   static const List<_MainStreetOption> _mainStreetOptions = <_MainStreetOption>[
-    _MainStreetOption(arabicLabel: 'كورنيش الإسكندرية', id: 'Coastal'),
-    _MainStreetOption(arabicLabel: 'شارع أبو قير', id: 'Abou Qir'),
-    _MainStreetOption(arabicLabel: 'ترعة المحمودية', id: 'Mahmoudia'),
+    _MainStreetOption(arabicLabel: 'كورنيش اسكندرية', id: 'Coastal'),
+    _MainStreetOption(arabicLabel: 'شارع ابو قير', id: 'Abou Qir'),
+    _MainStreetOption(arabicLabel: 'ترعة المحودية', id: 'Mahmoudia'),
   ];
 
   final RoutePreferencesService _routePreferencesService =
@@ -41,6 +41,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
   Set<String> _excludedMainStreetIds = <String>{};
 
   bool _microbus = true;
+  bool _tomnaya = true;
   bool _minibus = true;
   bool _bus = true;
 
@@ -74,6 +75,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
 
       // Toggles represent "allowed" modes.
       _microbus = !saved.restrictedModes.contains('microbus');
+      _tomnaya = !saved.restrictedModes.contains('tomnaya');
       _minibus = !saved.restrictedModes.contains('minibus');
       _bus = !saved.restrictedModes.contains('bus');
     });
@@ -117,6 +119,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
     // Any transport mode that is OFF becomes restricted.
     final restrictedModes = <String>[
       if (!_microbus) 'microbus',
+      if (!_tomnaya) 'tomnaya',
       if (!_minibus) 'minibus',
       if (!_bus) 'bus',
     ];
@@ -154,6 +157,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
 
       // Default is "no restrictions" => all modes allowed.
       _microbus = true;
+      _tomnaya = true;
       _minibus = true;
       _bus = true;
     });
@@ -306,6 +310,14 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                 ),
                                 const PanelDivider(),
                                 ModeRow(
+                                  iconAsset: 'assets/icons/tomnaya.svg',
+                                  label: 'Tomnaya',
+                                  value: _tomnaya,
+                                  onChanged: (v) =>
+                                      setState(() => _tomnaya = v),
+                                ),
+                                const PanelDivider(),
+                                ModeRow(
                                   iconAsset: 'assets/icons/minibus.svg',
                                   label: 'Minibus',
                                   value: _minibus,
@@ -327,7 +339,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         const DividerLine(),
                         SizedBox(height: 10.h),
                         const SectionHeading(
-                          text: 'Street Preferences',
+                          text: 'Exclude streets :',
                           fontSize: 17,
                         ),
                         SizedBox(height: 4.h),
@@ -508,14 +520,18 @@ class _SelectableStreetChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = label.trim();
+    final backgroundColor = selected
+        ? AppColors.tramColor.withValues(alpha: 0.22)
+        : AppColors.searchInputBackground;
+    final borderColor = selected ? AppColors.tramColor : AppColors.border;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: AppColors.searchInputBackground,
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(999.r),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -531,7 +547,7 @@ class _SelectableStreetChip extends StatelessWidget {
             ),
             if (selected) ...[
               SizedBox(width: 6.w),
-              Icon(Icons.close, size: 16.r, color: AppColors.textSecondary),
+              Icon(Icons.close, size: 16.r, color: AppColors.textPrimary),
             ],
           ],
         ),
