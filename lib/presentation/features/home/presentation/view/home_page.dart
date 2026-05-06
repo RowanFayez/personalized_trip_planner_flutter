@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -13,11 +15,16 @@ import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
 import '../../../../../core/services/auth_service.dart';
 import '../../../../../core/services/user_activity_service.dart';
+import '../../../../../features/nearby_trips/data/services/nearby_trips_service.dart';
+import '../../../../../features/nearby_trips/domain/entities/nearby_route.dart';
 import '../../../../../features/routing/presentation/cubit/routing_cubit.dart';
 import '../../../../../features/routing/presentation/cubit/routing_state.dart';
 import '../../../../features/map_picker/presentation/view/map_picker_page.dart';
 import '../../../auth/presentation/widgets/google_sign_in_dialog.dart';
 import '../controllers/place_search_controller.dart';
+import '../widgets/nearby_bus_location_pin.dart';
+import '../widgets/nearby_routes_bottom_sheet.dart';
+import '../widgets/nearby_routes_floating_card.dart';
 import '../widgets/search_overlay.dart';
 import '../widgets/map_action_buttons.dart';
 import '../widgets/routing_bottom_sheet.dart';
@@ -33,12 +40,24 @@ class _HomePageState extends State<HomePage> {
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
   final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
+  final NearbyTripsService _nearbyTripsService = NearbyTripsService();
   final AuthService _authService = sl<AuthService>();
   late final SavedPlacesService _savedPlacesService = SavedPlacesService(
     authService: _authService,
   );
   final UserActivityService _userActivityService = sl<UserActivityService>();
   bool _didCenterOnUser = false;
+
+  MapboxMap? _mapboxMap;
+
+  // Nearby Transit Routes (Home map)
+  Timer? _nearbyIdleTimer;
+  int _nearbyRequestId = 0;
+  String? _nearbyStreetName;
+  bool _isNearbyMoving = false;
+  bool _isNearbyLoading = false;
+  List<NearbyRoute> _nearbyRoutes = const <NearbyRoute>[];
+  String? _lastNearbyKey;
 
   double? _proximityLatitude;
   double? _proximityLongitude;
@@ -94,9 +113,149 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _nearbyIdleTimer?.cancel();
     _fromSearch.dispose();
     _toSearch.dispose();
     super.dispose();
+  }
+
+  // ── Nearby Transit Routes (Home map) ───────────────────────────
+
+  void _onHomeCameraChange(CameraChangedEventData _) {
+    if (!_isNearbyMoving) {
+      setState(() {
+        _isNearbyMoving = true;
+        _nearbyStreetName = null;
+        _nearbyRoutes = const <NearbyRoute>[];
+      });
+    }
+
+    _nearbyIdleTimer?.cancel();
+    _nearbyIdleTimer = Timer(const Duration(milliseconds: 650), _onHomeIdle);
+  }
+
+  Future<void> _onHomeIdle() async {
+    if (_mapboxMap == null) return;
+
+    final requestId = ++_nearbyRequestId;
+
+    final cameraState = await _mapboxMap!.getCameraState();
+    final center = cameraState.center.coordinates;
+    final lat = center.lat.toDouble();
+    final lng = center.lng.toDouble();
+
+    final key = '${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}';
+    if (_lastNearbyKey == key) {
+      if (!mounted || requestId != _nearbyRequestId) return;
+      setState(() {
+        _isNearbyMoving = false;
+      });
+      return;
+    }
+
+    if (!mounted || requestId != _nearbyRequestId) return;
+    setState(() {
+      _isNearbyMoving = false;
+      _isNearbyLoading = true;
+      _nearbyStreetName = null;
+      _nearbyRoutes = const <NearbyRoute>[];
+    });
+
+    final streetFuture = _resolveStreetNameAt(latitude: lat, longitude: lng)
+        .catchError((_) => null);
+    final routesFuture = _nearbyTripsService
+        .getNearbyRoutes(latitude: lat, longitude: lng, radiusM: 500)
+        .catchError((_) => const <NearbyRoute>[]);
+
+    final results = await Future.wait<Object?>([streetFuture, routesFuture]);
+    if (!mounted || requestId != _nearbyRequestId) return;
+
+    _lastNearbyKey = key;
+    setState(() {
+      _nearbyStreetName = results[0] as String?;
+      _nearbyRoutes = (results[1] as List<NearbyRoute>?) ?? const <NearbyRoute>[];
+      _isNearbyLoading = false;
+    });
+  }
+
+  Future<String?> _resolveStreetNameAt({
+    required double latitude,
+    required double longitude,
+  }) async {
+    if (_mapboxMap == null) return null;
+
+    // Try Mapbox vector tiles for an actual road label first.
+    try {
+      final screenCenter = await _mapboxMap!.pixelForCoordinate(
+        Point(coordinates: Position(longitude, latitude)),
+      );
+      final features = await _mapboxMap!.queryRenderedFeatures(
+        RenderedQueryGeometry.fromScreenCoordinate(
+          ScreenCoordinate(x: screenCenter.x, y: screenCenter.y),
+        ),
+        RenderedQueryOptions(layerIds: ['road-label', 'road-street-label']),
+      );
+      if (features.isNotEmpty) {
+        final props = features.first?.queriedFeature.feature['properties'];
+        if (props is Map) {
+          final streetName =
+              (props['name_ar'] as String?) ??
+              (props['name'] as String?) ??
+              (props['name_en'] as String?);
+          if (streetName != null && streetName.trim().isNotEmpty) {
+            return streetName.trim();
+          }
+        }
+      }
+    } catch (_) {
+      // Best-effort; fall back to reverse geocoding.
+    }
+
+    final result = await _geocodingService.reverseGeocode(
+      latitude: latitude,
+      longitude: longitude,
+    );
+    return result?.title;
+  }
+
+  Future<void> _onHomeMapTap(MapContentGestureContext ctx) async {
+    if (ctx.gestureState != GestureState.ended) return;
+    if (_mapboxMap == null) return;
+
+    final coords = ctx.point.coordinates;
+    final lat = coords.lat.toDouble();
+    final lng = coords.lng.toDouble();
+
+    final cameraState = await _mapboxMap!.getCameraState();
+    final zoom = cameraState.zoom.toDouble();
+
+    final cameraOptions = MapConfig.createCamera(
+      latitude: lat,
+      longitude: lng,
+      zoom: zoom,
+    );
+
+    await _mapboxMap!.flyTo(cameraOptions, MapAnimationOptions(duration: 650));
+  }
+
+  void _openNearbyRoutesSheet() {
+    if (_nearbyRoutes.isEmpty) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return FractionallySizedBox(
+          heightFactor: 0.62,
+          child: NearbyRoutesBottomSheet(
+            streetName: _nearbyStreetName,
+            isLoading: _isNearbyLoading,
+            routes: _nearbyRoutes,
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _goToCurrentLocation() async {
@@ -388,7 +547,10 @@ class _HomePageState extends State<HomePage> {
               cameraOptions: MapConfig.defaultCamera,
               styleUri: MapConfig.styleUrl,
               textureView: true,
+              onCameraChangeListener: _onHomeCameraChange,
+              onTapListener: _onHomeMapTap,
               onMapCreated: (MapboxMap mapboxMap) {
+                _mapboxMap = mapboxMap;
                 _mapService.initialize(mapboxMap);
                 // Hide Mapbox ornaments
                 mapboxMap.scaleBar.updateSettings(
@@ -419,6 +581,25 @@ class _HomePageState extends State<HomePage> {
                       ],
                       stops: [0.0, 0.25, 0.6, 1.0],
                     ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Nearby Transit Routes pin + floating card (Home map)
+            const IgnorePointer(child: NearbyBusLocationPin()),
+            Align(
+              alignment: Alignment.center,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 150.h),
+                child: SizedBox(
+                  width: 1.sw - 46.w,
+                  child: NearbyRoutesFloatingCard(
+                    streetName: _nearbyStreetName,
+                    isMoving: _isNearbyMoving,
+                    isLoading: _isNearbyLoading,
+                    routes: _nearbyRoutes,
+                    onTap: _openNearbyRoutesSheet,
                   ),
                 ),
               ),
