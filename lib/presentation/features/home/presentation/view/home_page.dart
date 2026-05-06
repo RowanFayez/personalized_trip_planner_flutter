@@ -161,8 +161,10 @@ class _HomePageState extends State<HomePage> {
       _nearbyRoutes = const <NearbyRoute>[];
     });
 
-    final streetFuture = _resolveStreetNameAt(latitude: lat, longitude: lng)
-        .catchError((_) => null);
+    final streetFuture = _resolveStreetNameAt(
+      latitude: lat,
+      longitude: lng,
+    ).catchError((_) => null);
     final routesFuture = _nearbyTripsService
         .getNearbyRoutes(latitude: lat, longitude: lng, radiusM: 500)
         .catchError((_) => const <NearbyRoute>[]);
@@ -173,7 +175,8 @@ class _HomePageState extends State<HomePage> {
     _lastNearbyKey = key;
     setState(() {
       _nearbyStreetName = results[0] as String?;
-      _nearbyRoutes = (results[1] as List<NearbyRoute>?) ?? const <NearbyRoute>[];
+      _nearbyRoutes =
+          (results[1] as List<NearbyRoute>?) ?? const <NearbyRoute>[];
       _isNearbyLoading = false;
     });
   }

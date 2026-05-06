@@ -230,7 +230,6 @@ class _MapPickerPageState extends State<MapPickerPage> {
               onConfirm: _onConfirm,
             ),
           ),
-
         ],
       ),
     );

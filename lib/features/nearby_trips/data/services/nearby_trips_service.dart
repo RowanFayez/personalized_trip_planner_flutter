@@ -44,15 +44,15 @@ class NearbyTripsService {
 
       final candidate = NearbyRoute(
         routeNameAr: routeNameAr,
-        routeShortNameAr:
-            (dto.routeShortNameAr ?? '').trim().isNotEmpty
-                ? dto.routeShortNameAr!.trim()
-                : null,
+        routeShortNameAr: (dto.routeShortNameAr ?? '').trim().isNotEmpty
+            ? dto.routeShortNameAr!.trim()
+            : null,
         distanceM: dto.distanceM,
       );
 
       final existing = grouped[routeNameAr];
-      if (existing == null || candidate.distanceMOrInf < existing.distanceMOrInf) {
+      if (existing == null ||
+          candidate.distanceMOrInf < existing.distanceMOrInf) {
         grouped[routeNameAr] = candidate;
       }
     }
