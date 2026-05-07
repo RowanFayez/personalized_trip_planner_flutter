@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -30,7 +31,9 @@ import '../widgets/map_action_buttons.dart';
 import '../widgets/routing_bottom_sheet.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final bool viewLastRouteOnStart;
+
+  const HomePage({super.key, this.viewLastRouteOnStart = false});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -58,12 +61,18 @@ class _HomePageState extends State<HomePage> {
   bool _isNearbyLoading = false;
   List<NearbyRoute> _nearbyRoutes = const <NearbyRoute>[];
   String? _lastNearbyKey;
+  double? _lastNearbyLat;
+  double? _lastNearbyLng;
+  DateTime? _lastNearbyFetchAt;
 
   double? _proximityLatitude;
   double? _proximityLongitude;
 
   late final PlaceSearchController _fromSearch;
   late final PlaceSearchController _toSearch;
+
+  SavedPlaceType? _selectedQuickPlaceFrom;
+  SavedPlaceType? _selectedQuickPlaceTo;
 
   String? _lastRoutesKey;
   String? _lastRoutingSnackKey;
@@ -73,6 +82,12 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
+    if (widget.viewLastRouteOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _viewLastRouteOnMap();
+      });
+    }
 
     _fromSearch =
         PlaceSearchController(
@@ -111,6 +126,48 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _viewLastRouteOnMap() async {
+    final last = await _userActivityService.getLastRoute();
+    if (!mounted) return;
+    if (last == null || last.from.trim().isEmpty || last.to.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No recent route found.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedQuickPlaceFrom = null;
+      _selectedQuickPlaceTo = null;
+    });
+
+    final fromResolved = await _geocodingService.forwardGeocode(
+      address: last.from,
+    );
+    final toResolved = await _geocodingService.forwardGeocode(address: last.to);
+
+    if (!mounted) return;
+    if (fromResolved == null || toResolved == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load that route on the map.')),
+      );
+      return;
+    }
+
+    await _fromSearch.goToLocation(
+      title: last.from,
+      latitude: fromResolved.latitude,
+      longitude: fromResolved.longitude,
+    );
+    await _toSearch.goToLocation(
+      title: last.to,
+      latitude: toResolved.latitude,
+      longitude: toResolved.longitude,
+    );
+
+    _maybeFetchRoutes(force: true);
+  }
+
   @override
   void dispose() {
     _nearbyIdleTimer?.cancel();
@@ -125,13 +182,11 @@ class _HomePageState extends State<HomePage> {
     if (!_isNearbyMoving) {
       setState(() {
         _isNearbyMoving = true;
-        _nearbyStreetName = null;
-        _nearbyRoutes = const <NearbyRoute>[];
       });
     }
 
     _nearbyIdleTimer?.cancel();
-    _nearbyIdleTimer = Timer(const Duration(milliseconds: 650), _onHomeIdle);
+    _nearbyIdleTimer = Timer(const Duration(milliseconds: 950), _onHomeIdle);
   }
 
   Future<void> _onHomeIdle() async {
@@ -153,12 +208,27 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
+    // Skip rapid refetches for small movements to reduce API calls.
+    final lastLat = _lastNearbyLat;
+    final lastLng = _lastNearbyLng;
+    final lastAt = _lastNearbyFetchAt;
+    if (lastLat != null && lastLng != null && lastAt != null) {
+      final movedM = _distanceMeters(lastLat, lastLng, lat, lng);
+      final since = DateTime.now().difference(lastAt);
+      if (movedM < 35 && since < const Duration(seconds: 8)) {
+        if (!mounted || requestId != _nearbyRequestId) return;
+        setState(() {
+          _isNearbyMoving = false;
+        });
+        return;
+      }
+    }
+
     if (!mounted || requestId != _nearbyRequestId) return;
     setState(() {
       _isNearbyMoving = false;
       _isNearbyLoading = true;
       _nearbyStreetName = null;
-      _nearbyRoutes = const <NearbyRoute>[];
     });
 
     final streetFuture = _resolveStreetNameAt(
@@ -173,6 +243,9 @@ class _HomePageState extends State<HomePage> {
     if (!mounted || requestId != _nearbyRequestId) return;
 
     _lastNearbyKey = key;
+    _lastNearbyLat = lat;
+    _lastNearbyLng = lng;
+    _lastNearbyFetchAt = DateTime.now();
     setState(() {
       _nearbyStreetName = results[0] as String?;
       _nearbyRoutes =
@@ -180,6 +253,22 @@ class _HomePageState extends State<HomePage> {
       _isNearbyLoading = false;
     });
   }
+
+  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusM = 6371000.0;
+    final dLat = _degToRad(lat2 - lat1);
+    final dLon = _degToRad(lon2 - lon1);
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degToRad(lat1)) *
+            math.cos(_degToRad(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadiusM * c;
+  }
+
+  double _degToRad(double deg) => deg * (math.pi / 180.0);
 
   Future<String?> _resolveStreetNameAt({
     required double latitude,
@@ -336,6 +425,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _handleFromMapPick() async {
+    setState(() {
+      _selectedQuickPlaceFrom = null;
+    });
     _fromSearch.focusNode.unfocus();
     final result = await context.push<MapPickerResult>('/map-picker/from');
     if (result != null && mounted) {
@@ -349,6 +441,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _handleToMapPick() async {
+    setState(() {
+      _selectedQuickPlaceTo = null;
+    });
     _toSearch.focusNode.unfocus();
     final result = await context.push<MapPickerResult>('/map-picker/to');
     if (result != null && mounted) {
@@ -409,6 +504,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _handleQuickPlaceSelected(SavedPlaceType type) async {
+    final isTo = _toSearch.focusNode.hasFocus;
+    setState(() {
+      if (isTo) {
+        _selectedQuickPlaceTo = type;
+      } else {
+        _selectedQuickPlaceFrom = type;
+      }
+    });
+
     final place = await _savedPlacesService.getPlace(type);
     if (!mounted) return;
 
@@ -467,12 +571,6 @@ class _HomePageState extends State<HomePage> {
       latitude: place.latitude,
       longitude: place.longitude,
     );
-  }
-
-  void _handleQuickPlaceMore() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('More places: coming soon.')));
   }
 
   @override
@@ -620,8 +718,18 @@ class _HomePageState extends State<HomePage> {
                   toController: _toSearch.textController,
                   fromFocusNode: _fromSearch.focusNode,
                   toFocusNode: _toSearch.focusNode,
-                  onFromChanged: _fromSearch.onChanged,
-                  onToChanged: _toSearch.onChanged,
+                  onFromChanged: (value) {
+                    if (_selectedQuickPlaceFrom != null) {
+                      setState(() => _selectedQuickPlaceFrom = null);
+                    }
+                    _fromSearch.onChanged(value);
+                  },
+                  onToChanged: (value) {
+                    if (_selectedQuickPlaceTo != null) {
+                      setState(() => _selectedQuickPlaceTo = null);
+                    }
+                    _toSearch.onChanged(value);
+                  },
                   onFromSubmitted: (_) => _fromSearch.submit(),
                   onToSubmitted: (_) => _toSearch.submit(),
                   onFromTapped: () {
@@ -641,11 +749,22 @@ class _HomePageState extends State<HomePage> {
                   savedPlacesService: _savedPlacesService,
                   onQuickPlaceSelected: (type) =>
                       _handleQuickPlaceSelected(type),
-                  onQuickPlaceMore: _handleQuickPlaceMore,
+                  selectedQuickPlaceFrom: _selectedQuickPlaceFrom,
+                  selectedQuickPlaceTo: _selectedQuickPlaceTo,
                   fromSuggestions: _fromSearch.suggestions,
                   toSuggestions: _toSearch.suggestions,
-                  onFromSuggestionSelected: _fromSearch.selectSuggestion,
-                  onToSuggestionSelected: _toSearch.selectSuggestion,
+                  onFromSuggestionSelected: (s) async {
+                    if (_selectedQuickPlaceFrom != null) {
+                      setState(() => _selectedQuickPlaceFrom = null);
+                    }
+                    await _fromSearch.selectSuggestion(s);
+                  },
+                  onToSuggestionSelected: (s) async {
+                    if (_selectedQuickPlaceTo != null) {
+                      setState(() => _selectedQuickPlaceTo = null);
+                    }
+                    await _toSearch.selectSuggestion(s);
+                  },
                   showFromSuggestions: _fromSearch.showSuggestions,
                   showToSuggestions: _toSearch.showSuggestions,
                   onPreferencesPressed: _handlePreferencesPressed,

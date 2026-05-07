@@ -141,15 +141,18 @@ class _RoutesList extends StatelessWidget {
       );
     }
 
+    final sorted = routes.toList(growable: false)
+      ..sort((a, b) => a.distanceMOrInf.compareTo(b.distanceMOrInf));
+
     return ListView.separated(
-      itemCount: routes.length,
+      itemCount: sorted.length,
       separatorBuilder: (_, __) => SizedBox(height: 10.h),
       itemBuilder: (context, index) {
-        final route = routes[index];
+        final route = sorted[index];
         final name = route.routeNameAr.trim();
         final short = (route.routeShortNameAr ?? '').trim();
-
-        final label = short.isEmpty ? name : '$name ($short)';
+        final distance = route.distanceMetersRounded;
+        final distanceText = distance == null ? '' : '${distance}m';
 
         return Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -177,17 +180,55 @@ class _RoutesList extends StatelessWidget {
               ),
               SizedBox(width: 10.w),
               Expanded(
-                child: Text(
-                  label,
-                  textDirection: TextDirection.rtl,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 13.5.sp,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      textDirection: TextDirection.rtl,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w800,
+                        height: 1.2,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Row(
+                      children: [
+                        if (short.isNotEmpty)
+                          Expanded(
+                            child: Text(
+                              short,
+                              textDirection: TextDirection.rtl,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          )
+                        else
+                          const Spacer(),
+                        if (distanceText.isNotEmpty) ...[
+                          SizedBox(width: 8.w),
+                          Text(
+                            distanceText,
+                            style: TextStyle(
+                              color: AppColors.textTertiary,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],

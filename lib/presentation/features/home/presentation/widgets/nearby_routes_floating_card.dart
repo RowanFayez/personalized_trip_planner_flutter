@@ -22,12 +22,19 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasContent =
+      (streetName ?? '').trim().isNotEmpty ||
+      isMoving ||
+      isLoading ||
+      routes.isNotEmpty;
+    if (!hasContent) return const SizedBox.shrink();
+
     final title = _title();
     final nearest = routes.isNotEmpty ? routes.first : null;
 
     final nearestLine = nearest == null
-        ? null
-        : _routeLine(nearest.routeNameAr, nearest.routeShortNameAr);
+      ? null
+      : _routeLine(nearest.routeNameAr, nearest.distanceMetersRounded);
 
     final otherCount = routes.length > 1 ? routes.length - 1 : 0;
 
@@ -35,21 +42,21 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
       color: AppColors.searchInputBackground,
       elevation: 10,
       shadowColor: AppColors.shadow,
-      borderRadius: BorderRadius.circular(18.r),
+      borderRadius: BorderRadius.circular(16.r),
       child: InkWell(
         onTap: routes.isEmpty ? null : onTap,
-        borderRadius: BorderRadius.circular(18.r),
+        borderRadius: BorderRadius.circular(16.r),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18.r),
+            borderRadius: BorderRadius.circular(16.r),
             border: Border.all(color: AppColors.border),
           ),
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
           child: Row(
             children: [
               Container(
-                width: 34.r,
-                height: 34.r,
+                width: 30.r,
+                height: 30.r,
                 decoration: const BoxDecoration(
                   color: AppColors.primaryTeal,
                   shape: BoxShape.circle,
@@ -58,11 +65,11 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                   child: Icon(
                     Icons.directions_bus,
                     color: Colors.white,
-                    size: 18.r,
+                    size: 16.r,
                   ),
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: 10.w),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -74,16 +81,16 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 15.sp,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w800,
                         height: 1.2,
                       ),
                     ),
-                    SizedBox(height: 6.h),
+                    SizedBox(height: 4.h),
                     if (isMoving)
                       _subtleText('Moving…')
                     else if (isLoading)
-                      _subtleText('Loading nearby routes…')
+                      _subtleText('Loading…')
                     else if (nearestLine != null) ...[
                       Text(
                         nearestLine,
@@ -97,7 +104,7 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                         ),
                       ),
                       if (otherCount > 0) ...[
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 2.h),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -116,7 +123,7 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                             Icon(
                               Icons.arrow_forward_ios,
                               color: AppColors.textTertiary,
-                              size: 14.r,
+                              size: 13.r,
                             ),
                           ],
                         ),
@@ -140,11 +147,13 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
     return name;
   }
 
-  String _routeLine(String routeNameAr, String? routeShortNameAr) {
+  String _routeLine(String routeNameAr, int? distanceMetersRounded) {
     final name = routeNameAr.trim();
-    final short = (routeShortNameAr ?? '').trim();
-    if (short.isEmpty) return name;
-    return '$name ($short)';
+    if (name.isEmpty) return '';
+
+    final d = distanceMetersRounded;
+    if (d == null) return name;
+    return '$name • ${d}m';
   }
 
   Widget _subtleText(String text) {

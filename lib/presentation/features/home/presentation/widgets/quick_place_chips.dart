@@ -13,14 +13,14 @@ class QuickPlaceChips extends StatefulWidget {
   final String userId;
   final SavedPlacesService savedPlacesService;
   final ValueChanged<SavedPlaceType> onSelected;
-  final VoidCallback onMore;
+  final SavedPlaceType? selectedType;
 
   const QuickPlaceChips({
     super.key,
     required this.userId,
     required this.savedPlacesService,
     required this.onSelected,
-    required this.onMore,
+    required this.selectedType,
   });
 
   @override
@@ -90,7 +90,7 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required bool isSet,
+    required bool isSelected,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -102,7 +102,7 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
           color: AppColors.searchInputBackground,
           borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
-            color: isSet ? AppColors.primaryTeal : AppColors.surfaceLight,
+            color: isSelected ? AppColors.primaryTeal : AppColors.surfaceLight,
           ),
         ),
         child: Row(
@@ -191,6 +191,8 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
                   ? (_name(collegeValue) ?? 'Saved')
                   : _unsetSubtitleFor(SavedPlaceType.college);
 
+              final selected = widget.selectedType;
+
               return ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
@@ -198,7 +200,7 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
                     icon: Icons.home_outlined,
                     title: _titleFor(SavedPlaceType.home),
                     subtitle: homeSubtitle,
-                    isSet: homeIsSet,
+                    isSelected: selected == SavedPlaceType.home,
                     onTap: () => widget.onSelected(SavedPlaceType.home),
                   ),
                   SizedBox(width: 10.w),
@@ -206,7 +208,7 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
                     icon: Icons.work_outline,
                     title: _titleFor(SavedPlaceType.work),
                     subtitle: workSubtitle,
-                    isSet: workIsSet,
+                    isSelected: selected == SavedPlaceType.work,
                     onTap: () => widget.onSelected(SavedPlaceType.work),
                   ),
                   SizedBox(width: 10.w),
@@ -214,16 +216,8 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
                     icon: Icons.factory_outlined,
                     title: _titleFor(SavedPlaceType.college),
                     subtitle: collegeSubtitle,
-                    isSet: collegeIsSet,
+                    isSelected: selected == SavedPlaceType.college,
                     onTap: () => widget.onSelected(SavedPlaceType.college),
-                  ),
-                  SizedBox(width: 10.w),
-                  _chip(
-                    icon: Icons.more_horiz,
-                    title: 'More',
-                    subtitle: '',
-                    isSet: false,
-                    onTap: widget.onMore,
                   ),
                 ],
               );

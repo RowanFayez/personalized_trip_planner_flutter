@@ -105,6 +105,16 @@ class _ProfilePageState extends State<ProfilePage> {
     await _load();
   }
 
+  Future<void> _clearPlace(SavedPlaceType type) async {
+    final label = _labelForType(type);
+    await _savedPlacesService.clearPlace(type);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$label deleted.')));
+    await _load();
+  }
+
   Future<void> _signOut() async {
     try {
       await sl<AuthService>().signOut();
@@ -159,12 +169,18 @@ class _ProfilePageState extends State<ProfilePage> {
                   onSetHome: () => _pickAndSave(SavedPlaceType.home),
                   onSetWork: () => _pickAndSave(SavedPlaceType.work),
                   onSetCollege: () => _pickAndSave(SavedPlaceType.college),
+                  onClearHome: () => _clearPlace(SavedPlaceType.home),
+                  onClearWork: () => _clearPlace(SavedPlaceType.work),
+                  onClearCollege: () => _clearPlace(SavedPlaceType.college),
                 ),
                 SizedBox(height: 18.h),
                 _RecentActivityCard(
                   isLoading: _isLoading,
                   lastSearch: _lastSearch,
                   lastRoute: _lastRoute,
+                  onViewLastRoute: () {
+                    context.go('/?viewLastRoute=1');
+                  },
                 ),
                 SizedBox(height: 18.h),
                 SizedBox(
@@ -269,6 +285,9 @@ class _SavedLocationsCard extends StatelessWidget {
   final VoidCallback onSetHome;
   final VoidCallback onSetWork;
   final VoidCallback onSetCollege;
+  final VoidCallback onClearHome;
+  final VoidCallback onClearWork;
+  final VoidCallback onClearCollege;
 
   const _SavedLocationsCard({
     required this.isLoading,
@@ -278,6 +297,9 @@ class _SavedLocationsCard extends StatelessWidget {
     required this.onSetHome,
     required this.onSetWork,
     required this.onSetCollege,
+    required this.onClearHome,
+    required this.onClearWork,
+    required this.onClearCollege,
   });
 
   @override
@@ -312,6 +334,8 @@ class _SavedLocationsCard extends StatelessWidget {
             title: 'Home',
             value: _formatPlace(home, isLoading),
             onSet: onSetHome,
+            onClear: onClearHome,
+            canClear: !isLoading && home != null,
           ),
           const Divider(height: 18, color: AppColors.divider),
           _SavedLocationRow(
@@ -319,6 +343,8 @@ class _SavedLocationsCard extends StatelessWidget {
             title: 'Work',
             value: _formatPlace(work, isLoading),
             onSet: onSetWork,
+            onClear: onClearWork,
+            canClear: !isLoading && work != null,
           ),
           const Divider(height: 18, color: AppColors.divider),
           _SavedLocationRow(
@@ -326,6 +352,8 @@ class _SavedLocationsCard extends StatelessWidget {
             title: 'College',
             value: _formatPlace(college, isLoading),
             onSet: onSetCollege,
+            onClear: onClearCollege,
+            canClear: !isLoading && college != null,
           ),
           SizedBox(height: 10.h),
           Text(
@@ -351,16 +379,22 @@ class _SavedLocationRow extends StatelessWidget {
   final String title;
   final String value;
   final VoidCallback onSet;
+  final VoidCallback onClear;
+  final bool canClear;
 
   const _SavedLocationRow({
     required this.icon,
     required this.title,
     required this.value,
     required this.onSet,
+    required this.onClear,
+    required this.canClear,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isSet = canClear;
+
     return Row(
       children: [
         Icon(icon, color: AppColors.textSecondary, size: 18.r),
@@ -390,7 +424,17 @@ class _SavedLocationRow extends StatelessWidget {
             ],
           ),
         ),
-        TextButton(onPressed: onSet, child: const Text('Set')),
+        TextButton(
+          onPressed: onSet,
+          child: Text(isSet ? 'Change' : 'Set'),
+        ),
+        if (canClear && isSet) ...[
+          SizedBox(width: 6.w),
+          TextButton(
+            onPressed: onClear,
+            child: const Text('Delete'),
+          ),
+        ],
       ],
     );
   }
@@ -400,11 +444,13 @@ class _RecentActivityCard extends StatelessWidget {
   final bool isLoading;
   final String? lastSearch;
   final LastRoute? lastRoute;
+  final VoidCallback onViewLastRoute;
 
   const _RecentActivityCard({
     required this.isLoading,
     required this.lastSearch,
     required this.lastRoute,
+    required this.onViewLastRoute,
   });
 
   @override
@@ -415,6 +461,7 @@ class _RecentActivityCard extends StatelessWidget {
     final routeText = isLoading
         ? 'Loading…'
         : (lastRoute == null ? '-' : '${lastRoute!.from} → ${lastRoute!.to}');
+    final canView = !isLoading && lastRoute != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -443,7 +490,16 @@ class _RecentActivityCard extends StatelessWidget {
           SizedBox(height: 10.h),
           _InfoLine(label: 'Last search', value: searchText),
           SizedBox(height: 10.h),
-          _InfoLine(label: 'Last route', value: routeText),
+          _InfoLine(
+            label: 'Last route',
+            value: routeText,
+            trailing: canView
+                ? TextButton(
+                    onPressed: onViewLastRoute,
+                    child: const Text('View'),
+                  )
+                : null,
+          ),
         ],
       ),
     );
@@ -453,8 +509,9 @@ class _RecentActivityCard extends StatelessWidget {
 class _InfoLine extends StatelessWidget {
   final String label;
   final String value;
+  final Widget? trailing;
 
-  const _InfoLine({required this.label, required this.value});
+  const _InfoLine({required this.label, required this.value, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -482,6 +539,7 @@ class _InfoLine extends StatelessWidget {
             ),
           ),
         ),
+        if (trailing != null) trailing!,
       ],
     );
   }

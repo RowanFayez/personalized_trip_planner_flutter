@@ -25,7 +25,8 @@ class SearchOverlay extends StatelessWidget {
   final String? signedInUserId;
   final SavedPlacesService savedPlacesService;
   final ValueChanged<SavedPlaceType> onQuickPlaceSelected;
-  final VoidCallback onQuickPlaceMore;
+  final SavedPlaceType? selectedQuickPlaceFrom;
+  final SavedPlaceType? selectedQuickPlaceTo;
   final List<MapboxPlaceSuggestion> fromSuggestions;
   final List<MapboxPlaceSuggestion> toSuggestions;
   final ValueChanged<MapboxPlaceSuggestion> onFromSuggestionSelected;
@@ -53,7 +54,8 @@ class SearchOverlay extends StatelessWidget {
     required this.signedInUserId,
     required this.savedPlacesService,
     required this.onQuickPlaceSelected,
-    required this.onQuickPlaceMore,
+    required this.selectedQuickPlaceFrom,
+    required this.selectedQuickPlaceTo,
     required this.fromSuggestions,
     required this.toSuggestions,
     required this.onFromSuggestionSelected,
@@ -173,7 +175,7 @@ class SearchOverlay extends StatelessWidget {
                 userId: userId,
                 savedPlacesService: savedPlacesService,
                 onSelected: onQuickPlaceSelected,
-                onMore: onQuickPlaceMore,
+                selectedType: selectedQuickPlaceFrom,
               ),
             ],
 
@@ -211,7 +213,7 @@ class SearchOverlay extends StatelessWidget {
                 userId: userId,
                 savedPlacesService: savedPlacesService,
                 onSelected: onQuickPlaceSelected,
-                onMore: onQuickPlaceMore,
+                selectedType: selectedQuickPlaceTo,
               ),
             ],
 

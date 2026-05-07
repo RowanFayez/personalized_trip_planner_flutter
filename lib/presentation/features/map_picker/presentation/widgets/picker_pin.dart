@@ -12,11 +12,11 @@ class PickerPin extends StatelessWidget {
     return Center(
       // Offset the pin so its bottom tip sits at the exact screen centre
       child: Padding(
-        padding: EdgeInsets.only(bottom: 56.h),
+        padding: EdgeInsets.only(bottom: 50.h),
         child: SvgPicture.asset(
-          'assets/icons/pin.svg',
-          width: 40.w,
-          height: 56.h,
+          'assets/icons/interactive-search.svg',
+          width: 46.w,
+          height: 50.h,
         ),
       ),
     );

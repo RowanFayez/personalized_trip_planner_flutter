@@ -124,4 +124,11 @@ class SavedPlacesService {
 
     await box.put(storageKeyFor(userId: userId, type: type), payload);
   }
+
+  Future<void> clearPlace(SavedPlaceType type) async {
+    final userId = _currentUserId;
+    if (userId == null) return;
+    final box = await HiveService.openBox<dynamic>(CoreHiveBoxes.savedPlaces);
+    await box.delete(storageKeyFor(userId: userId, type: type));
+  }
 }
