@@ -17,7 +17,8 @@ class AppRouter {
       GoRoute(
         path: '/',
         builder: (context, state) {
-          final viewLastRoute = state.uri.queryParameters['viewLastRoute'] == '1';
+          final viewLastRoute =
+              state.uri.queryParameters['viewLastRoute'] == '1';
           return BlocProvider(
             create: (_) => sl<RoutingCubit>(),
             child: HomePage(viewLastRouteOnStart: viewLastRoute),

@@ -23,18 +23,18 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasContent =
-      (streetName ?? '').trim().isNotEmpty ||
-      isMoving ||
-      isLoading ||
-      routes.isNotEmpty;
+        (streetName ?? '').trim().isNotEmpty ||
+        isMoving ||
+        isLoading ||
+        routes.isNotEmpty;
     if (!hasContent) return const SizedBox.shrink();
 
     final title = _title();
     final nearest = routes.isNotEmpty ? routes.first : null;
 
     final nearestLine = nearest == null
-      ? null
-      : _routeLine(nearest.routeNameAr, nearest.distanceMetersRounded);
+        ? null
+        : _routeLine(nearest.routeNameAr, nearest.distanceMetersRounded);
 
     final otherCount = routes.length > 1 ? routes.length - 1 : 0;
 

@@ -130,9 +130,9 @@ class _HomePageState extends State<HomePage> {
     final last = await _userActivityService.getLastRoute();
     if (!mounted) return;
     if (last == null || last.from.trim().isEmpty || last.to.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No recent route found.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No recent route found.')));
       return;
     }
 

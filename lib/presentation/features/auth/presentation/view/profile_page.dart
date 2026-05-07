@@ -424,16 +424,10 @@ class _SavedLocationRow extends StatelessWidget {
             ],
           ),
         ),
-        TextButton(
-          onPressed: onSet,
-          child: Text(isSet ? 'Change' : 'Set'),
-        ),
+        TextButton(onPressed: onSet, child: Text(isSet ? 'Change' : 'Set')),
         if (canClear && isSet) ...[
           SizedBox(width: 6.w),
-          TextButton(
-            onPressed: onClear,
-            child: const Text('Delete'),
-          ),
+          TextButton(onPressed: onClear, child: const Text('Delete')),
         ],
       ],
     );
