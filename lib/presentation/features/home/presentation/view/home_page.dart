@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -53,17 +52,11 @@ class _HomePageState extends State<HomePage> {
 
   MapboxMap? _mapboxMap;
 
-  // Nearby Transit Routes (Home map)
-  Timer? _nearbyIdleTimer;
-  int _nearbyRequestId = 0;
+  // ── Nearby Transit Routes (manual FAB trigger) ─────────────────
+  bool _isNearbyModeActive = false;
   String? _nearbyStreetName;
-  bool _isNearbyMoving = false;
   bool _isNearbyLoading = false;
   List<NearbyRoute> _nearbyRoutes = const <NearbyRoute>[];
-  String? _lastNearbyKey;
-  double? _lastNearbyLat;
-  double? _lastNearbyLng;
-  DateTime? _lastNearbyFetchAt;
 
   double? _proximityLatitude;
   double? _proximityLongitude;
@@ -170,66 +163,27 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _nearbyIdleTimer?.cancel();
     _fromSearch.dispose();
     _toSearch.dispose();
     super.dispose();
   }
 
-  // ── Nearby Transit Routes (Home map) ───────────────────────────
+  // ── Nearby Transit Routes (manual FAB) ─────────────────────────
 
-  void _onHomeCameraChange(CameraChangedEventData _) {
-    if (!_isNearbyMoving) {
-      setState(() {
-        _isNearbyMoving = true;
-      });
-    }
-
-    _nearbyIdleTimer?.cancel();
-    _nearbyIdleTimer = Timer(const Duration(milliseconds: 950), _onHomeIdle);
-  }
-
-  Future<void> _onHomeIdle() async {
+  Future<void> _triggerNearbySearch() async {
     if (_mapboxMap == null) return;
 
-    final requestId = ++_nearbyRequestId;
+    setState(() {
+      _isNearbyModeActive = true;
+      _isNearbyLoading = true;
+      _nearbyStreetName = null;
+      _nearbyRoutes = const <NearbyRoute>[];
+    });
 
     final cameraState = await _mapboxMap!.getCameraState();
     final center = cameraState.center.coordinates;
     final lat = center.lat.toDouble();
     final lng = center.lng.toDouble();
-
-    final key = '${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}';
-    if (_lastNearbyKey == key) {
-      if (!mounted || requestId != _nearbyRequestId) return;
-      setState(() {
-        _isNearbyMoving = false;
-      });
-      return;
-    }
-
-    // Skip rapid refetches for small movements to reduce API calls.
-    final lastLat = _lastNearbyLat;
-    final lastLng = _lastNearbyLng;
-    final lastAt = _lastNearbyFetchAt;
-    if (lastLat != null && lastLng != null && lastAt != null) {
-      final movedM = _distanceMeters(lastLat, lastLng, lat, lng);
-      final since = DateTime.now().difference(lastAt);
-      if (movedM < 35 && since < const Duration(seconds: 8)) {
-        if (!mounted || requestId != _nearbyRequestId) return;
-        setState(() {
-          _isNearbyMoving = false;
-        });
-        return;
-      }
-    }
-
-    if (!mounted || requestId != _nearbyRequestId) return;
-    setState(() {
-      _isNearbyMoving = false;
-      _isNearbyLoading = true;
-      _nearbyStreetName = null;
-    });
 
     final streetFuture = _resolveStreetNameAt(
       latitude: lat,
@@ -240,12 +194,8 @@ class _HomePageState extends State<HomePage> {
         .catchError((_) => const <NearbyRoute>[]);
 
     final results = await Future.wait<Object?>([streetFuture, routesFuture]);
-    if (!mounted || requestId != _nearbyRequestId) return;
+    if (!mounted) return;
 
-    _lastNearbyKey = key;
-    _lastNearbyLat = lat;
-    _lastNearbyLng = lng;
-    _lastNearbyFetchAt = DateTime.now();
     setState(() {
       _nearbyStreetName = results[0] as String?;
       _nearbyRoutes =
@@ -254,21 +204,14 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
-    const earthRadiusM = 6371000.0;
-    final dLat = _degToRad(lat2 - lat1);
-    final dLon = _degToRad(lon2 - lon1);
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_degToRad(lat1)) *
-            math.cos(_degToRad(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadiusM * c;
+  void _clearNearbyMode() {
+    setState(() {
+      _isNearbyModeActive = false;
+      _nearbyStreetName = null;
+      _nearbyRoutes = const <NearbyRoute>[];
+      _isNearbyLoading = false;
+    });
   }
-
-  double _degToRad(double deg) => deg * (math.pi / 180.0);
 
   Future<String?> _resolveStreetNameAt({
     required double latitude,
@@ -573,6 +516,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  /// Callback for the RoutingBottomSheet close button — removes drawn route.
+  Future<void> _onRoutingSheetClosed() async {
+    await _mapService.removeRoute('active');
+  }
+
   @override
   Widget build(BuildContext context) {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
@@ -580,12 +528,26 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: BlocListener<RoutingCubit, RoutingState>(
+      body: BlocConsumer<RoutingCubit, RoutingState>(
         listenWhen: (previous, current) {
           return previous.status != current.status ||
               previous.selectedJourneyIndex != current.selectedJourneyIndex;
         },
         listener: (context, state) async {
+          // ── Auto-clear nearby mode when routing becomes active ──
+          if (state.status != RoutingStatus.initial && _isNearbyModeActive) {
+            _isNearbyModeActive = false;
+            _nearbyRoutes = const <NearbyRoute>[];
+            _nearbyStreetName = null;
+            _isNearbyLoading = false;
+          }
+
+          // ── Clear drawn route when cubit resets to initial ──
+          if (state.status == RoutingStatus.initial) {
+            await _mapService.removeRoute('active');
+            return;
+          }
+
           if (state.status == RoutingStatus.failure) {
             await _mapService.removeRoute('active');
             _showRoutingSnackOnce(state.errorMessage ?? 'No routes found.');
@@ -640,176 +602,224 @@ class _HomePageState extends State<HomePage> {
           }
           await _mapService.fitToRoute(allPoints);
         },
-        child: Stack(
-          children: [
-            // Mapbox Map
-            MapWidget(
-              key: const ValueKey('mapWidget'),
-              cameraOptions: MapConfig.defaultCamera,
-              styleUri: MapConfig.styleUrl,
-              textureView: true,
-              onCameraChangeListener: _onHomeCameraChange,
-              onTapListener: _onHomeMapTap,
-              onMapCreated: (MapboxMap mapboxMap) {
-                _mapboxMap = mapboxMap;
-                _mapService.initialize(mapboxMap);
-                // Hide Mapbox ornaments
-                mapboxMap.scaleBar.updateSettings(
-                  ScaleBarSettings(enabled: false),
-                );
-                mapboxMap.compass.updateSettings(
-                  CompassSettings(enabled: false),
-                );
-                // Smoothly move to user's current location once at startup.
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _centerOnUserOnStartup();
-                });
-              },
-            ),
+        builder: (context, routingState) {
+          final isRouting = routingState.status != RoutingStatus.initial;
 
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0x800F2123), // top: 50% dark
-                        Color(0x330F2123), // via: 20% dark
-                        Color(0x330F2123), // middle: transparent-ish
-                        Color(0xCC0F2123), // bottom: 80% dark
-                      ],
-                      stops: [0.0, 0.25, 0.6, 1.0],
+          return Stack(
+            children: [
+              // ── Mapbox Map ──────────────────────────────────────
+              MapWidget(
+                key: const ValueKey('mapWidget'),
+                cameraOptions: MapConfig.defaultCamera,
+                styleUri: MapConfig.styleUrl,
+                textureView: true,
+                onTapListener: _onHomeMapTap,
+                onMapCreated: (MapboxMap mapboxMap) {
+                  _mapboxMap = mapboxMap;
+                  _mapService.initialize(mapboxMap);
+                  // Hide Mapbox ornaments
+                  mapboxMap.scaleBar.updateSettings(
+                    ScaleBarSettings(enabled: false),
+                  );
+                  mapboxMap.compass.updateSettings(
+                    CompassSettings(enabled: false),
+                  );
+                  // Smoothly move to user's current location once at startup.
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _centerOnUserOnStartup();
+                  });
+                },
+              ),
+
+              // ── Gradient overlay ────────────────────────────────
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x800F2123), // top: 50% dark
+                          Color(0x330F2123), // via: 20% dark
+                          Color(0x330F2123), // middle: transparent-ish
+                          Color(0xCC0F2123), // bottom: 80% dark
+                        ],
+                        stops: [0.0, 0.25, 0.6, 1.0],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            // Nearby Transit Routes pin + floating card (Home map)
-            const IgnorePointer(child: NearbyBusLocationPin()),
-            Align(
-              alignment: Alignment.center,
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 150.h),
-                child: SizedBox(
-                  width: 1.sw - 46.w,
-                  child: NearbyRoutesFloatingCard(
-                    streetName: _nearbyStreetName,
-                    isMoving: _isNearbyMoving,
-                    isLoading: _isNearbyLoading,
-                    routes: _nearbyRoutes,
-                    onTap: _openNearbyRoutesSheet,
+              // ── Nearby mode UI (pin + card) — only in Nearby Mode ──
+              if (_isNearbyModeActive && !isRouting) ...[
+                const IgnorePointer(child: NearbyBusLocationPin()),
+                Align(
+                  alignment: Alignment.center,
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: 150.h),
+                    child: SizedBox(
+                      width: 1.sw - 46.w,
+                      child: NearbyRoutesFloatingCard(
+                        streetName: _nearbyStreetName,
+                        isLoading: _isNearbyLoading,
+                        routes: _nearbyRoutes,
+                        onTap: _openNearbyRoutesSheet,
+                        onClose: _clearNearbyMode,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
+              ],
 
-            // Top search UI overlay
-            StreamBuilder<Object?>(
-              stream: _authService.authStateChanges(),
-              builder: (context, _) {
-                final user = _authService.currentUser;
-                final signedIn = user != null;
-
-                return SearchOverlay(
-                  fromController: _fromSearch.textController,
-                  toController: _toSearch.textController,
-                  fromFocusNode: _fromSearch.focusNode,
-                  toFocusNode: _toSearch.focusNode,
-                  onFromChanged: (value) {
-                    if (_selectedQuickPlaceFrom != null) {
-                      setState(() => _selectedQuickPlaceFrom = null);
-                    }
-                    _fromSearch.onChanged(value);
-                  },
-                  onToChanged: (value) {
-                    if (_selectedQuickPlaceTo != null) {
-                      setState(() => _selectedQuickPlaceTo = null);
-                    }
-                    _toSearch.onChanged(value);
-                  },
-                  onFromSubmitted: (_) => _fromSearch.submit(),
-                  onToSubmitted: (_) => _toSearch.submit(),
-                  onFromTapped: () {
-                    _fromSearch.onFieldTap();
-                    setState(() {});
-                  },
-                  onToTapped: () {
-                    _toSearch.onFieldTap();
-                    setState(() {});
-                  },
-                  showQuickPlaces:
-                      signedIn &&
-                      (_fromSearch.focusNode.hasFocus ||
-                          _toSearch.focusNode.hasFocus),
-                  showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
-                  signedInUserId: user?.uid,
-                  savedPlacesService: _savedPlacesService,
-                  onQuickPlaceSelected: (type) =>
-                      _handleQuickPlaceSelected(type),
-                  selectedQuickPlaceFrom: _selectedQuickPlaceFrom,
-                  selectedQuickPlaceTo: _selectedQuickPlaceTo,
-                  fromSuggestions: _fromSearch.suggestions,
-                  toSuggestions: _toSearch.suggestions,
-                  onFromSuggestionSelected: (s) async {
-                    if (_selectedQuickPlaceFrom != null) {
-                      setState(() => _selectedQuickPlaceFrom = null);
-                    }
-                    await _fromSearch.selectSuggestion(s);
-                  },
-                  onToSuggestionSelected: (s) async {
-                    if (_selectedQuickPlaceTo != null) {
-                      setState(() => _selectedQuickPlaceTo = null);
-                    }
-                    await _toSearch.selectSuggestion(s);
-                  },
-                  showFromSuggestions: _fromSearch.showSuggestions,
-                  showToSuggestions: _toSearch.showSuggestions,
-                  onPreferencesPressed: _handlePreferencesPressed,
-                  onFromMapPressed: _handleFromMapPick,
-                  onToMapPressed: _handleToMapPick,
-                );
-              },
-            ),
-
-            // Bottom action buttons
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: AnimatedPadding(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                padding: EdgeInsets.only(
-                  left: 20.w,
-                  bottom: keyboardInset > 0
-                      ? keyboardInset + 12.h
-                      : 32.h + safeBottomInset,
+              // ── Nearby Search FAB — only in Default Mode ───────
+              if (!_isNearbyModeActive && !isRouting)
+                Positioned(
+                  right: 20.w,
+                  bottom: 110.h + safeBottomInset,
+                  child: _NearbySearchFab(onPressed: _triggerNearbySearch),
                 ),
-                child: SizedBox(
-                  width: 1.sw - 40.w,
-                  child: StreamBuilder<Object?>(
-                    stream: _authService.authStateChanges(),
-                    builder: (context, _) {
-                      final user = _authService.currentUser;
-                      return MapActionButtons(
-                        onChatPressed: _handleChatPressed,
-                        onProfilePressed: _handleProfilePressed,
-                        userPhotoUrl: user?.photoURL,
-                        userEmail: user?.email,
-                      );
+
+              // ── Top search UI overlay ───────────────────────────
+              StreamBuilder<Object?>(
+                stream: _authService.authStateChanges(),
+                builder: (context, _) {
+                  final user = _authService.currentUser;
+                  final signedIn = user != null;
+
+                  return SearchOverlay(
+                    fromController: _fromSearch.textController,
+                    toController: _toSearch.textController,
+                    fromFocusNode: _fromSearch.focusNode,
+                    toFocusNode: _toSearch.focusNode,
+                    onFromChanged: (value) {
+                      if (_selectedQuickPlaceFrom != null) {
+                        setState(() => _selectedQuickPlaceFrom = null);
+                      }
+                      _fromSearch.onChanged(value);
                     },
+                    onToChanged: (value) {
+                      if (_selectedQuickPlaceTo != null) {
+                        setState(() => _selectedQuickPlaceTo = null);
+                      }
+                      _toSearch.onChanged(value);
+                    },
+                    onFromSubmitted: (_) => _fromSearch.submit(),
+                    onToSubmitted: (_) => _toSearch.submit(),
+                    onFromTapped: () {
+                      _fromSearch.onFieldTap();
+                      setState(() {});
+                    },
+                    onToTapped: () {
+                      _toSearch.onFieldTap();
+                      setState(() {});
+                    },
+                    showQuickPlaces:
+                        signedIn &&
+                        (_fromSearch.focusNode.hasFocus ||
+                            _toSearch.focusNode.hasFocus),
+                    showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
+                    signedInUserId: user?.uid,
+                    savedPlacesService: _savedPlacesService,
+                    onQuickPlaceSelected: (type) =>
+                        _handleQuickPlaceSelected(type),
+                    selectedQuickPlaceFrom: _selectedQuickPlaceFrom,
+                    selectedQuickPlaceTo: _selectedQuickPlaceTo,
+                    fromSuggestions: _fromSearch.suggestions,
+                    toSuggestions: _toSearch.suggestions,
+                    onFromSuggestionSelected: (s) async {
+                      if (_selectedQuickPlaceFrom != null) {
+                        setState(() => _selectedQuickPlaceFrom = null);
+                      }
+                      await _fromSearch.selectSuggestion(s);
+                    },
+                    onToSuggestionSelected: (s) async {
+                      if (_selectedQuickPlaceTo != null) {
+                        setState(() => _selectedQuickPlaceTo = null);
+                      }
+                      await _toSearch.selectSuggestion(s);
+                    },
+                    showFromSuggestions: _fromSearch.showSuggestions,
+                    showToSuggestions: _toSearch.showSuggestions,
+                    onPreferencesPressed: _handlePreferencesPressed,
+                    onFromMapPressed: _handleFromMapPick,
+                    onToMapPressed: _handleToMapPick,
+                  );
+                },
+              ),
+
+              // ── Bottom action buttons ───────────────────────────
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: AnimatedPadding(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding: EdgeInsets.only(
+                    left: 20.w,
+                    bottom: keyboardInset > 0
+                        ? keyboardInset + 12.h
+                        : 32.h + safeBottomInset,
+                  ),
+                  child: SizedBox(
+                    width: 1.sw - 40.w,
+                    child: StreamBuilder<Object?>(
+                      stream: _authService.authStateChanges(),
+                      builder: (context, _) {
+                        final user = _authService.currentUser;
+                        return MapActionButtons(
+                          onChatPressed: _handleChatPressed,
+                          onProfilePressed: _handleProfilePressed,
+                          userPhotoUrl: user?.photoURL,
+                          userEmail: user?.email,
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // Routing bottom sheet
-            const Align(
-              alignment: Alignment.bottomCenter,
-              child: RoutingBottomSheet(),
+              // ── Routing bottom sheet ────────────────────────────
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: RoutingBottomSheet(
+                  onClose: _onRoutingSheetClosed,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ── Nearby Search FAB ──────────────────────────────────────────────
+class _NearbySearchFab extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _NearbySearchFab({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 8,
+      shadowColor: AppColors.shadow,
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 54.r,
+          height: 54.r,
+          child: Center(
+            child: Icon(
+              Icons.departure_board_rounded,
+              color: AppColors.primaryTeal,
+              size: 26.r,
             ),
-          ],
+          ),
         ),
       ),
     );
