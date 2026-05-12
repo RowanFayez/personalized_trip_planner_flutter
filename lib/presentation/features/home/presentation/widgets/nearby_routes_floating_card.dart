@@ -78,8 +78,7 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                     SizedBox(height: 4.h),
                     if (isLoading)
                       _subtleText('Loading…')
-                    else if (nearestLine != null &&
-                        nearestLine.isNotEmpty) ...[
+                    else if (nearestLine != null && nearestLine.isNotEmpty) ...[
                       Text(
                         nearestLine,
                         textDirection: TextDirection.rtl,

@@ -782,9 +782,7 @@ class _HomePageState extends State<HomePage> {
               // ── Routing bottom sheet ────────────────────────────
               Align(
                 alignment: Alignment.bottomCenter,
-                child: RoutingBottomSheet(
-                  onClose: _onRoutingSheetClosed,
-                ),
+                child: RoutingBottomSheet(onClose: _onRoutingSheetClosed),
               ),
             ],
           );
