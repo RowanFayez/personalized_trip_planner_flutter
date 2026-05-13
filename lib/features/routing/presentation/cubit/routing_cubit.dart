@@ -16,6 +16,20 @@ class RoutingCubit extends Cubit<RoutingState> {
        _preferencesManager = preferencesManager,
        super(RoutingState.initial());
 
+  Future<void> getRoutes({
+    required double startLat,
+    required double startLon,
+    required double endLat,
+    required double endLon,
+  }) {
+    return fetchRoutes(
+      startLat: startLat,
+      startLon: startLon,
+      endLat: endLat,
+      endLon: endLon,
+    );
+  }
+
   Future<void> fetchRoutes({
     required double startLat,
     required double startLon,

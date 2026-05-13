@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../core/config/map_config.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_strings.dart';
@@ -51,6 +53,16 @@ class _HomePageState extends State<HomePage> {
   bool _didCenterOnUser = false;
 
   MapboxMap? _mapboxMap;
+
+  // Completes when the map is created and the style is likely mounted.
+  final Completer<void> _mapReadyCompleter = Completer<void>();
+
+  // Nearby Mode (continuous scanner on idle)
+  Timer? _nearbyIdleTimer;
+  int _nearbyRequestId = 0;
+  double? _lastNearbyFetchLat;
+  double? _lastNearbyFetchLng;
+  DateTime? _lastNearbyFetchAt;
 
   // ── Nearby Transit Routes (manual FAB trigger) ─────────────────
   bool _isNearbyModeActive = false;
@@ -134,6 +146,32 @@ class _HomePageState extends State<HomePage> {
       _selectedQuickPlaceTo = null;
     });
 
+    // Ensure Mapbox + MapService are ready before placing markers / drawing.
+    await _mapReadyCompleter.future;
+    if (!mounted) return;
+
+    final hasCoords =
+        last.fromLat != null &&
+        last.fromLon != null &&
+        last.toLat != null &&
+        last.toLon != null;
+
+    if (hasCoords) {
+      await _fromSearch.goToLocation(
+        title: last.from,
+        latitude: last.fromLat!,
+        longitude: last.fromLon!,
+      );
+      await _toSearch.goToLocation(
+        title: last.to,
+        latitude: last.toLat!,
+        longitude: last.toLon!,
+      );
+
+      _maybeFetchRoutes(force: true);
+      return;
+    }
+
     final fromResolved = await _geocodingService.forwardGeocode(
       address: last.from,
     );
@@ -163,6 +201,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _nearbyIdleTimer?.cancel();
     _fromSearch.dispose();
     _toSearch.dispose();
     super.dispose();
@@ -170,31 +209,98 @@ class _HomePageState extends State<HomePage> {
 
   // ── Nearby Transit Routes (manual FAB) ─────────────────────────
 
-  Future<void> _triggerNearbySearch() async {
-    if (_mapboxMap == null) return;
+  void _onHomeCameraChangeListener(CameraChangedEventData _) {
+    if (!_isNearbyModeActive) return;
 
-    setState(() {
-      _isNearbyModeActive = true;
-      _isNearbyLoading = true;
-      _nearbyStreetName = null;
-      _nearbyRoutes = const <NearbyRoute>[];
-    });
+    // Debounced "camera idle" behavior (same pattern as MapPicker).
+    _nearbyIdleTimer?.cancel();
+    _nearbyIdleTimer = Timer(
+      const Duration(milliseconds: 800),
+      _onNearbyCameraIdle,
+    );
+  }
+
+  Future<void> _onNearbyCameraIdle() async {
+    if (!_isNearbyModeActive || _mapboxMap == null) return;
 
     final cameraState = await _mapboxMap!.getCameraState();
     final center = cameraState.center.coordinates;
     final lat = center.lat.toDouble();
     final lng = center.lng.toDouble();
 
+    if (!_shouldFetchNearbyFor(lat: lat, lng: lng)) return;
+    await _fetchNearbyAt(latitude: lat, longitude: lng);
+  }
+
+  bool _shouldFetchNearbyFor({required double lat, required double lng}) {
+    final lastLat = _lastNearbyFetchLat;
+    final lastLng = _lastNearbyFetchLng;
+    final lastAt = _lastNearbyFetchAt;
+
+    final now = DateTime.now();
+    if (lastAt != null && now.difference(lastAt).inMilliseconds < 650) {
+      return false;
+    }
+
+    if (lastLat == null || lastLng == null) return true;
+
+    final movedM = _distanceMeters(lastLat, lastLng, lat, lng);
+    return movedM >= 18.0;
+  }
+
+  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusM = 6371000.0;
+    final dLat = _degToRad(lat2 - lat1);
+    final dLon = _degToRad(lon2 - lon1);
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degToRad(lat1)) *
+            math.cos(_degToRad(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadiusM * c;
+  }
+
+  double _degToRad(double deg) => deg * (math.pi / 180.0);
+
+  Future<void> _fetchNearbyAt({
+    required double latitude,
+    required double longitude,
+    bool clearExisting = false,
+  }) async {
+    if (!_isNearbyModeActive) return;
+
+    final requestId = ++_nearbyRequestId;
+    _lastNearbyFetchLat = latitude;
+    _lastNearbyFetchLng = longitude;
+    _lastNearbyFetchAt = DateTime.now();
+
+    if (mounted) {
+      setState(() {
+        _isNearbyLoading = true;
+        if (clearExisting) {
+          _nearbyStreetName = null;
+          _nearbyRoutes = const <NearbyRoute>[];
+        }
+      });
+    }
+
     final streetFuture = _resolveStreetNameAt(
-      latitude: lat,
-      longitude: lng,
+      latitude: latitude,
+      longitude: longitude,
     ).catchError((_) => null);
     final routesFuture = _nearbyTripsService
-        .getNearbyRoutes(latitude: lat, longitude: lng, radiusM: 500)
+        .getNearbyRoutes(
+          latitude: latitude,
+          longitude: longitude,
+          radiusM: 500,
+        )
         .catchError((_) => const <NearbyRoute>[]);
 
     final results = await Future.wait<Object?>([streetFuture, routesFuture]);
-    if (!mounted) return;
+    if (!mounted || !_isNearbyModeActive) return;
+    if (requestId != _nearbyRequestId) return;
 
     setState(() {
       _nearbyStreetName = results[0] as String?;
@@ -204,12 +310,40 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _triggerNearbySearch() async {
+    if (_mapboxMap == null) return;
+
+    setState(() {
+      _isNearbyModeActive = true;
+      _isNearbyLoading = true;
+      _nearbyStreetName = null;
+      _nearbyRoutes = const <NearbyRoute>[];
+      _nearbyRequestId++;
+      _lastNearbyFetchLat = null;
+      _lastNearbyFetchLng = null;
+      _lastNearbyFetchAt = null;
+    });
+
+    final cameraState = await _mapboxMap!.getCameraState();
+    final center = cameraState.center.coordinates;
+    final lat = center.lat.toDouble();
+    final lng = center.lng.toDouble();
+
+    await _fetchNearbyAt(
+      latitude: lat,
+      longitude: lng,
+      clearExisting: true,
+    );
+  }
+
   void _clearNearbyMode() {
+    _nearbyIdleTimer?.cancel();
     setState(() {
       _isNearbyModeActive = false;
       _nearbyStreetName = null;
       _nearbyRoutes = const <NearbyRoute>[];
       _isNearbyLoading = false;
+      _nearbyRequestId++;
     });
   }
 
@@ -419,10 +553,17 @@ class _HomePageState extends State<HomePage> {
     final fromTitle = _fromSearch.textController.text.trim();
     final toTitle = _toSearch.textController.text.trim();
     if (fromTitle.isNotEmpty && toTitle.isNotEmpty) {
-      _userActivityService.setLastRoute(from: fromTitle, to: toTitle);
+      _userActivityService.setLastRoute(
+        from: fromTitle,
+        to: toTitle,
+        fromLat: fromLat,
+        fromLon: fromLon,
+        toLat: toLat,
+        toLon: toLon,
+      );
     }
 
-    context.read<RoutingCubit>().fetchRoutes(
+    context.read<RoutingCubit>().getRoutes(
       startLat: fromLat,
       startLon: fromLon,
       endLat: toLat,
@@ -536,6 +677,8 @@ class _HomePageState extends State<HomePage> {
         listener: (context, state) async {
           // ── Auto-clear nearby mode when routing becomes active ──
           if (state.status != RoutingStatus.initial && _isNearbyModeActive) {
+            _nearbyIdleTimer?.cancel();
+            _nearbyRequestId++;
             _isNearbyModeActive = false;
             _nearbyRoutes = const <NearbyRoute>[];
             _nearbyStreetName = null;
@@ -557,6 +700,14 @@ class _HomePageState extends State<HomePage> {
           if (state.status != RoutingStatus.success) {
             return;
           }
+
+          final routingCubit = context.read<RoutingCubit>();
+
+          // Wait for map to be fully ready before drawing layers/sources.
+          await _mapReadyCompleter.future;
+          if (!mounted) return;
+          final latest = routingCubit.state;
+          if (latest != state) return;
 
           final journey = state.selectedJourney;
           if (journey == null) {
@@ -614,9 +765,23 @@ class _HomePageState extends State<HomePage> {
                 styleUri: MapConfig.styleUrl,
                 textureView: true,
                 onTapListener: _onHomeMapTap,
+                onCameraChangeListener: _onHomeCameraChangeListener,
                 onMapCreated: (MapboxMap mapboxMap) {
                   _mapboxMap = mapboxMap;
                   _mapService.initialize(mapboxMap);
+
+                  if (!_mapReadyCompleter.isCompleted) {
+                    // Small delay so the style is mounted before we start
+                    // drawing routes (prevents Mapbox race on navigation).
+                    Future<void>.delayed(
+                      const Duration(milliseconds: 220),
+                      () {
+                        if (!_mapReadyCompleter.isCompleted) {
+                          _mapReadyCompleter.complete();
+                        }
+                      },
+                    );
+                  }
                   // Hide Mapbox ornaments
                   mapboxMap.scaleBar.updateSettings(
                     ScaleBarSettings(enabled: false),
@@ -800,22 +965,45 @@ class _NearbySearchFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: const CircleBorder(),
-      elevation: 8,
-      shadowColor: AppColors.shadow,
-      child: InkWell(
-        onTap: onPressed,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 54.r,
-          height: 54.r,
-          child: Center(
-            child: Icon(
-              Icons.departure_board_rounded,
-              color: AppColors.primaryTeal,
-              size: 26.r,
+    final size = 56.h;
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.searchInputBackground,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 12.r,
+            offset: Offset(0, 4.h),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: Padding(
+            padding: EdgeInsets.all(4.r),
+            child: ClipOval(
+              child: Container(
+                color: AppColors.backgroundDark,
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/icons/interactive-search.svg',
+                    width: 24.r,
+                    height: 24.r,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.primaryTeal,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),

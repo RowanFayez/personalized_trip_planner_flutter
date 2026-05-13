@@ -15,6 +15,39 @@ class RoutingBottomSheet extends StatelessWidget {
 
   const RoutingBottomSheet({super.key, this.onClose});
 
+  Widget _buildHandleAndClose(BuildContext context) {
+    return SizedBox(
+      height: 28.h,
+      width: double.infinity,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const _GrabHandle(),
+          Positioned(
+            right: 0,
+            child: SizedBox(
+              width: 28.r,
+              height: 28.r,
+              child: IconButton(
+                onPressed: () {
+                  context.read<RoutingCubit>().clear();
+                  onClose?.call();
+                },
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textTertiary,
+                  size: 20.r,
+                ),
+                tooltip: 'Close',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<RoutingCubit, RoutingState>(
@@ -47,35 +80,7 @@ class RoutingBottomSheet extends StatelessWidget {
                 children: [
                   SizedBox(height: 10.h),
                   // Grab handle + close button
-                  SizedBox(
-                    height: 28.h,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        _GrabHandle(),
-                        Positioned(
-                          right: 10.w,
-                          child: SizedBox(
-                            width: 28.r,
-                            height: 28.r,
-                            child: IconButton(
-                              onPressed: () {
-                                context.read<RoutingCubit>().clear();
-                                onClose?.call();
-                              },
-                              padding: EdgeInsets.zero,
-                              icon: Icon(
-                                Icons.close_rounded,
-                                color: AppColors.textTertiary,
-                                size: 20.r,
-                              ),
-                              tooltip: 'Close',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildHandleAndClose(context),
                   SizedBox(height: 8.h),
                   Expanded(
                     child: _SheetContent(
@@ -94,6 +99,8 @@ class RoutingBottomSheet extends StatelessWidget {
 }
 
 class _GrabHandle extends StatelessWidget {
+  const _GrabHandle();
+
   @override
   Widget build(BuildContext context) {
     return Container(
