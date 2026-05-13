@@ -32,9 +32,7 @@ import '../widgets/map_action_buttons.dart';
 import '../widgets/routing_bottom_sheet.dart';
 
 class HomePage extends StatefulWidget {
-  final bool viewLastRouteOnStart;
-
-  const HomePage({super.key, this.viewLastRouteOnStart = false});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -88,12 +86,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
-    if (widget.viewLastRouteOnStart) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _viewLastRouteOnMap();
-      });
-    }
-
     _fromSearch =
         PlaceSearchController(
           geocodingService: _geocodingService,
@@ -129,74 +121,6 @@ class _HomePageState extends State<HomePage> {
     _toSearch.focusNode.addListener(() {
       if (mounted) setState(() {});
     });
-  }
-
-  Future<void> _viewLastRouteOnMap() async {
-    final last = await _userActivityService.getLastRoute();
-    if (!mounted) return;
-    if (last == null || last.from.trim().isEmpty || last.to.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No recent route found.')));
-      return;
-    }
-
-    setState(() {
-      _selectedQuickPlaceFrom = null;
-      _selectedQuickPlaceTo = null;
-    });
-
-    // Ensure Mapbox + MapService are ready before placing markers / drawing.
-    await _mapReadyCompleter.future;
-    if (!mounted) return;
-
-    final hasCoords =
-        last.fromLat != null &&
-        last.fromLon != null &&
-        last.toLat != null &&
-        last.toLon != null;
-
-    if (hasCoords) {
-      await _fromSearch.goToLocation(
-        title: last.from,
-        latitude: last.fromLat!,
-        longitude: last.fromLon!,
-      );
-      await _toSearch.goToLocation(
-        title: last.to,
-        latitude: last.toLat!,
-        longitude: last.toLon!,
-      );
-
-      _maybeFetchRoutes(force: true);
-      return;
-    }
-
-    final fromResolved = await _geocodingService.forwardGeocode(
-      address: last.from,
-    );
-    final toResolved = await _geocodingService.forwardGeocode(address: last.to);
-
-    if (!mounted) return;
-    if (fromResolved == null || toResolved == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not load that route on the map.')),
-      );
-      return;
-    }
-
-    await _fromSearch.goToLocation(
-      title: last.from,
-      latitude: fromResolved.latitude,
-      longitude: fromResolved.longitude,
-    );
-    await _toSearch.goToLocation(
-      title: last.to,
-      latitude: toResolved.latitude,
-      longitude: toResolved.longitude,
-    );
-
-    _maybeFetchRoutes(force: true);
   }
 
   @override
@@ -553,17 +477,10 @@ class _HomePageState extends State<HomePage> {
     final fromTitle = _fromSearch.textController.text.trim();
     final toTitle = _toSearch.textController.text.trim();
     if (fromTitle.isNotEmpty && toTitle.isNotEmpty) {
-      _userActivityService.setLastRoute(
-        from: fromTitle,
-        to: toTitle,
-        fromLat: fromLat,
-        fromLon: fromLon,
-        toLat: toLat,
-        toLon: toLon,
-      );
+      _userActivityService.setLastRoute(from: fromTitle, to: toTitle);
     }
 
-    context.read<RoutingCubit>().getRoutes(
+    context.read<RoutingCubit>().fetchRoutes(
       startLat: fromLat,
       startLon: fromLon,
       endLat: toLat,
@@ -991,15 +908,36 @@ class _NearbySearchFab extends StatelessWidget {
             padding: EdgeInsets.all(4.r),
             child: ClipOval(
               child: Container(
-                color: AppColors.backgroundDark,
+                color: AppColors.surfaceDark,
                 child: Center(
-                  child: SvgPicture.asset(
-                    'assets/icons/interactive-search.svg',
-                    width: 24.r,
-                    height: 24.r,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.primaryTeal,
-                      BlendMode.srcIn,
+                  child: SizedBox.square(
+                    dimension: 28.r,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          'assets/icons/bus.svg',
+                          width: 24.r,
+                          height: 24.r,
+                          colorFilter: const ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: SvgPicture.asset(
+                            'assets/icons/interactive-search.svg',
+                            width: 14.r,
+                            height: 14.r,
+                            colorFilter: const ColorFilter.mode(
+                              Colors.white,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
