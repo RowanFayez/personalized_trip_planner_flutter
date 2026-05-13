@@ -178,9 +178,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   isLoading: _isLoading,
                   lastSearch: _lastSearch,
                   lastRoute: _lastRoute,
-                  onViewLastRoute: () {
-                    context.go('/?viewLastRoute=1');
-                  },
                 ),
                 SizedBox(height: 18.h),
                 SizedBox(
@@ -438,13 +435,11 @@ class _RecentActivityCard extends StatelessWidget {
   final bool isLoading;
   final String? lastSearch;
   final LastRoute? lastRoute;
-  final VoidCallback onViewLastRoute;
 
   const _RecentActivityCard({
     required this.isLoading,
     required this.lastSearch,
     required this.lastRoute,
-    required this.onViewLastRoute,
   });
 
   @override
@@ -455,7 +450,6 @@ class _RecentActivityCard extends StatelessWidget {
     final routeText = isLoading
         ? 'Loading…'
         : (lastRoute == null ? '-' : '${lastRoute!.from} → ${lastRoute!.to}');
-    final canView = !isLoading && lastRoute != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -487,12 +481,6 @@ class _RecentActivityCard extends StatelessWidget {
           _InfoLine(
             label: 'Last route',
             value: routeText,
-            trailing: canView
-                ? TextButton(
-                    onPressed: onViewLastRoute,
-                    child: const Text('View'),
-                  )
-                : null,
           ),
         ],
       ),
@@ -503,9 +491,8 @@ class _RecentActivityCard extends StatelessWidget {
 class _InfoLine extends StatelessWidget {
   final String label;
   final String value;
-  final Widget? trailing;
 
-  const _InfoLine({required this.label, required this.value, this.trailing});
+  const _InfoLine({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -533,7 +520,6 @@ class _InfoLine extends StatelessWidget {
             ),
           ),
         ),
-        if (trailing != null) trailing!,
       ],
     );
   }

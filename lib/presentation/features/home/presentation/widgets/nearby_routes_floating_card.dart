@@ -6,36 +6,25 @@ import '../../../../../features/nearby_trips/domain/entities/nearby_route.dart';
 
 class NearbyRoutesFloatingCard extends StatelessWidget {
   final String? streetName;
-  final bool isMoving;
   final bool isLoading;
   final List<NearbyRoute> routes;
   final VoidCallback onTap;
+  final VoidCallback onClose;
 
   const NearbyRoutesFloatingCard({
     super.key,
     required this.streetName,
-    required this.isMoving,
     required this.isLoading,
     required this.routes,
     required this.onTap,
+    required this.onClose,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasContent =
-        (streetName ?? '').trim().isNotEmpty ||
-        isMoving ||
-        isLoading ||
-        routes.isNotEmpty;
-    if (!hasContent) return const SizedBox.shrink();
-
     final title = _title();
     final nearest = routes.isNotEmpty ? routes.first : null;
-
-    final nearestLine = nearest == null
-        ? null
-        : _routeLine(nearest.routeNameAr, nearest.distanceMetersRounded);
-
+    final nearestLine = nearest?.routeNameAr.trim();
     final otherCount = routes.length > 1 ? routes.length - 1 : 0;
 
     return Material(
@@ -87,11 +76,9 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 4.h),
-                    if (isMoving)
-                      _subtleText('Moving…')
-                    else if (isLoading)
+                    if (isLoading)
                       _subtleText('Loading…')
-                    else if (nearestLine != null) ...[
+                    else if (nearestLine != null && nearestLine.isNotEmpty) ...[
                       Text(
                         nearestLine,
                         textDirection: TextDirection.rtl,
@@ -133,6 +120,22 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                   ],
                 ),
               ),
+              // Close button
+              SizedBox(width: 4.w),
+              SizedBox(
+                width: 28.r,
+                height: 28.r,
+                child: IconButton(
+                  onPressed: onClose,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: AppColors.textTertiary,
+                    size: 18.r,
+                  ),
+                  tooltip: 'Close',
+                ),
+              ),
             ],
           ),
         ),
@@ -141,19 +144,10 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
   }
 
   String _title() {
-    if (isMoving) return 'Pin a street on the map';
+    if (isLoading) return 'Searching nearby routes…';
     final name = (streetName ?? '').trim();
-    if (name.isEmpty) return 'Tap the map to pin a street';
+    if (name.isEmpty) return 'Nearby Routes';
     return name;
-  }
-
-  String _routeLine(String routeNameAr, int? distanceMetersRounded) {
-    final name = routeNameAr.trim();
-    if (name.isEmpty) return '';
-
-    final d = distanceMetersRounded;
-    if (d == null) return name;
-    return '$name • ${d}m';
   }
 
   Widget _subtleText(String text) {
