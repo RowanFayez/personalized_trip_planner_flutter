@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/config/env_config.dart';
@@ -14,8 +14,10 @@ void main() async {
   // Load environment variables
   await EnvConfig.init();
 
-  // Firebase (required for Google Sign-In auth)
-  await Firebase.initializeApp();
+  await Supabase.initialize(
+    url: 'https://uhsvskfingvwqfpbxldf.supabase.co',
+    anonKey: 'sb_publishable_VXEpxVo2QxsPD7qBCM4DUQ_iTxhXsbS',
+  );
 
   // Dependency injection + local storage
   await ServiceLocator.init();

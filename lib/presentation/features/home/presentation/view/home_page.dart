@@ -767,8 +767,7 @@ class _HomePageState extends State<HomePage> {
               StreamBuilder<Object?>(
                 stream: _authService.authStateChanges(),
                 builder: (context, _) {
-                  final user = _authService.currentUser;
-                  final signedIn = user != null;
+                  final signedIn = _authService.uid != null;
 
                   return SearchOverlay(
                     fromController: _fromSearch.textController,
@@ -802,7 +801,7 @@ class _HomePageState extends State<HomePage> {
                         (_fromSearch.focusNode.hasFocus ||
                             _toSearch.focusNode.hasFocus),
                     showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
-                    signedInUserId: user?.uid,
+                    signedInUserId: _authService.uid,
                     savedPlacesService: _savedPlacesService,
                     onQuickPlaceSelected: (type) =>
                         _handleQuickPlaceSelected(type),
@@ -848,12 +847,11 @@ class _HomePageState extends State<HomePage> {
                     child: StreamBuilder<Object?>(
                       stream: _authService.authStateChanges(),
                       builder: (context, _) {
-                        final user = _authService.currentUser;
                         return MapActionButtons(
                           onChatPressed: _handleChatPressed,
                           onProfilePressed: _handleProfilePressed,
-                          userPhotoUrl: user?.photoURL,
-                          userEmail: user?.email,
+                          userPhotoUrl: _authService.userPhotoUrl,
+                          userEmail: _authService.userEmail,
                         );
                       },
                     ),

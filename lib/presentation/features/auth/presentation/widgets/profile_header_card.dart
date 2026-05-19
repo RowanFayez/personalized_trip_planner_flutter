@@ -1,19 +1,20 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/services/auth_service.dart';
 import 'profile_avatar.dart';
 
 class ProfileHeaderCard extends StatelessWidget {
-  final User user;
+  final AuthService authService;
 
-  const ProfileHeaderCard({super.key, required this.user});
+  const ProfileHeaderCard({super.key, required this.authService});
 
   @override
   Widget build(BuildContext context) {
-    final displayName = (user.displayName ?? '').trim();
-    final email = (user.email ?? '').trim();
+    final displayName = (authService.displayName ?? '').trim();
+    final email = (authService.userEmail ?? '').trim();
+    final photoUrl = authService.userPhotoUrl;
 
     return Container(
       padding: EdgeInsets.all(16.r),
@@ -30,14 +31,14 @@ class ProfileHeaderCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          ProfileAvatar(photoUrl: user.photoURL, email: email, size: 56.r),
+          ProfileAvatar(photoUrl: photoUrl, email: email, size: 56.r),
           SizedBox(width: 14.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  displayName.isNotEmpty ? displayName : 'Google User',
+                  displayName.isNotEmpty ? displayName : 'User',
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w700,

@@ -136,7 +136,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _authService.currentUser;
+    final signedIn = _authService.uid != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
@@ -146,8 +146,8 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (user != null)
-                ProfileHeaderCard(user: user)
+              if (signedIn)
+                ProfileHeaderCard(authService: _authService)
               else
                 _GuestHeader(
                   onSignIn: () {
@@ -159,7 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                 ),
 
-              if (user != null) ...[
+              if (signedIn) ...[
                 SizedBox(height: 18.h),
                 _SavedLocationsCard(
                   isLoading: _isLoading,

@@ -19,7 +19,7 @@ class UserActivityService {
   static const String _kLastRouteFrom = 'last_route_from';
   static const String _kLastRouteTo = 'last_route_to';
 
-  String? get _currentUserId => _authService.currentUser?.uid;
+  String? get _currentUserId => _authService.uid;
 
   static String _scopedKey({required String userId, required String key}) =>
       '${userId}_$key';

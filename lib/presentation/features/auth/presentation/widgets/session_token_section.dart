@@ -41,7 +41,7 @@ class _SessionTokenSectionState extends State<SessionTokenSection> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('JWT (Firebase ID token) copied.')),
+        const SnackBar(content: Text('JWT (Supabase access token) copied.')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -116,8 +116,7 @@ class _SessionTokenSectionState extends State<SessionTokenSection> {
 
   @override
   Widget build(BuildContext context) {
-    final user = widget.authService.currentUser;
-    final email = (user?.email ?? '').trim();
+    final email = (widget.authService.userEmail ?? '').trim();
 
     return Container(
       decoration: BoxDecoration(
@@ -177,7 +176,7 @@ class _SessionTokenSectionState extends State<SessionTokenSection> {
           ),
           SizedBox(height: 10.h),
           Text(
-            'This JWT is the Firebase ID token that the app sends as Authorization: Bearer <token> to your backend.',
+            'This JWT is the Supabase access token that the app sends as Authorization: Bearer <token> to your backend.',
             style: TextStyle(color: AppColors.textTertiary, fontSize: 11.sp),
           ),
         ],

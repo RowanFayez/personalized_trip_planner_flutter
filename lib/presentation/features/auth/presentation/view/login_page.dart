@@ -57,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   SizedBox(height: 16.h),
                   Text(
-                    'By continuing, you agree to use Firebase Authentication.',
+                    'By continuing, you agree to use Supabase Authentication.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12.sp,

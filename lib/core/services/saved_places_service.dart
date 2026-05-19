@@ -24,7 +24,7 @@ class SavedPlacesService {
   SavedPlacesService({required AuthService authService})
     : _authService = authService;
 
-  String? get _currentUserId => _authService.currentUser?.uid;
+  String? get _currentUserId => _authService.uid;
 
   /// Public helper for UI widgets that need to listen to Hive changes.
   static String storageKeyFor({

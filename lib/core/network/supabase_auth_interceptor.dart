@@ -2,11 +2,11 @@ import 'package:dio/dio.dart';
 
 import '../services/auth_service.dart';
 
-class FirebaseIdTokenInterceptor extends Interceptor {
+class SupabaseAuthInterceptor extends Interceptor {
   final AuthService _authService;
 
-  FirebaseIdTokenInterceptor({required AuthService authService})
-    : _authService = authService;
+  SupabaseAuthInterceptor({required AuthService authService})
+      : _authService = authService;
 
   @override
   void onRequest(

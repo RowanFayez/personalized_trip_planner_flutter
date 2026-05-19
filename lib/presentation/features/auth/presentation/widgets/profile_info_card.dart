@@ -1,17 +1,18 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/services/auth_service.dart';
 
 class ProfileInfoCard extends StatelessWidget {
-  final User user;
+  final AuthService authService;
 
-  const ProfileInfoCard({super.key, required this.user});
+  const ProfileInfoCard({super.key, required this.authService});
 
   @override
   Widget build(BuildContext context) {
-    final email = (user.email ?? '').trim();
+    final email = (authService.userEmail ?? '').trim();
+    final uid = (authService.uid ?? '').trim();
 
     return Container(
       decoration: BoxDecoration(
@@ -29,18 +30,19 @@ class ProfileInfoCard extends StatelessWidget {
         children: [
           _InfoRow(label: 'Email', value: email.isNotEmpty ? email : '-'),
           const Divider(height: 1, color: AppColors.divider),
-          _InfoRow(label: 'UID', value: user.uid),
+          _InfoRow(label: 'UID', value: uid.isNotEmpty ? uid : '-'),
           const Divider(height: 1, color: AppColors.divider),
-          _InfoRow(label: 'Provider', value: _providerLabel(user)),
+          _InfoRow(label: 'Provider', value: _providerLabel()),
         ],
       ),
     );
   }
 
-  String _providerLabel(User user) {
-    final providers = user.providerData.map((p) => p.providerId).toList();
-    if (providers.isEmpty) return 'unknown';
-    return providers.join(', ');
+  String _providerLabel() {
+    final meta = authService.currentUser?.appMetadata;
+    final value = meta == null ? null : meta['provider'];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    return 'supabase';
   }
 }
 
