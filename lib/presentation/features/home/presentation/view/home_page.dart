@@ -215,11 +215,7 @@ class _HomePageState extends State<HomePage> {
       longitude: longitude,
     ).catchError((_) => null);
     final routesFuture = _nearbyTripsService
-        .getNearbyRoutes(
-          latitude: latitude,
-          longitude: longitude,
-          radiusM: 500,
-        )
+        .getNearbyRoutes(latitude: latitude, longitude: longitude, radiusM: 500)
         .catchError((_) => const <NearbyRoute>[]);
 
     final results = await Future.wait<Object?>([streetFuture, routesFuture]);
@@ -253,11 +249,7 @@ class _HomePageState extends State<HomePage> {
     final lat = center.lat.toDouble();
     final lng = center.lng.toDouble();
 
-    await _fetchNearbyAt(
-      latitude: lat,
-      longitude: lng,
-      clearExisting: true,
-    );
+    await _fetchNearbyAt(latitude: lat, longitude: lng, clearExisting: true);
   }
 
   void _clearNearbyMode() {
@@ -690,14 +682,11 @@ class _HomePageState extends State<HomePage> {
                   if (!_mapReadyCompleter.isCompleted) {
                     // Small delay so the style is mounted before we start
                     // drawing routes (prevents Mapbox race on navigation).
-                    Future<void>.delayed(
-                      const Duration(milliseconds: 220),
-                      () {
-                        if (!_mapReadyCompleter.isCompleted) {
-                          _mapReadyCompleter.complete();
-                        }
-                      },
-                    );
+                    Future<void>.delayed(const Duration(milliseconds: 220), () {
+                      if (!_mapReadyCompleter.isCompleted) {
+                        _mapReadyCompleter.complete();
+                      }
+                    });
                   }
                   // Hide Mapbox ornaments
                   mapboxMap.scaleBar.updateSettings(

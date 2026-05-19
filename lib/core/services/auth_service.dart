@@ -22,9 +22,8 @@ class AuthService {
   static const String _googleRedirectTo =
       'io.supabase.nextstation://login-callback';
 
-  Stream<User?> authStateChanges() => _auth.onAuthStateChange.map(
-    (state) => state.session?.user,
-  );
+  Stream<User?> authStateChanges() =>
+      _auth.onAuthStateChange.map((state) => state.session?.user);
 
   User? get currentUser => _auth.currentUser;
 

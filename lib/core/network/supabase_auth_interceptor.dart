@@ -6,7 +6,7 @@ class SupabaseAuthInterceptor extends Interceptor {
   final AuthService _authService;
 
   SupabaseAuthInterceptor({required AuthService authService})
-      : _authService = authService;
+    : _authService = authService;
 
   @override
   void onRequest(

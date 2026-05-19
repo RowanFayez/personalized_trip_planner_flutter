@@ -478,10 +478,7 @@ class _RecentActivityCard extends StatelessWidget {
           SizedBox(height: 10.h),
           _InfoLine(label: 'Last search', value: searchText),
           SizedBox(height: 10.h),
-          _InfoLine(
-            label: 'Last route',
-            value: routeText,
-          ),
+          _InfoLine(label: 'Last route', value: routeText),
         ],
       ),
     );
