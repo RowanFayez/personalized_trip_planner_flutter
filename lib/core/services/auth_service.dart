@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthCancelledException implements Exception {
@@ -18,9 +19,6 @@ class AuthService {
   AuthService({SupabaseClient? client})
     : _client = client ?? Supabase.instance.client,
       _auth = (client ?? Supabase.instance.client).auth;
-
-  static const String _googleRedirectTo =
-      'io.supabase.nextstation://login-callback';
 
   Stream<User?> authStateChanges() =>
       _auth.onAuthStateChange.map((state) => state.session?.user);
@@ -45,23 +43,38 @@ class AuthService {
 
   Future<void> signInWithGoogle({bool forceAccountSelection = false}) async {
     try {
-      final didLaunch = await _auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: _googleRedirectTo,
-        queryParams: forceAccountSelection ? {'prompt': 'select_account'} : {},
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId:
+            '981043656979-mocnt1v3j42jsvoa0c6keuej88brt8k0.apps.googleusercontent.com',
       );
 
-      // If the OAuth flow cannot be launched, treat it like a cancellation.
-      if (!didLaunch) {
+      if (forceAccountSelection) {
+        await googleSignIn.signOut();
+      }
+
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
         throw const AuthCancelledException();
       }
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null || idToken.trim().isEmpty) {
+        throw Exception('Google Sign-In failed: no idToken');
+      }
+
+      await _auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: googleAuth.accessToken,
+      );
     } on AuthCancelledException {
       rethrow;
-    } on AuthException catch (e) {
-      // Supabase uses browser-based auth. If the user closes the flow early,
-      // different platforms surface different error codes/messages.
-      final msg = e.message.toLowerCase();
-      if (msg.contains('cancel') || msg.contains('canceled')) {
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('sign_in_canceled') ||
+          msg.contains('sign_in_cancelled') ||
+          msg.contains('cancel')) {
         throw const AuthCancelledException();
       }
       rethrow;
