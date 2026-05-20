@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.nextstation"
+    namespace = "com.nextstation.app"
     compileSdk = flutter.compileSdkVersion
     // Keep in sync with plugins requiring newer NDK.
     ndkVersion = "27.0.12077973"
@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.nextstation"
+        applicationId = "com.nextstation.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
