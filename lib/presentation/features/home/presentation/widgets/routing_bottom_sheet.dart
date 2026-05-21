@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../core/animations/app_transitions.dart';
 import '../../../../../core/constants/app_colors.dart';
@@ -401,6 +402,49 @@ class _JourneySummary extends StatelessWidget {
               ),
             ),
           ],
+          // ── Fare Feedback button for total route ──
+          SizedBox(height: 12.h),
+          Align(
+            alignment: Alignment.centerRight,
+            child: InkWell(
+              onTap: () {
+                context.push('/fare-feedback?isTotalRoute=true');
+              },
+              borderRadius: BorderRadius.circular(12.r),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12.w,
+                  vertical: 8.h,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: AppColors.primaryTeal.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.edit_note_rounded,
+                      size: 18.r,
+                      color: AppColors.primaryTeal,
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      'Fare Feedback',
+                      style: TextStyle(
+                        color: AppColors.primaryTeal,
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -545,6 +589,30 @@ class _TimelineStepTile extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
+                    SizedBox(width: 4.w),
+                    GestureDetector(
+                      onTap: () {
+                        final name = Uri.encodeComponent(
+                          _legDisplayName(),
+                        );
+                        context.push(
+                          '/fare-feedback?isTotalRoute=false&legName=$name',
+                        );
+                      },
+                      child: Container(
+                        width: 22.r,
+                        height: 22.r,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryTeal.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.edit_rounded,
+                          size: 12.r,
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -553,6 +621,23 @@ class _TimelineStepTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Returns a human-readable leg name for the fare-feedback page title.
+  /// Prefers Arabic text, falls back to English mode + route name.
+  String _legDisplayName() {
+    final modeLabel = TextPreference.preferred(leg.modeAr, leg.mode) ?? '';
+    final routeLabel = TextPreference.preferred(
+          leg.routeShortNameAr,
+          leg.routeShortName,
+        ) ??
+        '';
+    final parts = <String>[
+      if (modeLabel.isNotEmpty) modeLabel,
+      if (routeLabel.isNotEmpty) routeLabel,
+    ];
+    if (parts.isEmpty) return leg.mode ?? 'Transit';
+    return parts.join(' ');
   }
 
   Widget _title() {
