@@ -232,6 +232,8 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _triggerNearbySearch() async {
     if (_mapboxMap == null) return;
+    final signedIn = await _ensureSignedIn();
+    if (!signedIn) return;
 
     setState(() {
       _isNearbyModeActive = true;
@@ -397,6 +399,23 @@ class _HomePageState extends State<HomePage> {
     showGoogleSignInDialog(context);
   }
 
+  Future<bool> _ensureSignedIn() async {
+    final token = await _authService.getIdToken();
+    if (_authService.currentUser != null &&
+        token != null &&
+        token.trim().isNotEmpty) {
+      return true;
+    }
+
+    if (!mounted) return false;
+    await showGoogleSignInDialog(context);
+    if (!mounted) return false;
+    final refreshedToken = await _authService.getIdToken(forceRefresh: true);
+    return _authService.currentUser != null &&
+        refreshedToken != null &&
+        refreshedToken.trim().isNotEmpty;
+  }
+
   void _maybeStoreLastSearch({required bool isFrom}) {
     final controller = isFrom ? _fromSearch : _toSearch;
     final lat = controller.selectedLatitude;
@@ -449,7 +468,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _maybeFetchRoutes({bool force = false}) {
+  Future<void> _maybeFetchRoutes({bool force = false}) async {
     final fromLat = _fromSearch.selectedLatitude;
     final fromLon = _fromSearch.selectedLongitude;
     final toLat = _toSearch.selectedLatitude;
@@ -458,6 +477,9 @@ class _HomePageState extends State<HomePage> {
     if (fromLat == null || fromLon == null || toLat == null || toLon == null) {
       return;
     }
+
+    final signedIn = await _ensureSignedIn();
+    if (!signedIn || !mounted) return;
 
     final key =
         '${fromLat.toStringAsFixed(6)},${fromLon.toStringAsFixed(6)}|'

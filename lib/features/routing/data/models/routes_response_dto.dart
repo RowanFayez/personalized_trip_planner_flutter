@@ -101,6 +101,7 @@ class JourneySummaryDto {
   final int? transitDistanceMeters;
 
   final int transfers;
+  @JsonKey(fromJson: _toInt)
   final int cost;
 
   @JsonKey(name: 'modes_en', defaultValue: <String>[])
@@ -132,6 +133,11 @@ class JourneySummaryDto {
       _$JourneySummaryDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$JourneySummaryDtoToJson(this);
+
+  static int _toInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return 0;
+  }
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -167,9 +173,13 @@ class RouteLegDto {
 
   @JsonKey(name: 'headsign_ar')
   final String? headsignAr;
+  @JsonKey(fromJson: _toNullableInt)
   final int? fare;
 
+  @JsonKey(name: 'from_stop')
   final StopRefDto? from;
+
+  @JsonKey(name: 'to_stop')
   final StopRefDto? to;
 
   @JsonKey(name: 'trip_ids')
@@ -195,7 +205,7 @@ class RouteLegDto {
   final String? toTripNameAr;
 
   @JsonKey(name: 'end_stop_id')
-  final int? endStopId;
+  final String? endStopId;
 
   @JsonKey(name: 'walking_distance_meters')
   final int? walkingDistanceMeters;
@@ -232,12 +242,16 @@ class RouteLegDto {
   Map<String, dynamic> toJson() => _$RouteLegDtoToJson(this);
 
   // No custom converters needed; polyline is decoded in the mapper.
+  static int? _toNullableInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return null;
+  }
 }
 
 @JsonSerializable()
 class StopRefDto {
   @JsonKey(name: 'stop_id')
-  final int stopId;
+  final String stopId;
 
   final String name;
 

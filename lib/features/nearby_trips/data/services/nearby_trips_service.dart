@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 
 import '../../../../core/network/api_constants.dart';
-import '../../../../core/network/dio_factory.dart';
 import '../../domain/entities/nearby_route.dart';
 import '../models/nearby_trip_dto.dart';
 
@@ -9,18 +9,18 @@ class NearbyTripsService {
   final Dio _dio;
 
   NearbyTripsService({Dio? dio})
-    : _dio = dio ?? DioFactory.create(baseUrl: ApiConstants.dbToolsBaseUrl);
+    : _dio = dio ?? GetIt.I<Dio>();
 
-  /// Calls `GET /api/v1/nearby-trips` and returns unique routes grouped by
+  /// Calls `POST /api/v1/nearby-trips` and returns unique routes grouped by
   /// `route_name_ar`, keeping the smallest `distance_m` per route.
   Future<List<NearbyRoute>> getNearbyRoutes({
     required double latitude,
     required double longitude,
     double radiusM = 500,
   }) async {
-    final response = await _dio.get<dynamic>(
+    final response = await _dio.post<dynamic>(
       ApiConstants.nearbyTripsEndpoint,
-      queryParameters: <String, dynamic>{
+      data: <String, dynamic>{
         'lat': latitude,
         'lon': longitude,
         'radius_m': radiusM,

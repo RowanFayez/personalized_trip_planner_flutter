@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../services/auth_service.dart';
 
@@ -18,6 +19,11 @@ class SupabaseAuthInterceptor extends Interceptor {
       (k) => k.toLowerCase() == 'authorization',
     );
     if (hasAuthHeader) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] ${options.method} ${options.uri} using pre-existing Authorization header',
+        );
+      }
       handler.next(options);
       return;
     }
@@ -26,9 +32,22 @@ class SupabaseAuthInterceptor extends Interceptor {
       final token = await _authService.getIdToken();
       if (token != null && token.trim().isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
+        if (kDebugMode) {
+          debugPrint(
+            '[Auth] ${options.method} ${options.uri} attached Supabase bearer token',
+          );
+        }
+      } else if (kDebugMode) {
+        debugPrint(
+          '[Auth] ${options.method} ${options.uri} has no Supabase session token',
+        );
       }
     } catch (_) {
-      // If token retrieval fails, continue without auth.
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] ${options.method} ${options.uri} failed to retrieve Supabase token',
+        );
+      }
     }
 
     handler.next(options);

@@ -86,14 +86,24 @@ class AuthService {
   }
 
   Future<String?> getIdToken({bool forceRefresh = false}) async {
-    if (forceRefresh) {
+    Session? session = _auth.currentSession;
+    final shouldRefresh = forceRefresh || session == null || session.isExpired;
+
+    if (shouldRefresh) {
       try {
-        await _client.auth.refreshSession();
+        final response = await _client.auth.refreshSession();
+        session = response.session ?? _auth.currentSession;
       } catch (_) {
         // Ignore refresh errors; we can still return the current token if any.
+        session = _auth.currentSession;
       }
     }
 
-    return _auth.currentSession?.accessToken;
+    final token = session?.accessToken ?? _auth.currentSession?.accessToken;
+    if (token == null || token.trim().isEmpty) {
+      return null;
+    }
+
+    return token;
   }
 }

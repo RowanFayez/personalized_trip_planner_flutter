@@ -3,7 +3,6 @@ import 'package:get_it/get_it.dart';
 
 import '../network/api_constants.dart';
 import '../network/dio_factory.dart';
-import '../network/supabase_auth_interceptor.dart';
 import '../services/auth_service.dart';
 import '../services/route_preferences_service.dart';
 import '../services/user_activity_service.dart';
@@ -34,13 +33,12 @@ class ServiceLocator {
     );
 
     // Core
-    sl.registerLazySingleton<Dio>(() {
-      final dio = DioFactory.create(baseUrl: ApiConstants.baseUrl);
-      dio.interceptors.add(
-        SupabaseAuthInterceptor(authService: sl<AuthService>()),
-      );
-      return dio;
-    });
+    sl.registerLazySingleton<Dio>(
+      () => DioFactory.create(
+        authService: sl<AuthService>(),
+        baseUrl: ApiConstants.baseUrl,
+      ),
+    );
     sl.registerLazySingleton<RoutePreferencesService>(
       () => RoutePreferencesService(),
     );

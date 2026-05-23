@@ -10,7 +10,8 @@ part of 'routes_api_service.dart';
 
 class _RoutesApiService implements RoutesApiService {
   _RoutesApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'https://routing-api-production-54ce.up.railway.app';
+    baseUrl ??=
+        'https://final-project-backend.calmplant-705f106c.germanywestcentral.azurecontainerapps.io/api/v1/';
   }
 
   final Dio _dio;
@@ -30,7 +31,7 @@ class _RoutesApiService implements RoutesApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/journeys',
+            'route',
             queryParameters: queryParameters,
             data: _data,
           )

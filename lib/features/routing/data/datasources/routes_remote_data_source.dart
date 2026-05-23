@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/api_result.dart';
-import '../../../../core/network/dio_factory.dart';
 import '../models/routes_request_dto.dart';
 import '../models/routes_response_dto.dart';
 import '../remote/routes_api_service.dart';
@@ -14,7 +14,7 @@ class RoutesRemoteDataSource {
     : _api =
           api ??
           RoutesApiService(
-            dio ?? DioFactory.create(baseUrl: ApiConstants.baseUrl),
+            dio ?? GetIt.I<Dio>(),
             baseUrl: ApiConstants.baseUrl,
           );
 

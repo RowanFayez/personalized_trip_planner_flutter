@@ -10,6 +10,7 @@ import '../../../../../core/services/user_activity_service.dart';
 import '../../../map_picker/presentation/view/map_picker_page.dart';
 import '../widgets/profile_header_card.dart';
 import '../widgets/google_sign_in_dialog.dart';
+import '../widgets/session_token_section.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -160,6 +161,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
 
               if (signedIn) ...[
+                SizedBox(height: 18.h),
+                SessionTokenSection(authService: _authService),
                 SizedBox(height: 18.h),
                 _SavedLocationsCard(
                   isLoading: _isLoading,

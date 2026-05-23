@@ -1,15 +1,16 @@
 class ApiConstants {
   ApiConstants._();
 
-  /// Backend base URL (Railway).
+  /// Unified Azure API Gateway base URL.
   static const String baseUrl =
-      'https://alexandria-multimodal-routing-engine-production.up.railway.app';
+      'https://final-project-backend.calmplant-705f106c.germanywestcentral.azurecontainerapps.io/api/v1/';
 
-  /// DB-tools base URL (Railway).
-  static const String dbToolsBaseUrl =
-      'https://dbtools-production.up.railway.app';
+  /// Routing endpoint.
+  static const String routesEndpoint = 'route';
 
-  static const String routesEndpoint = '/api/v1/journeys';
+  /// Nearby trips endpoint.
+  static const String nearbyTripsEndpoint = 'nearby-trips';
 
-  static const String nearbyTripsEndpoint = '/api/v1/nearby-trips';
+  /// Geocoding endpoint.
+  static const String geocodingEndpoint = 'geocode';
 }
