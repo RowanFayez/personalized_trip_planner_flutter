@@ -100,6 +100,7 @@ class JourneySummaryDto {
   @JsonKey(name: 'transit_distance_meters')
   final int? transitDistanceMeters;
 
+  @JsonKey(defaultValue: 0, fromJson: _toInt)
   final int transfers;
   @JsonKey(fromJson: _toInt)
   final int cost;
@@ -135,7 +136,17 @@ class JourneySummaryDto {
   Map<String, dynamic> toJson() => _$JourneySummaryDtoToJson(this);
 
   static int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
     if (value is num) return value.toInt();
+    if (value is String) {
+      final v = value.trim();
+      if (v.isEmpty) return 0;
+      final asInt = int.tryParse(v);
+      if (asInt != null) return asInt;
+      final asDouble = double.tryParse(v);
+      if (asDouble != null) return asDouble.toInt();
+    }
     return 0;
   }
 }

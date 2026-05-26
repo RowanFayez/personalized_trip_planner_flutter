@@ -72,7 +72,9 @@ JourneySummaryDto _$JourneySummaryDtoFromJson(
   totalDistanceMeters: (json['total_distance_meters'] as num).toInt(),
   walkingDistanceMeters: (json['walking_distance_meters'] as num).toInt(),
   transitDistanceMeters: (json['transit_distance_meters'] as num?)?.toInt(),
-  transfers: (json['transfers'] as num).toInt(),
+  transfers: json['transfers'] == null
+      ? 0
+      : JourneySummaryDto._toInt(json['transfers']),
   cost: JourneySummaryDto._toInt(json['cost']),
   modesEn:
       (json['modes_en'] as List<dynamic>?)?.map((e) => e as String).toList() ??
