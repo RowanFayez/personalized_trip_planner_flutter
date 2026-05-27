@@ -590,7 +590,18 @@ class _HomePageState extends State<HomePage> {
 
   /// Callback for the RoutingBottomSheet close button — removes drawn route.
   Future<void> _onRoutingSheetClosed() async {
+    if (!mounted) return;
+    _lastRoutesKey = null;
+    _selectedQuickPlaceFrom = null;
+    _selectedQuickPlaceTo = null;
+
+    // Clear route polyline + start/end markers.
     await _mapService.removeRoute('active');
+    if (!mounted) return;
+    await Future.wait([
+      _fromSearch.clearSelection(),
+      _toSearch.clearSelection(),
+    ]);
   }
 
   @override

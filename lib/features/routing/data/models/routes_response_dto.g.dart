@@ -13,10 +13,14 @@ RoutesResponseDto _$RoutesResponseDtoFromJson(Map<String, dynamic> json) =>
       weightsUsed: (json['weights_used'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, (e as num).toDouble()),
       ),
-      numJourneys: (json['num_journeys'] as num).toInt(),
-      journeys: (json['journeys'] as List<dynamic>)
-          .map((e) => JourneyDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      numJourneys: json['num_journeys'] == null
+          ? 0
+          : JourneySummaryDto._toInt(json['num_journeys']),
+      journeys:
+          (json['journeys'] as List<dynamic>?)
+              ?.map((e) => JourneyDto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       startTripsFound: (json['start_trips_found'] as num?)?.toInt(),
       endTripsFound: (json['end_trips_found'] as num?)?.toInt(),
       totalRoutesFound: (json['total_routes_found'] as num?)?.toInt(),
@@ -168,7 +172,7 @@ Map<String, dynamic> _$RouteLegDtoToJson(RouteLegDto instance) =>
     };
 
 StopRefDto _$StopRefDtoFromJson(Map<String, dynamic> json) => StopRefDto(
-  stopId: json['stop_id'] as String,
+  stopId: StopRefDto._toString(json['stop_id']),
   name: json['name'] as String,
   nameAr: json['name_ar'] as String?,
   coord: StopRefDto._toDouble1D(json['coord']),

@@ -9,6 +9,9 @@ class RoutingCubit extends Cubit<RoutingState> {
   final GetRoutesUseCase _getRoutesUseCase;
   final PreferencesManager _preferencesManager;
 
+  static const String _noRouteFoundArabicMessage =
+      'عذراً، لم نتمكن من العثور على مسار. حاول تقليل القيود أو تغيير التفضيلات.';
+
   RoutingCubit({
     required GetRoutesUseCase getRoutesUseCase,
     required PreferencesManager preferencesManager,
@@ -44,10 +47,32 @@ class RoutingCubit extends Cubit<RoutingState> {
 
     result.when(
       success: (data) {
+        final journeys = data.journeys;
+        if (journeys.isEmpty || data.numJourneys == 0) {
+          emit(
+            state.copyWith(
+              status: RoutingStatus.failure,
+              result: const RoutingResult(numJourneys: 0, journeys: <Journey>[]),
+              errorMessage: _noRouteFoundArabicMessage,
+              selectedJourneyIndex: 0,
+            ),
+          );
+          return;
+        }
+
+        final sortedJourneys = _sortJourneys(
+          journeys,
+          priority: request.priority,
+        );
+        final sortedResult = RoutingResult(
+          numJourneys: sortedJourneys.length,
+          journeys: sortedJourneys,
+        );
+
         emit(
           state.copyWith(
             status: RoutingStatus.success,
-            result: data,
+            result: sortedResult,
             selectedJourneyIndex: 0,
           ),
         );
@@ -56,11 +81,56 @@ class RoutingCubit extends Cubit<RoutingState> {
         emit(
           state.copyWith(
             status: RoutingStatus.failure,
+            result: const RoutingResult(numJourneys: 0, journeys: <Journey>[]),
             errorMessage: err.message,
+            selectedJourneyIndex: 0,
           ),
         );
       },
     );
+  }
+
+  List<Journey> _sortJourneys(List<Journey> journeys, {required String priority}) {
+    final p = priority.trim().toLowerCase();
+    if (p == 'balanced') {
+      // Preserve backend order.
+      return List<Journey>.unmodifiable(journeys);
+    }
+
+    final indexed = journeys.asMap().entries.toList(growable: false);
+
+    int compareWithIndex(Comparable<dynamic> a, Comparable<dynamic> b, int ia, int ib) {
+      final c = a.compareTo(b);
+      if (c != 0) return c;
+      return ia.compareTo(ib);
+    }
+
+    final sorted = List<MapEntry<int, Journey>>.from(indexed);
+
+    if (p == 'cheapest') {
+      sorted.sort(
+        (a, b) => compareWithIndex(
+          a.value.summary.cost,
+          b.value.summary.cost,
+          a.key,
+          b.key,
+        ),
+      );
+    } else if (p == 'fastest') {
+      sorted.sort(
+        (a, b) => compareWithIndex(
+          a.value.summary.totalTimeMinutes,
+          b.value.summary.totalTimeMinutes,
+          a.key,
+          b.key,
+        ),
+      );
+    } else {
+      // Unknown priority — fall back to backend order.
+      return List<Journey>.unmodifiable(journeys);
+    }
+
+    return List<Journey>.unmodifiable(sorted.map((e) => e.value));
   }
 
   void selectJourney(int index) {

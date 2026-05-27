@@ -13,9 +13,10 @@ class RoutesResponseDto {
   @JsonKey(name: 'weights_used')
   final Map<String, double>? weightsUsed;
 
-  @JsonKey(name: 'num_journeys')
+  @JsonKey(name: 'num_journeys', defaultValue: 0, fromJson: JourneySummaryDto._toInt)
   final int numJourneys;
 
+  @JsonKey(defaultValue: <JourneyDto>[])
   final List<JourneyDto> journeys;
 
   @JsonKey(name: 'start_trips_found')
@@ -261,7 +262,7 @@ class RouteLegDto {
 
 @JsonSerializable()
 class StopRefDto {
-  @JsonKey(name: 'stop_id')
+  @JsonKey(name: 'stop_id', fromJson: _toString)
   final String stopId;
 
   final String name;
@@ -284,6 +285,12 @@ class StopRefDto {
       _$StopRefDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$StopRefDtoToJson(this);
+
+  static String _toString(dynamic value) {
+    if (value == null) return '';
+    final s = value.toString().trim();
+    return s;
+  }
 
   static List<double> _toDouble1D(dynamic value) {
     if (value is! List) return const [0, 0];

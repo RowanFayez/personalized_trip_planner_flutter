@@ -16,6 +16,11 @@ class AuthService {
   final SupabaseClient _client;
   final GoTrueClient _auth;
 
+  Future<void>? _refreshInFlight;
+
+  // Refresh a bit before actual expiry to avoid mid-request 401s.
+  static const Duration _refreshLeeway = Duration(minutes: 1);
+
   AuthService({SupabaseClient? client})
     : _client = client ?? Supabase.instance.client,
       _auth = (client ?? Supabase.instance.client).auth;
@@ -87,23 +92,50 @@ class AuthService {
 
   Future<String?> getIdToken({bool forceRefresh = false}) async {
     Session? session = _auth.currentSession;
-    final shouldRefresh = forceRefresh || session == null || session.isExpired;
 
-    if (shouldRefresh) {
-      try {
-        final response = await _client.auth.refreshSession();
-        session = response.session ?? _auth.currentSession;
-      } catch (_) {
-        // Ignore refresh errors; we can still return the current token if any.
-        session = _auth.currentSession;
-      }
+    if (forceRefresh || session == null || _isExpiredOrExpiringSoon(session)) {
+      await _refreshSessionSafely();
+      session = _auth.currentSession;
     }
 
-    final token = session?.accessToken ?? _auth.currentSession?.accessToken;
+    final token = session?.accessToken;
     if (token == null || token.trim().isEmpty) {
       return null;
     }
 
     return token;
+  }
+
+  bool _isExpiredOrExpiringSoon(Session session) {
+    // gotrue exposes `expiresAt` as epoch seconds (parsed from JWT exp claim).
+    final expiresAt = session.expiresAt;
+    if (expiresAt == null) {
+      // Fallback to gotrue's built-in check (includes a small margin).
+      return session.isExpired;
+    }
+
+    final expiry = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
+    return DateTime.now().add(_refreshLeeway).isAfter(expiry);
+  }
+
+  Future<void> _refreshSessionSafely() {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) return inFlight;
+
+    final future = () async {
+      try {
+        await _client.auth.refreshSession();
+      } catch (_) {
+        // Ignore refresh errors; callers can still use the current token if any.
+      }
+    }();
+
+    _refreshInFlight = future;
+
+    return future.whenComplete(() {
+      if (identical(_refreshInFlight, future)) {
+        _refreshInFlight = null;
+      }
+    });
   }
 }
