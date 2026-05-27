@@ -52,7 +52,10 @@ class RoutingCubit extends Cubit<RoutingState> {
           emit(
             state.copyWith(
               status: RoutingStatus.failure,
-              result: const RoutingResult(numJourneys: 0, journeys: <Journey>[]),
+              result: const RoutingResult(
+                numJourneys: 0,
+                journeys: <Journey>[],
+              ),
               errorMessage: _noRouteFoundArabicMessage,
               selectedJourneyIndex: 0,
             ),
@@ -90,7 +93,10 @@ class RoutingCubit extends Cubit<RoutingState> {
     );
   }
 
-  List<Journey> _sortJourneys(List<Journey> journeys, {required String priority}) {
+  List<Journey> _sortJourneys(
+    List<Journey> journeys, {
+    required String priority,
+  }) {
     final p = priority.trim().toLowerCase();
     if (p == 'balanced') {
       // Preserve backend order.
@@ -99,7 +105,12 @@ class RoutingCubit extends Cubit<RoutingState> {
 
     final indexed = journeys.asMap().entries.toList(growable: false);
 
-    int compareWithIndex(Comparable<dynamic> a, Comparable<dynamic> b, int ia, int ib) {
+    int compareWithIndex(
+      Comparable<dynamic> a,
+      Comparable<dynamic> b,
+      int ia,
+      int ib,
+    ) {
       final c = a.compareTo(b);
       if (c != 0) return c;
       return ia.compareTo(ib);

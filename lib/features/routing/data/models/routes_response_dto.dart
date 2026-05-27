@@ -13,7 +13,11 @@ class RoutesResponseDto {
   @JsonKey(name: 'weights_used')
   final Map<String, double>? weightsUsed;
 
-  @JsonKey(name: 'num_journeys', defaultValue: 0, fromJson: JourneySummaryDto._toInt)
+  @JsonKey(
+    name: 'num_journeys',
+    defaultValue: 0,
+    fromJson: JourneySummaryDto._toInt,
+  )
   final int numJourneys;
 
   @JsonKey(defaultValue: <JourneyDto>[])

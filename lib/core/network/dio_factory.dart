@@ -8,10 +8,7 @@ import 'supabase_auth_interceptor.dart';
 class DioFactory {
   DioFactory._();
 
-  static Dio create({
-    required AuthService authService,
-    String? baseUrl,
-  }) {
+  static Dio create({required AuthService authService, String? baseUrl}) {
     final options = BaseOptions(
       baseUrl: (baseUrl ?? ApiConstants.baseUrl).trim(),
       connectTimeout: const Duration(seconds: 15),
@@ -25,9 +22,7 @@ class DioFactory {
 
     final dio = Dio(options);
 
-    dio.interceptors.add(
-      SupabaseAuthInterceptor(authService: authService),
-    );
+    dio.interceptors.add(SupabaseAuthInterceptor(authService: authService));
 
     if (kDebugMode) {
       dio.interceptors.add(
