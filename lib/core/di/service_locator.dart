@@ -25,7 +25,11 @@ class ServiceLocator {
     await HiveService.init();
 
     // Auth
-    sl.registerLazySingleton<AuthService>(() => AuthService());
+    sl.registerLazySingleton<AuthService>(
+      () => AuthService(),
+      dispose: (svc) => svc.dispose(),
+    );
+    sl<AuthService>().init();
 
     // User activity (last search / last route)
     sl.registerLazySingleton<UserActivityService>(

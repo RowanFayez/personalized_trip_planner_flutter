@@ -18,12 +18,48 @@ class AuthService {
 
   Future<void>? _refreshInFlight;
 
+  Timer? _proactiveRefreshTimer;
+  StreamSubscription<AuthState>? _authStateSub;
+  bool _didInit = false;
+  DateTime? _lastProactiveRefreshAttemptAt;
+
   // Refresh a bit before actual expiry to avoid mid-request 401s.
-  static const Duration _refreshLeeway = Duration(minutes: 1);
+  // Azure Container Apps cold-start can delay request handling for minutes.
+  // Keep a generous buffer so the token is still valid when the backend wakes.
+  static const Duration _refreshLeeway = Duration(minutes: 5);
+
+  // Proactively refresh in the background before reaching the leeway window.
+  static const Duration _proactiveRefreshAdvance = Duration(minutes: 10);
+  static const Duration _proactiveMinDelay = Duration(seconds: 30);
 
   AuthService({SupabaseClient? client})
     : _client = client ?? Supabase.instance.client,
       _auth = (client ?? Supabase.instance.client).auth;
+
+  /// Call once at app startup.
+  ///
+  /// Schedules proactive refresh and listens for auth state changes to keep the
+  /// schedule up to date.
+  void init() {
+    if (_didInit) return;
+    _didInit = true;
+
+    _scheduleProactiveRefresh();
+
+    _authStateSub = _auth.onAuthStateChange.listen((state) {
+      if (state.session == null) {
+        _cancelProactiveRefreshTimer();
+      } else {
+        _scheduleProactiveRefresh();
+      }
+    });
+  }
+
+  void dispose() {
+    _cancelProactiveRefreshTimer();
+    _authStateSub?.cancel();
+    _authStateSub = null;
+  }
 
   Stream<User?> authStateChanges() =>
       _auth.onAuthStateChange.map((state) => state.session?.user);
@@ -73,6 +109,8 @@ class AuthService {
         idToken: idToken,
         accessToken: googleAuth.accessToken,
       );
+
+      _scheduleProactiveRefresh();
     } on AuthCancelledException {
       rethrow;
     } catch (e) {
@@ -88,6 +126,7 @@ class AuthService {
 
   Future<void> signOut() async {
     await _auth.signOut();
+    _cancelProactiveRefreshTimer();
   }
 
   Future<String?> getIdToken({bool forceRefresh = false}) async {
@@ -97,6 +136,9 @@ class AuthService {
       await _refreshSessionSafely();
       session = _auth.currentSession;
     }
+
+    // Keep background refresh schedule aligned with the latest session.
+    _scheduleProactiveRefresh();
 
     final token = session?.accessToken;
     if (token == null || token.trim().isEmpty) {
@@ -118,6 +160,59 @@ class AuthService {
     return DateTime.now().add(_refreshLeeway).isAfter(expiry);
   }
 
+  DateTime? _sessionExpiry(Session session) {
+    final expiresAt = session.expiresAt;
+    if (expiresAt == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
+  }
+
+  void _cancelProactiveRefreshTimer() {
+    _proactiveRefreshTimer?.cancel();
+    _proactiveRefreshTimer = null;
+    _lastProactiveRefreshAttemptAt = null;
+  }
+
+  void _scheduleProactiveRefresh() {
+    _proactiveRefreshTimer?.cancel();
+    _proactiveRefreshTimer = null;
+
+    final session = _auth.currentSession;
+    if (session == null) return;
+
+    final expiry = _sessionExpiry(session);
+    if (expiry == null) return;
+
+    final refreshAt = expiry.subtract(_proactiveRefreshAdvance);
+    final now = DateTime.now();
+    var delay = refreshAt.difference(now);
+    if (delay < _proactiveMinDelay) {
+      delay = _proactiveMinDelay;
+    }
+
+    _proactiveRefreshTimer = Timer(delay, () {
+      unawaited(_handleProactiveRefreshTimer());
+    });
+  }
+
+  Future<void> _handleProactiveRefreshTimer() async {
+    final session = _auth.currentSession;
+    if (session == null) {
+      _cancelProactiveRefreshTimer();
+      return;
+    }
+
+    final now = DateTime.now();
+    final last = _lastProactiveRefreshAttemptAt;
+    if (last != null && now.difference(last) < _proactiveMinDelay) {
+      _scheduleProactiveRefresh();
+      return;
+    }
+    _lastProactiveRefreshAttemptAt = now;
+
+    await _refreshSessionSafely();
+    _scheduleProactiveRefresh();
+  }
+
   Future<void> _refreshSessionSafely() {
     final inFlight = _refreshInFlight;
     if (inFlight != null) return inFlight;
@@ -136,6 +231,9 @@ class AuthService {
       if (identical(_refreshInFlight, future)) {
         _refreshInFlight = null;
       }
+
+      // Refresh likely changed session expiry; keep schedule in sync.
+      _scheduleProactiveRefresh();
     });
   }
 }

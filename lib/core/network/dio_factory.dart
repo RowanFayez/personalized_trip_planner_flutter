@@ -22,7 +22,9 @@ class DioFactory {
 
     final dio = Dio(options);
 
-    dio.interceptors.add(SupabaseAuthInterceptor(authService: authService));
+    dio.interceptors.add(
+      SupabaseAuthInterceptor(authService: authService, dio: dio),
+    );
 
     if (kDebugMode) {
       dio.interceptors.add(

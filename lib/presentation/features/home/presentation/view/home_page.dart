@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -49,6 +50,7 @@ class _HomePageState extends State<HomePage> {
   );
   final UserActivityService _userActivityService = sl<UserActivityService>();
   bool _didCenterOnUser = false;
+  bool _didWarmupBackend = false;
 
   MapboxMap? _mapboxMap;
 
@@ -121,6 +123,34 @@ class _HomePageState extends State<HomePage> {
     _toSearch.focusNode.addListener(() {
       if (mounted) setState(() {});
     });
+
+    // Fire-and-forget backend warm-up to reduce Azure cold-start impact.
+    unawaited(_warmupBackend());
+  }
+
+  Future<void> _warmupBackend() async {
+    if (_didWarmupBackend) return;
+    _didWarmupBackend = true;
+
+    final Dio dio = sl<Dio>();
+
+    // Intentionally aggressive: the goal is to *trigger* container startup,
+    // not to block the UI waiting for it.
+    const timeout = Duration(seconds: 60);
+
+    try {
+      await dio.get<void>(
+        '/health',
+        options: Options(
+          connectTimeout: timeout,
+          sendTimeout: timeout,
+          receiveTimeout: timeout,
+          validateStatus: (_) => true,
+        ),
+      );
+    } catch (_) {
+      // Ignore all warm-up errors/timeouts.
+    }
   }
 
   @override
