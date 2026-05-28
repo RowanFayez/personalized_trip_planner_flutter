@@ -56,7 +56,7 @@ class ServiceLocator {
       () => RoutesApiService(sl<Dio>(), baseUrl: ApiConstants.baseUrl),
     );
     sl.registerLazySingleton<RoutesRemoteDataSource>(
-      () => RoutesRemoteDataSource(api: sl<RoutesApiService>()),
+      () => RoutesRemoteDataSource(dio: sl<Dio>()),
     );
     sl.registerLazySingleton<RoutesRepository>(
       () => RoutesRepositoryImpl(remote: sl<RoutesRemoteDataSource>()),

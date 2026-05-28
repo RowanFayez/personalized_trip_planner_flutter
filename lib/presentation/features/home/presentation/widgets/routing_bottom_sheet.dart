@@ -132,8 +132,25 @@ class _SheetContent extends StatelessWidget {
         return Center(
           child: Padding(
             padding: EdgeInsets.all(16.r),
-            child: const CircularProgressIndicator(
-              color: AppColors.primaryTeal,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: AppColors.primaryTeal),
+                SizedBox(height: 12.h),
+                Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Text(
+                    'جاري الاتصال بالخادم، يرجى الانتظار...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -144,7 +161,7 @@ class _SheetContent extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
           children: [
             Text(
-              state.errorMessage ?? 'Something went wrong.',
+              state.errorMessage ?? 'حدث خطأ ما.',
               style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14.sp,
@@ -167,7 +184,7 @@ class _SheetContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14.r),
                   ),
                 ),
-                child: const Text('Close'),
+                child: const Text('إغلاق'),
               ),
             ),
             SizedBox(height: _safeBottomSpacing(context)),
@@ -182,7 +199,7 @@ class _SheetContent extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
             children: [
               Text(
-                'No routes found.',
+                'لا توجد مسارات متاحة',
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14.sp,

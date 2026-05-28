@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../services/auth_service.dart';
 import 'api_constants.dart';
+import 'cold_start_retry_interceptor.dart';
 import 'supabase_auth_interceptor.dart';
 
 class DioFactory {
@@ -25,6 +26,8 @@ class DioFactory {
     dio.interceptors.add(
       SupabaseAuthInterceptor(authService: authService, dio: dio),
     );
+
+    dio.interceptors.add(ColdStartRetryInterceptor(dio: dio));
 
     if (kDebugMode) {
       dio.interceptors.add(

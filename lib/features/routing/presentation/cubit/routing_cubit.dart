@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../features/preferences/data/managers/preferences_manager.dart';
@@ -9,8 +10,11 @@ class RoutingCubit extends Cubit<RoutingState> {
   final GetRoutesUseCase _getRoutesUseCase;
   final PreferencesManager _preferencesManager;
 
+  CancelToken? _cancelToken;
+  int _requestId = 0;
+
   static const String _noRouteFoundArabicMessage =
-      'عذراً، لم نتمكن من العثور على مسار. حاول تقليل القيود أو تغيير التفضيلات.';
+      'لا توجد مسارات متاحة';
 
   RoutingCubit({
     required GetRoutesUseCase getRoutesUseCase,
@@ -19,16 +23,34 @@ class RoutingCubit extends Cubit<RoutingState> {
        _preferencesManager = preferencesManager,
        super(RoutingState.initial());
 
+  void cancelActiveRequest() {
+    _requestId++;
+    _cancelToken?.cancel();
+    _cancelToken = null;
+  }
+
+  @override
+  Future<void> close() {
+    cancelActiveRequest();
+    return super.close();
+  }
+
   Future<void> fetchRoutes({
     required double startLat,
     required double startLon,
     required double endLat,
     required double endLon,
   }) async {
+    cancelActiveRequest();
+    final cancelToken = CancelToken();
+    _cancelToken = cancelToken;
+    final requestId = _requestId;
+
     emit(state.copyWith(status: RoutingStatus.loading, errorMessage: null));
 
     // Load all preference data at once for cleaner request building
     final prefData = await _preferencesManager.loadPreferenceData();
+    if (requestId != _requestId || cancelToken.isCancelled) return;
 
     // Build request with all preferences applied
     final request = RoutesRequest(
@@ -43,10 +65,12 @@ class RoutingCubit extends Cubit<RoutingState> {
       filters: prefData.filters,
     );
 
-    final result = await _getRoutesUseCase(request);
+    final result = await _getRoutesUseCase(request, cancelToken: cancelToken);
+    if (requestId != _requestId || cancelToken.isCancelled) return;
 
     result.when(
       success: (data) {
+        if (requestId != _requestId || cancelToken.isCancelled) return;
         final journeys = data.journeys;
         if (journeys.isEmpty || data.numJourneys == 0) {
           emit(
@@ -81,6 +105,7 @@ class RoutingCubit extends Cubit<RoutingState> {
         );
       },
       failure: (err) {
+        if (requestId != _requestId || cancelToken.isCancelled) return;
         emit(
           state.copyWith(
             status: RoutingStatus.failure,
@@ -167,6 +192,7 @@ class RoutingCubit extends Cubit<RoutingState> {
   }
 
   void clear() {
+    cancelActiveRequest();
     emit(RoutingState.initial());
   }
 }

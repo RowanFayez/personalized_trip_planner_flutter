@@ -5,20 +5,34 @@ import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/api_result.dart';
 import '../models/routes_request_dto.dart';
 import '../models/routes_response_dto.dart';
-import '../remote/routes_api_service.dart';
 
 class RoutesRemoteDataSource {
-  final RoutesApiService _api;
+  final Dio _dio;
 
-  RoutesRemoteDataSource({RoutesApiService? api, Dio? dio})
-    : _api =
-          api ??
-          RoutesApiService(
-            dio ?? GetIt.I<Dio>(),
-            baseUrl: ApiConstants.baseUrl,
-          );
+  RoutesRemoteDataSource({Dio? dio}) : _dio = dio ?? GetIt.I<Dio>();
 
-  Future<ApiResult<RoutesResponseDto>> getRoutes(RoutesRequestDto request) {
-    return safeApiCall(() => _api.getRoutes(request));
+  Future<ApiResult<RoutesResponseDto>> getRoutes(
+    RoutesRequestDto request, {
+    CancelToken? cancelToken,
+  }) {
+    return safeApiCall(() async {
+      final response = await _dio.post<dynamic>(
+        ApiConstants.routesEndpoint,
+        data: request.toJson(),
+        cancelToken: cancelToken,
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return RoutesResponseDto.fromJson(data);
+      }
+      if (data is Map) {
+        return RoutesResponseDto.fromJson(Map<String, dynamic>.from(data));
+      }
+
+      throw StateError(
+        'Unexpected routes response type: ${data.runtimeType}',
+      );
+    });
   }
 }

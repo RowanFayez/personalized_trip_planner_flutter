@@ -20,10 +20,13 @@ class SupabaseAuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     // Respect any existing auth header (for example, third-party services).
+    // However, if the header was attached by this interceptor, keep managing it
+    // across retries (so 401 refresh + cold-start retries remain reliable).
     final hasAuthHeader = options.headers.keys.any(
       (k) => k.toLowerCase() == 'authorization',
     );
-    if (hasAuthHeader) {
+    final attachedByUs = options.extra[_attachedKey] == true;
+    if (hasAuthHeader && !attachedByUs) {
       options.extra[_attachedKey] = false;
       if (kDebugMode) {
         debugPrint(
@@ -44,11 +47,13 @@ class SupabaseAuthInterceptor extends Interceptor {
             '[Auth] ${options.method} ${options.uri} attached Supabase bearer token',
           );
         }
-      } else if (kDebugMode) {
+      } else {
         options.extra[_attachedKey] = false;
-        debugPrint(
-          '[Auth] ${options.method} ${options.uri} has no Supabase session token',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[Auth] ${options.method} ${options.uri} has no Supabase session token',
+          );
+        }
       }
     } catch (_) {
       options.extra[_attachedKey] = false;
@@ -108,6 +113,15 @@ class SupabaseAuthInterceptor extends Interceptor {
 
       final response = await _dio.fetch(retryOptions);
       handler.resolve(response);
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] ${requestOptions.method} ${requestOptions.uri} retry after 401 failed: $e',
+        );
+      }
+      // Forward the real DioException (often a timeout during cold-start), so
+      // downstream interceptors/state can handle it correctly.
+      handler.next(e);
     } catch (e) {
       if (kDebugMode) {
         debugPrint(

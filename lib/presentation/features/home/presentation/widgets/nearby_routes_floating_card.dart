@@ -7,6 +7,7 @@ import '../../../../../features/nearby_trips/domain/entities/nearby_route.dart';
 class NearbyRoutesFloatingCard extends StatelessWidget {
   final String? streetName;
   final bool isLoading;
+  final bool hasLoadedSuccessfully;
   final List<NearbyRoute> routes;
   final VoidCallback onTap;
   final VoidCallback onClose;
@@ -15,6 +16,7 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
     super.key,
     required this.streetName,
     required this.isLoading,
+    required this.hasLoadedSuccessfully,
     required this.routes,
     required this.onTap,
     required this.onClose,
@@ -77,7 +79,7 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                     ),
                     SizedBox(height: 4.h),
                     if (isLoading)
-                      _subtleText('Loading…')
+                      _subtleText('جاري الاتصال بالخادم، يرجى الانتظار...')
                     else if (nearestLine != null && nearestLine.isNotEmpty) ...[
                       Text(
                         nearestLine,
@@ -116,7 +118,11 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
                         ),
                       ],
                     ] else
-                      _subtleText('No nearby routes'),
+                      _subtleText(
+                        hasLoadedSuccessfully
+                            ? 'لا توجد مسارات متاحة'
+                            : 'تعذر تحميل المسارات',
+                      ),
                   ],
                 ),
               ),
@@ -144,9 +150,9 @@ class NearbyRoutesFloatingCard extends StatelessWidget {
   }
 
   String _title() {
-    if (isLoading) return 'Searching nearby routes…';
+    if (isLoading) return 'جاري البحث عن مسارات قريبة...';
     final name = (streetName ?? '').trim();
-    if (name.isEmpty) return 'Nearby Routes';
+    if (name.isEmpty) return 'المسارات القريبة';
     return name;
   }
 

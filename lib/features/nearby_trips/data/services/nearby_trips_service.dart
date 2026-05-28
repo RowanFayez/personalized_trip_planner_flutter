@@ -17,6 +17,7 @@ class NearbyTripsService {
     required double latitude,
     required double longitude,
     double radiusM = 500,
+    CancelToken? cancelToken,
   }) async {
     final response = await _dio.post<dynamic>(
       ApiConstants.nearbyTripsEndpoint,
@@ -25,6 +26,7 @@ class NearbyTripsService {
         'lon': longitude,
         'radius_m': radiusM,
       },
+      cancelToken: cancelToken,
     );
 
     final data = response.data;
