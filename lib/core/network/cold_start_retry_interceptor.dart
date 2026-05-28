@@ -60,7 +60,9 @@ class ColdStartRetryInterceptor extends Interceptor {
 
     // Require a cancel token so UI actions can stop polling instantly.
     final cancelToken = options.cancelToken;
-    if (cancelToken == null || cancelToken.isCancelled || _isCancelled(options)) {
+    if (cancelToken == null ||
+        cancelToken.isCancelled ||
+        _isCancelled(options)) {
       handler.next(err);
       return;
     }

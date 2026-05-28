@@ -30,9 +30,7 @@ class RoutesRemoteDataSource {
         return RoutesResponseDto.fromJson(Map<String, dynamic>.from(data));
       }
 
-      throw StateError(
-        'Unexpected routes response type: ${data.runtimeType}',
-      );
+      throw StateError('Unexpected routes response type: ${data.runtimeType}');
     });
   }
 }

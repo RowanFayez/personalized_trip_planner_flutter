@@ -429,10 +429,7 @@ class _JourneySummary extends StatelessWidget {
               },
               borderRadius: BorderRadius.circular(12.r),
               child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 12.w,
-                  vertical: 8.h,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: AppColors.primaryTeal.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12.r),
@@ -609,9 +606,7 @@ class _TimelineStepTile extends StatelessWidget {
                     SizedBox(width: 4.w),
                     GestureDetector(
                       onTap: () {
-                        final name = Uri.encodeComponent(
-                          _legDisplayName(),
-                        );
+                        final name = Uri.encodeComponent(_legDisplayName());
                         context.push(
                           '/fare-feedback?isTotalRoute=false&legName=$name',
                         );
@@ -644,10 +639,8 @@ class _TimelineStepTile extends StatelessWidget {
   /// Prefers Arabic text, falls back to English mode + route name.
   String _legDisplayName() {
     final modeLabel = TextPreference.preferred(leg.modeAr, leg.mode) ?? '';
-    final routeLabel = TextPreference.preferred(
-          leg.routeShortNameAr,
-          leg.routeShortName,
-        ) ??
+    final routeLabel =
+        TextPreference.preferred(leg.routeShortNameAr, leg.routeShortName) ??
         '';
     final parts = <String>[
       if (modeLabel.isNotEmpty) modeLabel,

@@ -8,8 +8,7 @@ import '../models/nearby_trip_dto.dart';
 class NearbyTripsService {
   final Dio _dio;
 
-  NearbyTripsService({Dio? dio})
-    : _dio = dio ?? GetIt.I<Dio>();
+  NearbyTripsService({Dio? dio}) : _dio = dio ?? GetIt.I<Dio>();
 
   /// Calls `POST /api/v1/nearby-trips` and returns unique routes grouped by
   /// `route_name_ar`, keeping the smallest `distance_m` per route.

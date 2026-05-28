@@ -13,8 +13,7 @@ class RoutingCubit extends Cubit<RoutingState> {
   CancelToken? _cancelToken;
   int _requestId = 0;
 
-  static const String _noRouteFoundArabicMessage =
-      'لا توجد مسارات متاحة';
+  static const String _noRouteFoundArabicMessage = 'لا توجد مسارات متاحة';
 
   RoutingCubit({
     required GetRoutesUseCase getRoutesUseCase,
