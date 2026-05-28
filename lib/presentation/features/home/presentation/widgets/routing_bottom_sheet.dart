@@ -638,16 +638,25 @@ class _TimelineStepTile extends StatelessWidget {
   /// Returns a human-readable leg name for the fare-feedback page title.
   /// Prefers Arabic text, falls back to English mode + route name.
   String _legDisplayName() {
-    final modeLabel = TextPreference.preferred(leg.modeAr, leg.mode) ?? '';
+    final modeLabel = TextPreference.preferred(leg.modeAr, leg.mode)?.trim() ?? '';
     final routeLabel =
-        TextPreference.preferred(leg.routeShortNameAr, leg.routeShortName) ??
+        TextPreference.preferred(leg.routeShortNameAr, leg.routeShortName)
+            ?.trim() ??
         '';
-    final parts = <String>[
-      if (modeLabel.isNotEmpty) modeLabel,
-      if (routeLabel.isNotEmpty) routeLabel,
-    ];
-    if (parts.isEmpty) return leg.mode ?? 'Transit';
-    return parts.join(' ');
+
+    if (modeLabel.isEmpty && routeLabel.isEmpty) {
+      return leg.mode ?? 'Transit';
+    }
+
+    if (routeLabel.isNotEmpty &&
+        (routeLabel == modeLabel || routeLabel.contains(modeLabel))) {
+      return routeLabel;
+    }
+
+    if (modeLabel.isEmpty) return routeLabel;
+    if (routeLabel.isEmpty) return modeLabel;
+
+    return '$modeLabel $routeLabel';
   }
 
   Widget _title() {
