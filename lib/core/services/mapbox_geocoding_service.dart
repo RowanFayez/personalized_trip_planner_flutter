@@ -33,7 +33,8 @@ class MapboxGeocodingService {
     GeocodingRubyApiClient? ruby,
     String? accessToken,
   }) : _mapboxDio =
-           mapboxDio ?? DioFactory.create(baseUrl: 'https://api.mapbox.com'),
+           mapboxDio ??
+           DioFactory.createPublic(baseUrl: 'https://api.mapbox.com'),
        _ruby = ruby ?? GeocodingRubyApiClient(),
        _accessToken = accessToken ?? MapConfig.accessToken;
 
@@ -48,10 +49,13 @@ class MapboxGeocodingService {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
 
-    // Search-bar autocomplete + forward-geocoding are powered by the Ruby
-    // endpoint (Google Places-backed). Alexandria-only via `bias=true`.
-    // We intentionally do NOT send user_lat/user_lng/language.
-    final items = await _ruby.geocode(address: trimmed, biasAlexandria: true);
+    final items = await _ruby.geocode(
+      address: trimmed,
+      biasAlexandria: true,
+      language: language,
+      userLatitude: proximityLatitude,
+      userLongitude: proximityLongitude,
+    );
 
     final results = <MapboxPlaceSuggestion>[];
     for (final item in items) {
@@ -75,8 +79,17 @@ class MapboxGeocodingService {
   /// Returns null when there are no results.
   Future<MapboxPlaceSuggestion?> forwardGeocode({
     required String address,
+    String language = 'ar',
+    double? userLatitude,
+    double? userLongitude,
   }) async {
-    final items = await _ruby.geocode(address: address, biasAlexandria: true);
+    final items = await _ruby.geocode(
+      address: address,
+      biasAlexandria: true,
+      language: language,
+      userLatitude: userLatitude,
+      userLongitude: userLongitude,
+    );
     if (items.isEmpty) return null;
 
     final best = items.first;
@@ -112,8 +125,8 @@ class MapboxGeocodingService {
     return (title.isEmpty ? candidate : title, candidate);
   }
 
-  /// Reverse geocode: convert coordinates to a place name.
-  /// Returns null when no result is found.
+  /// Reverse geocode still uses Mapbox because the Azure gateway currently
+  /// exposes forward geocoding only in the published Swagger spec.
   Future<MapboxPlaceSuggestion?> reverseGeocode({
     required double latitude,
     required double longitude,

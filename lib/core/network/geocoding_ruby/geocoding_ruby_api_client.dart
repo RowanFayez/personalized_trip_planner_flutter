@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:get_it/get_it.dart';
 
+import '../api_constants.dart';
 import '../api_result.dart';
-import '../dio_factory.dart';
 
 class RubyGeocodeItem {
   final String formattedAddress;
@@ -33,26 +34,30 @@ class GeocodingRubyApiClient {
   final Dio _dio;
 
   GeocodingRubyApiClient({Dio? dio})
-    : _dio =
-          dio ??
-          DioFactory.create(baseUrl: 'https://geocoding-ruby.vercel.app');
+    : _dio = dio ?? GetIt.I<Dio>();
 
-  /// Calls `GET /geocode?address=...&bias=true`.
+  /// Calls the authenticated Azure geocoding gateway.
   ///
   /// Returns an empty list on any error to keep UI behavior simple.
   Future<List<RubyGeocodeItem>> geocode({
     required String address,
     bool biasAlexandria = true,
+    String language = 'ar',
+    double? userLatitude,
+    double? userLongitude,
   }) async {
     final trimmed = address.trim();
     if (trimmed.isEmpty) return const [];
 
     final result = await safeApiCall(() async {
-      final res = await _dio.get<Map<String, dynamic>>(
-        '/geocode',
-        queryParameters: <String, dynamic>{
+      final res = await _dio.post<Map<String, dynamic>>(
+        ApiConstants.geocodingEndpoint,
+        data: <String, dynamic>{
           'address': trimmed,
-          'bias': biasAlexandria ? 'true' : 'false',
+          'bias': biasAlexandria,
+          'language': language,
+          if (userLatitude != null) 'user_lat': userLatitude,
+          if (userLongitude != null) 'user_lng': userLongitude,
         },
       );
       return res.data;
@@ -64,7 +69,7 @@ class GeocodingRubyApiClient {
         final ok = data['success'];
         if (ok is! bool || ok != true) return const <RubyGeocodeItem>[];
 
-        final list = data['data'];
+        final list = data['results'];
         if (list is! List) return const <RubyGeocodeItem>[];
 
         return list

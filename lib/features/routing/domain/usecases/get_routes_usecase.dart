@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../../../core/network/api_result.dart';
 import '../entities/routing_entities.dart';
 import '../repositories/routes_repository.dart';
@@ -7,7 +9,10 @@ class GetRoutesUseCase {
 
   const GetRoutesUseCase(this._repository);
 
-  Future<ApiResult<RoutingResult>> call(RoutesRequest request) {
-    return _repository.getRoutes(request);
+  Future<ApiResult<RoutingResult>> call(
+    RoutesRequest request, {
+    CancelToken? cancelToken,
+  }) {
+    return _repository.getRoutes(request, cancelToken: cancelToken);
   }
 }

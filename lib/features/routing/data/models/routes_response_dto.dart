@@ -13,9 +13,14 @@ class RoutesResponseDto {
   @JsonKey(name: 'weights_used')
   final Map<String, double>? weightsUsed;
 
-  @JsonKey(name: 'num_journeys')
+  @JsonKey(
+    name: 'num_journeys',
+    defaultValue: 0,
+    fromJson: JourneySummaryDto._toInt,
+  )
   final int numJourneys;
 
+  @JsonKey(defaultValue: <JourneyDto>[])
   final List<JourneyDto> journeys;
 
   @JsonKey(name: 'start_trips_found')
@@ -100,7 +105,9 @@ class JourneySummaryDto {
   @JsonKey(name: 'transit_distance_meters')
   final int? transitDistanceMeters;
 
+  @JsonKey(defaultValue: 0, fromJson: _toInt)
   final int transfers;
+  @JsonKey(fromJson: _toInt)
   final int cost;
 
   @JsonKey(name: 'modes_en', defaultValue: <String>[])
@@ -132,6 +139,21 @@ class JourneySummaryDto {
       _$JourneySummaryDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$JourneySummaryDtoToJson(this);
+
+  static int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final v = value.trim();
+      if (v.isEmpty) return 0;
+      final asInt = int.tryParse(v);
+      if (asInt != null) return asInt;
+      final asDouble = double.tryParse(v);
+      if (asDouble != null) return asDouble.toInt();
+    }
+    return 0;
+  }
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -167,9 +189,13 @@ class RouteLegDto {
 
   @JsonKey(name: 'headsign_ar')
   final String? headsignAr;
+  @JsonKey(fromJson: _toNullableInt)
   final int? fare;
 
+  @JsonKey(name: 'from_stop')
   final StopRefDto? from;
+
+  @JsonKey(name: 'to_stop')
   final StopRefDto? to;
 
   @JsonKey(name: 'trip_ids')
@@ -195,7 +221,7 @@ class RouteLegDto {
   final String? toTripNameAr;
 
   @JsonKey(name: 'end_stop_id')
-  final int? endStopId;
+  final String? endStopId;
 
   @JsonKey(name: 'walking_distance_meters')
   final int? walkingDistanceMeters;
@@ -232,12 +258,16 @@ class RouteLegDto {
   Map<String, dynamic> toJson() => _$RouteLegDtoToJson(this);
 
   // No custom converters needed; polyline is decoded in the mapper.
+  static int? _toNullableInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return null;
+  }
 }
 
 @JsonSerializable()
 class StopRefDto {
-  @JsonKey(name: 'stop_id')
-  final int stopId;
+  @JsonKey(name: 'stop_id', fromJson: _toString)
+  final String stopId;
 
   final String name;
 
@@ -259,6 +289,12 @@ class StopRefDto {
       _$StopRefDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$StopRefDtoToJson(this);
+
+  static String _toString(dynamic value) {
+    if (value == null) return '';
+    final s = value.toString().trim();
+    return s;
+  }
 
   static List<double> _toDouble1D(dynamic value) {
     if (value is! List) return const [0, 0];

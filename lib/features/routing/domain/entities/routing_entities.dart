@@ -86,7 +86,7 @@ class JourneySummary extends Equatable {
 }
 
 class StopRef extends Equatable {
-  final int stopId;
+  final String stopId;
   final String name;
   final String? nameAr;
   final GeoPoint coord;
@@ -130,7 +130,7 @@ class RouteLeg extends Equatable {
   final String? fromTripNameAr;
   final String? toTripName;
   final String? toTripNameAr;
-  final int? endStopId;
+  final String? endStopId;
   final int? walkingDistanceMeters;
 
   const RouteLeg({

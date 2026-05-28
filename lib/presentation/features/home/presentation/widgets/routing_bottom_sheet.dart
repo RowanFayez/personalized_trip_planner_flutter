@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../core/animations/app_transitions.dart';
 import '../../../../../core/constants/app_colors.dart';
@@ -131,8 +132,25 @@ class _SheetContent extends StatelessWidget {
         return Center(
           child: Padding(
             padding: EdgeInsets.all(16.r),
-            child: const CircularProgressIndicator(
-              color: AppColors.primaryTeal,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: AppColors.primaryTeal),
+                SizedBox(height: 12.h),
+                Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Text(
+                    'جاري الاتصال بالخادم، يرجى الانتظار...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -143,7 +161,7 @@ class _SheetContent extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
           children: [
             Text(
-              state.errorMessage ?? 'Something went wrong.',
+              state.errorMessage ?? 'حدث خطأ ما.',
               style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 14.sp,
@@ -166,7 +184,7 @@ class _SheetContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14.r),
                   ),
                 ),
-                child: const Text('Close'),
+                child: const Text('إغلاق'),
               ),
             ),
             SizedBox(height: _safeBottomSpacing(context)),
@@ -181,7 +199,7 @@ class _SheetContent extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
             children: [
               Text(
-                'No routes found.',
+                'لا توجد مسارات متاحة',
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14.sp,
@@ -401,6 +419,46 @@ class _JourneySummary extends StatelessWidget {
               ),
             ),
           ],
+          // ── Fare Feedback button for total route ──
+          SizedBox(height: 12.h),
+          Align(
+            alignment: Alignment.centerRight,
+            child: InkWell(
+              onTap: () {
+                context.push('/fare-feedback?isTotalRoute=true');
+              },
+              borderRadius: BorderRadius.circular(12.r),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: AppColors.primaryTeal.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.edit_note_rounded,
+                      size: 18.r,
+                      color: AppColors.primaryTeal,
+                    ),
+                    SizedBox(width: 6.w),
+                    Text(
+                      'Fare Feedback',
+                      style: TextStyle(
+                        color: AppColors.primaryTeal,
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -545,6 +603,28 @@ class _TimelineStepTile extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
+                    SizedBox(width: 4.w),
+                    GestureDetector(
+                      onTap: () {
+                        final name = Uri.encodeComponent(_legDisplayName());
+                        context.push(
+                          '/fare-feedback?isTotalRoute=false&legName=$name',
+                        );
+                      },
+                      child: Container(
+                        width: 22.r,
+                        height: 22.r,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryTeal.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.edit_rounded,
+                          size: 12.r,
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -553,6 +633,33 @@ class _TimelineStepTile extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Returns a human-readable leg name for the fare-feedback page title.
+  /// Prefers Arabic text, falls back to English mode + route name.
+  String _legDisplayName() {
+    final modeLabel =
+        TextPreference.preferred(leg.modeAr, leg.mode)?.trim() ?? '';
+    final routeLabel =
+        TextPreference.preferred(
+          leg.routeShortNameAr,
+          leg.routeShortName,
+        )?.trim() ??
+        '';
+
+    if (modeLabel.isEmpty && routeLabel.isEmpty) {
+      return leg.mode ?? 'Transit';
+    }
+
+    if (routeLabel.isNotEmpty &&
+        (routeLabel == modeLabel || routeLabel.contains(modeLabel))) {
+      return routeLabel;
+    }
+
+    if (modeLabel.isEmpty) return routeLabel;
+    if (routeLabel.isEmpty) return modeLabel;
+
+    return '$modeLabel $routeLabel';
   }
 
   Widget _title() {

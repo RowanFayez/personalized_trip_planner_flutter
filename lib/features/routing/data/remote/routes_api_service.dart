@@ -11,6 +11,7 @@ part 'routes_api_service.g.dart';
 abstract class RoutesApiService {
   factory RoutesApiService(Dio dio, {String? baseUrl}) = _RoutesApiService;
 
+  /// Azure routing gateway entrypoint.
   @POST(ApiConstants.routesEndpoint)
   Future<RoutesResponseDto> getRoutes(@Body() RoutesRequestDto body);
 }

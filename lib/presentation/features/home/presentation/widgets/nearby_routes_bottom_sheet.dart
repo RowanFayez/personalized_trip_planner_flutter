@@ -7,12 +7,14 @@ import '../../../../../features/nearby_trips/domain/entities/nearby_route.dart';
 class NearbyRoutesBottomSheet extends StatelessWidget {
   final String? streetName;
   final bool isLoading;
+  final bool hasLoadedSuccessfully;
   final List<NearbyRoute> routes;
 
   const NearbyRoutesBottomSheet({
     super.key,
     required this.streetName,
     required this.isLoading,
+    required this.hasLoadedSuccessfully,
     required this.routes,
   });
 
@@ -47,7 +49,7 @@ class NearbyRoutesBottomSheet extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    'Nearby Transit Routes',
+                    'المسارات القريبة',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 16.sp,
@@ -84,7 +86,11 @@ class NearbyRoutesBottomSheet extends StatelessWidget {
               ] else
                 SizedBox(height: 6.h),
               Flexible(
-                child: _RoutesList(isLoading: isLoading, routes: routes),
+                child: _RoutesList(
+                  isLoading: isLoading,
+                  hasLoadedSuccessfully: hasLoadedSuccessfully,
+                  routes: routes,
+                ),
               ),
             ],
           ),
@@ -110,9 +116,14 @@ class _GrabHandle extends StatelessWidget {
 
 class _RoutesList extends StatelessWidget {
   final bool isLoading;
+  final bool hasLoadedSuccessfully;
   final List<NearbyRoute> routes;
 
-  const _RoutesList({required this.isLoading, required this.routes});
+  const _RoutesList({
+    required this.isLoading,
+    required this.hasLoadedSuccessfully,
+    required this.routes,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +131,25 @@ class _RoutesList extends StatelessWidget {
       return Center(
         child: Padding(
           padding: EdgeInsets.all(14.r),
-          child: const CircularProgressIndicator(color: AppColors.primaryTeal),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppColors.primaryTeal),
+              SizedBox(height: 12.h),
+              Directionality(
+                textDirection: TextDirection.rtl,
+                child: Text(
+                  'جاري الاتصال بالخادم، يرجى الانتظار...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -130,7 +159,10 @@ class _RoutesList extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.all(14.r),
           child: Text(
-            'No nearby routes found.',
+            hasLoadedSuccessfully
+                ? 'لا توجد مسارات متاحة'
+                : 'تعذر تحميل المسارات',
+            textDirection: TextDirection.rtl,
             style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13.sp,

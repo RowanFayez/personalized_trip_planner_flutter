@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../di/service_locator.dart';
 import '../../features/routing/presentation/cubit/routing_cubit.dart';
+import '../../features/crowdsourcing/presentation/view/fare_feedback_page.dart';
 import '../../presentation/features/auth/presentation/view/profile_page.dart';
 import '../../presentation/features/home/presentation/view/home_page.dart';
 import '../../presentation/features/map_picker/presentation/view/map_picker_page.dart';
@@ -36,6 +37,18 @@ class AppRouter {
         builder: (context, state) {
           final field = state.pathParameters['field'] ?? 'from';
           return MapPickerPage(fieldLabel: field);
+        },
+      ),
+      GoRoute(
+        path: '/fare-feedback',
+        builder: (context, state) {
+          final isTotalRoute =
+              state.uri.queryParameters['isTotalRoute'] == 'true';
+          final legName = state.uri.queryParameters['legName'];
+          return FareFeedbackPage(
+            isTotalRoute: isTotalRoute,
+            legName: legName,
+          );
         },
       ),
     ],

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -49,6 +50,7 @@ class _HomePageState extends State<HomePage> {
   );
   final UserActivityService _userActivityService = sl<UserActivityService>();
   bool _didCenterOnUser = false;
+  bool _didWarmupBackend = false;
 
   MapboxMap? _mapboxMap;
 
@@ -58,6 +60,8 @@ class _HomePageState extends State<HomePage> {
   // Nearby Mode (continuous scanner on idle)
   Timer? _nearbyIdleTimer;
   int _nearbyRequestId = 0;
+  CancelToken? _nearbyCancelToken;
+  bool _nearbyLastFetchSucceeded = false;
   double? _lastNearbyFetchLat;
   double? _lastNearbyFetchLng;
   DateTime? _lastNearbyFetchAt;
@@ -121,11 +125,40 @@ class _HomePageState extends State<HomePage> {
     _toSearch.focusNode.addListener(() {
       if (mounted) setState(() {});
     });
+
+    // Fire-and-forget backend warm-up to reduce Azure cold-start impact.
+    unawaited(_warmupBackend());
+  }
+
+  Future<void> _warmupBackend() async {
+    if (_didWarmupBackend) return;
+    _didWarmupBackend = true;
+
+    final Dio dio = sl<Dio>();
+
+    // Intentionally aggressive: the goal is to *trigger* container startup,
+    // not to block the UI waiting for it.
+    const timeout = Duration(seconds: 60);
+
+    try {
+      await dio.get<void>(
+        '/health',
+        options: Options(
+          connectTimeout: timeout,
+          sendTimeout: timeout,
+          receiveTimeout: timeout,
+          validateStatus: (_) => true,
+        ),
+      );
+    } catch (_) {
+      // Ignore all warm-up errors/timeouts.
+    }
   }
 
   @override
   void dispose() {
     _nearbyIdleTimer?.cancel();
+    _nearbyCancelToken?.cancel();
     _fromSearch.dispose();
     _toSearch.dispose();
     super.dispose();
@@ -135,6 +168,11 @@ class _HomePageState extends State<HomePage> {
 
   void _onHomeCameraChangeListener(CameraChangedEventData _) {
     if (!_isNearbyModeActive) return;
+
+    // Cancel any in-flight/polling requests immediately when the map moves.
+    _nearbyCancelToken?.cancel();
+    _nearbyCancelToken = null;
+    _nearbyRequestId++;
 
     // Debounced "camera idle" behavior (same pattern as MapPicker).
     _nearbyIdleTimer?.cancel();
@@ -195,6 +233,10 @@ class _HomePageState extends State<HomePage> {
   }) async {
     if (!_isNearbyModeActive) return;
 
+    _nearbyCancelToken?.cancel();
+    final cancelToken = CancelToken();
+    _nearbyCancelToken = cancelToken;
+
     final requestId = ++_nearbyRequestId;
     _lastNearbyFetchLat = latitude;
     _lastNearbyFetchLng = longitude;
@@ -203,6 +245,7 @@ class _HomePageState extends State<HomePage> {
     if (mounted) {
       setState(() {
         _isNearbyLoading = true;
+        _nearbyLastFetchSucceeded = false;
         if (clearExisting) {
           _nearbyStreetName = null;
           _nearbyRoutes = const <NearbyRoute>[];
@@ -214,30 +257,64 @@ class _HomePageState extends State<HomePage> {
       latitude: latitude,
       longitude: longitude,
     ).catchError((_) => null);
-    final routesFuture = _nearbyTripsService
-        .getNearbyRoutes(latitude: latitude, longitude: longitude, radiusM: 500)
-        .catchError((_) => const <NearbyRoute>[]);
 
-    final results = await Future.wait<Object?>([streetFuture, routesFuture]);
-    if (!mounted || !_isNearbyModeActive) return;
-    if (requestId != _nearbyRequestId) return;
+    try {
+      final routesFuture = _nearbyTripsService.getNearbyRoutes(
+        latitude: latitude,
+        longitude: longitude,
+        radiusM: 500,
+        cancelToken: cancelToken,
+      );
 
-    setState(() {
-      _nearbyStreetName = results[0] as String?;
-      _nearbyRoutes =
-          (results[1] as List<NearbyRoute>?) ?? const <NearbyRoute>[];
-      _isNearbyLoading = false;
-    });
+      final results = await Future.wait<Object?>([streetFuture, routesFuture]);
+      if (!mounted || !_isNearbyModeActive) return;
+      if (requestId != _nearbyRequestId) return;
+
+      setState(() {
+        _nearbyStreetName = results[0] as String?;
+        _nearbyRoutes =
+            (results[1] as List<NearbyRoute>?) ?? const <NearbyRoute>[];
+        _isNearbyLoading = false;
+        _nearbyLastFetchSucceeded = true;
+      });
+    } on DioException catch (e) {
+      // Cancellation is expected (map moved / user closed nearby mode).
+      if (CancelToken.isCancel(e) || e.type == DioExceptionType.cancel) {
+        return;
+      }
+
+      if (!mounted || !_isNearbyModeActive) return;
+      if (requestId != _nearbyRequestId) return;
+
+      setState(() {
+        _isNearbyLoading = false;
+        _nearbyLastFetchSucceeded = false;
+      });
+    } catch (_) {
+      if (!mounted || !_isNearbyModeActive) return;
+      if (requestId != _nearbyRequestId) return;
+
+      setState(() {
+        _isNearbyLoading = false;
+        _nearbyLastFetchSucceeded = false;
+      });
+    }
   }
 
   Future<void> _triggerNearbySearch() async {
     if (_mapboxMap == null) return;
+    final signedIn = await _ensureSignedIn();
+    if (!signedIn) return;
+
+    _nearbyCancelToken?.cancel();
+    _nearbyCancelToken = null;
 
     setState(() {
       _isNearbyModeActive = true;
       _isNearbyLoading = true;
       _nearbyStreetName = null;
       _nearbyRoutes = const <NearbyRoute>[];
+      _nearbyLastFetchSucceeded = false;
       _nearbyRequestId++;
       _lastNearbyFetchLat = null;
       _lastNearbyFetchLng = null;
@@ -254,11 +331,14 @@ class _HomePageState extends State<HomePage> {
 
   void _clearNearbyMode() {
     _nearbyIdleTimer?.cancel();
+    _nearbyCancelToken?.cancel();
+    _nearbyCancelToken = null;
     setState(() {
       _isNearbyModeActive = false;
       _nearbyStreetName = null;
       _nearbyRoutes = const <NearbyRoute>[];
       _isNearbyLoading = false;
+      _nearbyLastFetchSucceeded = false;
       _nearbyRequestId++;
     });
   }
@@ -336,6 +416,7 @@ class _HomePageState extends State<HomePage> {
           child: NearbyRoutesBottomSheet(
             streetName: _nearbyStreetName,
             isLoading: _isNearbyLoading,
+            hasLoadedSuccessfully: _nearbyLastFetchSucceeded,
             routes: _nearbyRoutes,
           ),
         );
@@ -397,6 +478,23 @@ class _HomePageState extends State<HomePage> {
     showGoogleSignInDialog(context);
   }
 
+  Future<bool> _ensureSignedIn() async {
+    final token = await _authService.getIdToken();
+    if (_authService.currentUser != null &&
+        token != null &&
+        token.trim().isNotEmpty) {
+      return true;
+    }
+
+    if (!mounted) return false;
+    await showGoogleSignInDialog(context);
+    if (!mounted) return false;
+    final refreshedToken = await _authService.getIdToken(forceRefresh: true);
+    return _authService.currentUser != null &&
+        refreshedToken != null &&
+        refreshedToken.trim().isNotEmpty;
+  }
+
   void _maybeStoreLastSearch({required bool isFrom}) {
     final controller = isFrom ? _fromSearch : _toSearch;
     final lat = controller.selectedLatitude;
@@ -449,7 +547,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _maybeFetchRoutes({bool force = false}) {
+  Future<void> _maybeFetchRoutes({bool force = false}) async {
     final fromLat = _fromSearch.selectedLatitude;
     final fromLon = _fromSearch.selectedLongitude;
     final toLat = _toSearch.selectedLatitude;
@@ -458,6 +556,9 @@ class _HomePageState extends State<HomePage> {
     if (fromLat == null || fromLon == null || toLat == null || toLon == null) {
       return;
     }
+
+    final signedIn = await _ensureSignedIn();
+    if (!signedIn || !mounted) return;
 
     final key =
         '${fromLat.toStringAsFixed(6)},${fromLon.toStringAsFixed(6)}|'
@@ -568,7 +669,18 @@ class _HomePageState extends State<HomePage> {
 
   /// Callback for the RoutingBottomSheet close button — removes drawn route.
   Future<void> _onRoutingSheetClosed() async {
+    if (!mounted) return;
+    _lastRoutesKey = null;
+    _selectedQuickPlaceFrom = null;
+    _selectedQuickPlaceTo = null;
+
+    // Clear route polyline + start/end markers.
     await _mapService.removeRoute('active');
+    if (!mounted) return;
+    await Future.wait([
+      _fromSearch.clearSelection(),
+      _toSearch.clearSelection(),
+    ]);
   }
 
   @override
@@ -587,11 +699,14 @@ class _HomePageState extends State<HomePage> {
           // ── Auto-clear nearby mode when routing becomes active ──
           if (state.status != RoutingStatus.initial && _isNearbyModeActive) {
             _nearbyIdleTimer?.cancel();
+            _nearbyCancelToken?.cancel();
+            _nearbyCancelToken = null;
             _nearbyRequestId++;
             _isNearbyModeActive = false;
             _nearbyRoutes = const <NearbyRoute>[];
             _nearbyStreetName = null;
             _isNearbyLoading = false;
+            _nearbyLastFetchSucceeded = false;
           }
 
           // ── Clear drawn route when cubit resets to initial ──
@@ -602,7 +717,7 @@ class _HomePageState extends State<HomePage> {
 
           if (state.status == RoutingStatus.failure) {
             await _mapService.removeRoute('active');
-            _showRoutingSnackOnce(state.errorMessage ?? 'No routes found.');
+            _showRoutingSnackOnce(state.errorMessage ?? 'لا توجد مسارات متاحة');
             return;
           }
 
@@ -622,7 +737,7 @@ class _HomePageState extends State<HomePage> {
           if (journey == null) {
             await _mapService.removeRoute('active');
             _showRoutingSnackOnce(
-              'No routes found with your current preferences.',
+              'لا توجد مسارات متاحة وفقاً لتفضيلاتك الحالية.',
             );
             return;
           }
@@ -735,6 +850,7 @@ class _HomePageState extends State<HomePage> {
                       child: NearbyRoutesFloatingCard(
                         streetName: _nearbyStreetName,
                         isLoading: _isNearbyLoading,
+                        hasLoadedSuccessfully: _nearbyLastFetchSucceeded,
                         routes: _nearbyRoutes,
                         onTap: _openNearbyRoutesSheet,
                         onClose: _clearNearbyMode,

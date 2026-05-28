@@ -204,6 +204,22 @@ class PlaceSearchController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clears the selected coordinates and removes the marker from the map.
+  ///
+  /// Used when dismissing routing so the app returns to a clean state.
+  Future<void> clearSelection({bool clearText = true}) async {
+    _debounce?.cancel();
+    _suggestions = const [];
+    _showSuggestions = false;
+    _selectedLatitude = null;
+    _selectedLongitude = null;
+    if (clearText) {
+      textController.clear();
+    }
+    notifyListeners();
+    await _mapService.removeMarker(_markerId);
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();

@@ -65,7 +65,7 @@ class RoutePreferencesService {
   /// Default is no street exclusions.
   static const List<String> defaultExcludedMainStreets = <String>[];
 
-  static const int minTransfers = 1;
+  static const int minTransfers = 0;
   static const int maxTransfersLimit = 5;
 
   static const int minWalkingMinutes = 0;
