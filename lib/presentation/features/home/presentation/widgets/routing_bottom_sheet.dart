@@ -299,10 +299,7 @@ class _ChatAboutRouteRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // Keep UX minimal: placeholder until chat screen is wired.
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Chat: coming soon.')));
+        context.push('/agent');
       },
       borderRadius: BorderRadius.circular(16.r),
       child: Container(
@@ -460,32 +457,6 @@ class _JourneySummary extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final String label;
-
-  const _StatChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: AppColors.searchInputBackground,
-        borderRadius: BorderRadius.circular(999.r),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w600,
-        ),
       ),
     );
   }
@@ -761,8 +732,9 @@ class _TimelineStepTile extends StatelessWidget {
     if (mins != null) meta.add('$mins min');
     if (meta.isNotEmpty) lines.add(meta.join(' • '));
 
-    if (lines.isEmpty)
+    if (lines.isEmpty) {
       return TextPreference.preferred(leg.headsignAr, leg.headsign);
+    }
     return lines.join('\n');
   }
 
@@ -810,24 +782,14 @@ class _TimelineStepTile extends StatelessWidget {
     return (leg.mode ?? '').trim().toLowerCase();
   }
 
-  String _modeLabel(String mode) {
-    final m = mode.trim();
-    if (m.isEmpty) return '';
-    // Keep Arabic text as-is.
-    final first = m.codeUnitAt(0);
-    final isAsciiLetter =
-        (first >= 65 && first <= 90) || (first >= 97 && first <= 122);
-    if (!isAsciiLetter) return m;
-    return m[0].toUpperCase() + m.substring(1);
-  }
-
   Color _modeColor(String mode) {
     final m = mode.trim().toLowerCase();
     if (m.contains('walk') || m == 'walking' || m.contains('transfer')) {
       return AppColors.walkColor;
     }
-    if (m.contains('micro'))
+    if (m.contains('micro')) {
       return AppColors.tramColor; // requested: microbus blue
+    }
     if (m.contains('mini')) return AppColors.minibusColor;
     if (m.contains('bus')) return AppColors.busColor;
     if (m.contains('tram') ||
@@ -837,8 +799,9 @@ class _TimelineStepTile extends StatelessWidget {
         m.contains('line')) {
       return AppColors.routeLine;
     }
-    if (m.contains('tonaya') || m.contains('taxi'))
+    if (m.contains('tonaya') || m.contains('taxi')) {
       return AppColors.tonayaColor;
+    }
     return AppColors.routeLine;
   }
 }
@@ -977,8 +940,9 @@ class _RouteChip extends StatelessWidget {
         m.contains('line')) {
       return AppColors.routeLine;
     }
-    if (m.contains('tonaya') || m.contains('taxi'))
+    if (m.contains('tonaya') || m.contains('taxi')) {
       return AppColors.tonayaColor;
+    }
     return AppColors.routeLine;
   }
 }

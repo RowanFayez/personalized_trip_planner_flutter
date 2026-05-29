@@ -43,7 +43,7 @@ class ApiErrorHandler {
             ? base
             : (statusCode == 422
                   ? '$base ${_truncate(serverDetails)}'
-                  : '${_truncate(serverDetails)}');
+                  : _truncate(serverDetails));
         return ApiErrorModel(
           statusCode: statusCode,
           message: message,
@@ -98,11 +98,6 @@ class ApiErrorHandler {
           map['errors'] ??
           map['msg'] ??
           map['reason'];
-
-      if (candidate == null) {
-        // Common FastAPI/pydantic style: {"detail": [{"loc":...,"msg":...}]}
-        candidate = map['detail'];
-      }
 
       if (candidate is List) {
         final parts = candidate

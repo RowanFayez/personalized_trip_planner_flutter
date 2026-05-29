@@ -4,9 +4,14 @@ import 'package:get_it/get_it.dart';
 import '../network/api_constants.dart';
 import '../network/dio_factory.dart';
 import '../services/auth_service.dart';
+import '../services/location_service.dart';
 import '../services/route_preferences_service.dart';
 import '../services/user_activity_service.dart';
 import '../storage/hive/hive_service.dart';
+import '../../features/agent/data/remote/agent_api_service.dart';
+import '../../features/agent/data/repositories/agent_repository_impl.dart';
+import '../../features/agent/domain/repositories/agent_repository.dart';
+import '../../features/agent/presentation/cubit/agent_cubit.dart';
 import '../../features/preferences/data/managers/preferences_manager.dart';
 import '../../features/routing/data/datasources/routes_remote_data_source.dart';
 import '../../features/routing/data/remote/routes_api_service.dart';
@@ -35,6 +40,7 @@ class ServiceLocator {
     sl.registerLazySingleton<UserActivityService>(
       () => UserActivityService(authService: sl<AuthService>()),
     );
+    sl.registerLazySingleton<LocationService>(() => LocationService());
 
     // Core
     sl.registerLazySingleton<Dio>(
@@ -49,6 +55,12 @@ class ServiceLocator {
     sl.registerLazySingleton<PreferencesManager>(
       () =>
           PreferencesManager(preferencesService: sl<RoutePreferencesService>()),
+    );
+
+    // Agent (data)
+    sl.registerLazySingleton<AgentApiService>(() => AgentApiService(sl<Dio>()));
+    sl.registerLazySingleton<AgentRepository>(
+      () => AgentRepositoryImpl(api: sl<AgentApiService>()),
     );
 
     // Routing (data)
@@ -72,6 +84,12 @@ class ServiceLocator {
       () => RoutingCubit(
         getRoutesUseCase: sl<GetRoutesUseCase>(),
         preferencesManager: sl<PreferencesManager>(),
+      ),
+    );
+    sl.registerFactory<AgentCubit>(
+      () => AgentCubit(
+        repository: sl<AgentRepository>(),
+        locationService: sl<LocationService>(),
       ),
     );
   }

@@ -465,7 +465,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handleChatPressed() {
-    // TODO: Open AI chat interface
+    context.push('/agent');
   }
 
   void _handleProfilePressed() {

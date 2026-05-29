@@ -13,4 +13,7 @@ class ApiConstants {
 
   /// Geocoding endpoint.
   static const String geocodingEndpoint = 'geocode';
+
+  /// AI transit agent endpoint.
+  static const String agentQueryEndpoint = 'agent/query';
 }
