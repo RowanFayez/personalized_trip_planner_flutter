@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../cubit/agent_cubit.dart';
 import '../cubit/agent_state.dart';
 
@@ -67,7 +68,7 @@ class _AgentChatPageState extends State<AgentChatPage> {
             title: const _AgentTitle(),
             actions: [
               IconButton(
-                tooltip: 'Clear chat',
+                tooltip: AppStrings.agentClearChatTooltip,
                 onPressed: isLoading
                     ? null
                     : () => context.read<AgentCubit>().clearChat(),
@@ -140,7 +141,7 @@ class _AgentTitle extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'الاسطا',
+              AppStrings.agentTitle,
               style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 16.sp,
@@ -148,7 +149,7 @@ class _AgentTitle extends StatelessWidget {
               ),
             ),
             Text(
-              'El_osta transit agent',
+              AppStrings.agentSubtitle,
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 11.sp,
@@ -365,7 +366,7 @@ class _Composer extends StatelessWidget {
               textInputAction: TextInputAction.newline,
               style: TextStyle(color: AppColors.textPrimary, fontSize: 14.sp),
               decoration: InputDecoration(
-                hintText: 'اسأل الاسطا عن الطريق...',
+                hintText: AppStrings.agentInputHint,
                 hintStyle: TextStyle(
                   color: AppColors.textTertiary,
                   fontSize: 13.sp,

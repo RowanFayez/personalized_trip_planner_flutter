@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../domain/entities/chat_message.dart';
 
 enum AgentStatus { idle, loading, success, failure }
@@ -21,7 +22,7 @@ class AgentState extends Equatable {
     return AgentState(
       chatHistory: <ChatMessage>[
         ChatMessage(
-          text: 'ازيك عايز تعرف اي من الاسطا ؟',
+          text: AppStrings.agentGreeting,
           isUser: false,
           timestamp: DateTime.now(),
         ),

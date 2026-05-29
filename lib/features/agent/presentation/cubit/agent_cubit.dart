@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/services/location_service.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/repositories/agent_repository.dart';
@@ -49,7 +50,7 @@ class AgentCubit extends Cubit<AgentState> {
       success: (reply) {
         final agentMessage = ChatMessage(
           text: reply.answer.trim().isEmpty
-              ? 'مش قادر اوصل لاجابة دلوقتي، جرب تسألني بطريقة تانية.'
+              ? AppStrings.agentFallbackAnswer
               : reply.answer.trim(),
           isUser: false,
           timestamp: DateTime.now(),
