@@ -49,6 +49,9 @@ class AppStrings {
   static const String agentTyping = 'الاسطا بيفكر';
   static const String agentInputHint = 'اسأل الاسطا عن الطريق...';
   static const String agentClearChatTooltip = 'Clear chat';
+  static const String agentOnline = 'Online';
+  static const String agentLocationError =
+      'برجاء تفعيل الـ GPS وصلاحية الموقع لمساعدة الأسطى في معرفة مكانك.';
   static const String agentFallbackAnswer =
       'مش قادر اوصل لاجابة دلوقتي، جرب تسألني بطريقة تانية.';
 }

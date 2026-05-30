@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../domain/entities/chat_message.dart';
 
-enum AgentStatus { idle, loading, success, failure }
+enum AgentStatus { idle, loading, success, failure, locationError }
 
 class AgentState extends Equatable {
   final List<ChatMessage> chatHistory;
@@ -28,6 +28,17 @@ class AgentState extends Equatable {
         ),
       ],
       status: AgentStatus.idle,
+    );
+  }
+
+  factory AgentState.restored({
+    required List<ChatMessage> chatHistory,
+    required String? currentSessionId,
+  }) {
+    return AgentState(
+      chatHistory: List<ChatMessage>.unmodifiable(chatHistory),
+      status: AgentStatus.idle,
+      currentSessionId: currentSessionId,
     );
   }
 

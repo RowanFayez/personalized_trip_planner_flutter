@@ -8,6 +8,7 @@ import '../services/location_service.dart';
 import '../services/route_preferences_service.dart';
 import '../services/user_activity_service.dart';
 import '../storage/hive/hive_service.dart';
+import '../../features/agent/data/local/agent_local_data_source.dart';
 import '../../features/agent/data/remote/agent_api_service.dart';
 import '../../features/agent/data/repositories/agent_repository_impl.dart';
 import '../../features/agent/domain/repositories/agent_repository.dart';
@@ -58,6 +59,9 @@ class ServiceLocator {
     );
 
     // Agent (data)
+    sl.registerLazySingleton<AgentLocalDataSource>(
+      () => AgentLocalDataSource(),
+    );
     sl.registerLazySingleton<AgentApiService>(() => AgentApiService(sl<Dio>()));
     sl.registerLazySingleton<AgentRepository>(
       () => AgentRepositoryImpl(api: sl<AgentApiService>()),
@@ -90,6 +94,7 @@ class ServiceLocator {
       () => AgentCubit(
         repository: sl<AgentRepository>(),
         locationService: sl<LocationService>(),
+        localDataSource: sl<AgentLocalDataSource>(),
       ),
     );
   }
