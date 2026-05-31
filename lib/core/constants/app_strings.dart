@@ -40,4 +40,18 @@ class AppStrings {
   static const String endpointSearch = '/search';
   static const String endpointStops = '/stops';
   static const String endpointChat = '/chat';
+
+  // AI Agent
+  static const String agentTitle = 'الاسطا';
+  static const String agentSubtitle = 'El_osta transit agent';
+  static const String agentGreeting = 'ازيك عايز تعرف اي من الاسطا ؟';
+  static const String agentPromptTitle = 'اسألني عن أي مشوار';
+  static const String agentTyping = 'الاسطا بيفكر';
+  static const String agentInputHint = 'اسأل الاسطا عن الطريق...';
+  static const String agentClearChatTooltip = 'Clear chat';
+  static const String agentOnline = 'Online';
+  static const String agentLocationError =
+      'برجاء تفعيل الـ GPS وصلاحية الموقع لمساعدة الأسطى في معرفة مكانك.';
+  static const String agentFallbackAnswer =
+      'مش قادر اوصل لاجابة دلوقتي، جرب تسألني بطريقة تانية.';
 }

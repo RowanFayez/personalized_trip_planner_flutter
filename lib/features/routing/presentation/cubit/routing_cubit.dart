@@ -13,7 +13,8 @@ class RoutingCubit extends Cubit<RoutingState> {
   CancelToken? _cancelToken;
   int _requestId = 0;
 
-  static const String _noRouteFoundArabicMessage = 'لا توجد مسارات متاحة';
+  static const String _noRouteFoundArabicMessage =
+      'عفواً، لا توجد مسارات متاحة. حاول تغيير نقطة البداية أو النهاية، أو تعديل تفضيلات البحث.';
 
   RoutingCubit({
     required GetRoutesUseCase getRoutesUseCase,
@@ -47,74 +48,78 @@ class RoutingCubit extends Cubit<RoutingState> {
 
     emit(state.copyWith(status: RoutingStatus.loading, errorMessage: null));
 
-    // Load all preference data at once for cleaner request building
-    final prefData = await _preferencesManager.loadPreferenceData();
-    if (requestId != _requestId || cancelToken.isCancelled) return;
+    try {
+      // Load all preference data at once for cleaner request building
+      final prefData = await _preferencesManager.loadPreferenceData();
+      if (requestId != _requestId || cancelToken.isCancelled) return;
 
-    // Build request with all preferences applied
-    final request = RoutesRequest(
-      startLat: startLat,
-      startLon: startLon,
-      endLat: endLat,
-      endLon: endLon,
-      maxTransfers: prefData.maxTransfers,
-      walkingCutoffMinutes: prefData.walkingCutoffMinutes,
-      priority: prefData.priority,
-      topK: prefData.topK,
-      filters: prefData.filters,
-    );
+      // Build request with all preferences applied
+      final request = RoutesRequest(
+        startLat: startLat,
+        startLon: startLon,
+        endLat: endLat,
+        endLon: endLon,
+        maxTransfers: prefData.maxTransfers,
+        walkingCutoffMinutes: prefData.walkingCutoffMinutes,
+        priority: prefData.priority,
+        topK: prefData.topK,
+        filters: prefData.filters,
+      );
 
-    final result = await _getRoutesUseCase(request, cancelToken: cancelToken);
-    if (requestId != _requestId || cancelToken.isCancelled) return;
+      final result = await _getRoutesUseCase(request, cancelToken: cancelToken);
+      if (requestId != _requestId || cancelToken.isCancelled) return;
 
-    result.when(
-      success: (data) {
-        if (requestId != _requestId || cancelToken.isCancelled) return;
-        final journeys = data.journeys;
-        if (journeys.isEmpty || data.numJourneys == 0) {
+      result.when(
+        success: (data) {
+          if (requestId != _requestId || cancelToken.isCancelled) return;
+          final journeys = data.journeys;
+          if (journeys.isEmpty || data.numJourneys == 0) {
+            _emitNoRoutes();
+            return;
+          }
+
+          final sortedJourneys = _sortJourneys(
+            journeys,
+            priority: request.priority,
+          );
+          final sortedResult = RoutingResult(
+            numJourneys: sortedJourneys.length,
+            journeys: sortedJourneys,
+          );
+
           emit(
             state.copyWith(
-              status: RoutingStatus.failure,
-              result: const RoutingResult(
-                numJourneys: 0,
-                journeys: <Journey>[],
-              ),
-              errorMessage: _noRouteFoundArabicMessage,
+              status: RoutingStatus.success,
+              result: sortedResult,
               selectedJourneyIndex: 0,
             ),
           );
-          return;
-        }
+        },
+        failure: (_) {
+          if (requestId != _requestId || cancelToken.isCancelled) return;
+          _emitNoRoutes();
+        },
+      );
+    } catch (_) {
+      // Catch-all: prevents null-iterator and any other uncaught crashes.
+      if (requestId != _requestId || cancelToken.isCancelled) return;
+      _emitNoRoutes();
+    }
+  }
 
-        final sortedJourneys = _sortJourneys(
-          journeys,
-          priority: request.priority,
-        );
-        final sortedResult = RoutingResult(
-          numJourneys: sortedJourneys.length,
-          journeys: sortedJourneys,
-        );
-
-        emit(
-          state.copyWith(
-            status: RoutingStatus.success,
-            result: sortedResult,
-            selectedJourneyIndex: 0,
-          ),
-        );
-      },
-      failure: (err) {
-        if (requestId != _requestId || cancelToken.isCancelled) return;
-        emit(
-          state.copyWith(
-            status: RoutingStatus.failure,
-            result: const RoutingResult(numJourneys: 0, journeys: <Journey>[]),
-            errorMessage: err.message,
-            selectedJourneyIndex: 0,
-          ),
-        );
-      },
+  void _emitNoRoutes() {
+    emit(
+      state.copyWith(
+        status: RoutingStatus.failure,
+        result: const RoutingResult(numJourneys: 0, journeys: <Journey>[]),
+        errorMessage: _noRouteFoundArabicMessage,
+        selectedJourneyIndex: 0,
+      ),
     );
+  }
+
+  void emitNoRoutes() {
+    _emitNoRoutes();
   }
 
   List<Journey> _sortJourneys(

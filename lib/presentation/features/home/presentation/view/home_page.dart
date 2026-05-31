@@ -82,7 +82,6 @@ class _HomePageState extends State<HomePage> {
   SavedPlaceType? _selectedQuickPlaceTo;
 
   String? _lastRoutesKey;
-  String? _lastRoutingSnackKey;
   String? _lastFromSelectionKey;
   String? _lastToSelectionKey;
 
@@ -465,7 +464,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _handleChatPressed() {
-    // TODO: Open AI chat interface
+    context.push('/agent');
   }
 
   void _handleProfilePressed() {
@@ -579,17 +578,6 @@ class _HomePageState extends State<HomePage> {
       endLat: toLat,
       endLon: toLon,
     );
-  }
-
-  void _showRoutingSnackOnce(String message) {
-    final key = message.trim();
-    if (key.isEmpty) return;
-    if (_lastRoutingSnackKey == key) return;
-    _lastRoutingSnackKey = key;
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   PlaceSearchController get _activeSearchController {
@@ -717,7 +705,6 @@ class _HomePageState extends State<HomePage> {
 
           if (state.status == RoutingStatus.failure) {
             await _mapService.removeRoute('active');
-            _showRoutingSnackOnce(state.errorMessage ?? 'لا توجد مسارات متاحة');
             return;
           }
 
@@ -735,10 +722,7 @@ class _HomePageState extends State<HomePage> {
 
           final journey = state.selectedJourney;
           if (journey == null) {
-            await _mapService.removeRoute('active');
-            _showRoutingSnackOnce(
-              'لا توجد مسارات متاحة وفقاً لتفضيلاتك الحالية.',
-            );
+            context.read<RoutingCubit>().emitNoRoutes();
             return;
           }
 
@@ -761,8 +745,7 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (allPoints.isEmpty) {
-            await _mapService.removeRoute('active');
-            _showRoutingSnackOnce('No route path returned.');
+            context.read<RoutingCubit>().emitNoRoutes();
             return;
           }
 
@@ -891,8 +874,14 @@ class _HomePageState extends State<HomePage> {
                       }
                       _toSearch.onChanged(value);
                     },
-                    onFromSubmitted: (_) => _fromSearch.submit(),
-                    onToSubmitted: (_) => _toSearch.submit(),
+                    onFromSubmitted: (_) async {
+                      await _fromSearch.submit();
+                      _maybeFetchRoutes(force: true);
+                    },
+                    onToSubmitted: (_) async {
+                      await _toSearch.submit();
+                      _maybeFetchRoutes(force: true);
+                    },
                     onFromTapped: () {
                       _fromSearch.onFieldTap();
                       setState(() {});

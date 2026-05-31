@@ -406,8 +406,9 @@ class MapService {
     if (m.contains('mini')) return AppStrings.modeMinibus;
     if (m.contains('bus')) return AppStrings.modeBus;
     if (m.contains('tram')) return AppStrings.modeTram;
-    if (m.contains('tonaya') || m.contains('taxi'))
+    if (m.contains('tonaya') || m.contains('taxi')) {
       return AppStrings.modeTonaya;
+    }
 
     return m;
   }

@@ -8,14 +8,20 @@ import '../models/routes_response_dto.dart';
 class JourneyDtoConverter {
   /// Converts a JourneyDto to a Journey domain entity.
   static Journey toDomain(JourneyDto dto) {
+    // Defensive: guard against null lists even if DTO declares non-null.
+    // The backend may return null for these fields despite the DTO typing.
+    final safeLegs = dto.legs ?? const <RouteLegDto>[]; // ignore: dead_null_aware_expression
+    final safeLabels = dto.labels ?? const <String>[]; // ignore: dead_null_aware_expression
+    final safeLabelsAr = dto.labelsAr ?? const <String>[]; // ignore: dead_null_aware_expression
+
     return Journey(
       summary: _summarytoDomain(dto.summary),
-      legs: dto.legs.map((l) => _legToDomain(l)).toList(growable: false),
+      legs: safeLegs.map((l) => _legToDomain(l)).toList(growable: false),
       textSummary: dto.textSummary,
       textSummaryEn: dto.textSummaryEn,
       id: dto.id,
-      labels: List<String>.unmodifiable(dto.labels),
-      labelsAr: List<String>.unmodifiable(dto.labelsAr),
+      labels: List<String>.unmodifiable(safeLabels),
+      labelsAr: List<String>.unmodifiable(safeLabelsAr),
     );
   }
 
