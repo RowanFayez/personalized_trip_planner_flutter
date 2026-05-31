@@ -74,17 +74,7 @@ class RoutingCubit extends Cubit<RoutingState> {
           if (requestId != _requestId || cancelToken.isCancelled) return;
           final journeys = data.journeys;
           if (journeys.isEmpty || data.numJourneys == 0) {
-            emit(
-              state.copyWith(
-                status: RoutingStatus.failure,
-                result: const RoutingResult(
-                  numJourneys: 0,
-                  journeys: <Journey>[],
-                ),
-                errorMessage: _noRouteFoundArabicMessage,
-                selectedJourneyIndex: 0,
-              ),
-            );
+            _emitNoRoutes();
             return;
           }
 
@@ -105,33 +95,31 @@ class RoutingCubit extends Cubit<RoutingState> {
             ),
           );
         },
-        failure: (err) {
+        failure: (_) {
           if (requestId != _requestId || cancelToken.isCancelled) return;
-          emit(
-            state.copyWith(
-              status: RoutingStatus.failure,
-              result: const RoutingResult(
-                numJourneys: 0,
-                journeys: <Journey>[],
-              ),
-              errorMessage: err.message ?? _noRouteFoundArabicMessage,
-              selectedJourneyIndex: 0,
-            ),
-          );
+          _emitNoRoutes();
         },
       );
     } catch (_) {
       // Catch-all: prevents null-iterator and any other uncaught crashes.
       if (requestId != _requestId || cancelToken.isCancelled) return;
-      emit(
-        state.copyWith(
-          status: RoutingStatus.failure,
-          result: const RoutingResult(numJourneys: 0, journeys: <Journey>[]),
-          errorMessage: _noRouteFoundArabicMessage,
-          selectedJourneyIndex: 0,
-        ),
-      );
+      _emitNoRoutes();
     }
+  }
+
+  void _emitNoRoutes() {
+    emit(
+      state.copyWith(
+        status: RoutingStatus.failure,
+        result: const RoutingResult(numJourneys: 0, journeys: <Journey>[]),
+        errorMessage: _noRouteFoundArabicMessage,
+        selectedJourneyIndex: 0,
+      ),
+    );
+  }
+
+  void emitNoRoutes() {
+    _emitNoRoutes();
   }
 
   List<Journey> _sortJourneys(

@@ -82,7 +82,6 @@ class _HomePageState extends State<HomePage> {
   SavedPlaceType? _selectedQuickPlaceTo;
 
   String? _lastRoutesKey;
-  String? _lastRoutingSnackKey;
   String? _lastFromSelectionKey;
   String? _lastToSelectionKey;
 
@@ -581,17 +580,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showRoutingSnackOnce(String message) {
-    final key = message.trim();
-    if (key.isEmpty) return;
-    if (_lastRoutingSnackKey == key) return;
-    _lastRoutingSnackKey = key;
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
   PlaceSearchController get _activeSearchController {
     if (_toSearch.focusNode.hasFocus) return _toSearch;
     return _fromSearch;
@@ -717,10 +705,6 @@ class _HomePageState extends State<HomePage> {
 
           if (state.status == RoutingStatus.failure) {
             await _mapService.removeRoute('active');
-            _showRoutingSnackOnce(
-              state.errorMessage ??
-                  'عفواً، لا توجد مسارات متاحة. حاول تغيير نقطة البداية أو النهاية، أو تعديل تفضيلات البحث.',
-            );
             return;
           }
 
@@ -738,10 +722,7 @@ class _HomePageState extends State<HomePage> {
 
           final journey = state.selectedJourney;
           if (journey == null) {
-            await _mapService.removeRoute('active');
-            _showRoutingSnackOnce(
-              'لا توجد مسارات متاحة وفقاً لتفضيلاتك الحالية.',
-            );
+            context.read<RoutingCubit>().emitNoRoutes();
             return;
           }
 
@@ -764,8 +745,7 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (allPoints.isEmpty) {
-            await _mapService.removeRoute('active');
-            _showRoutingSnackOnce('No route path returned.');
+            context.read<RoutingCubit>().emitNoRoutes();
             return;
           }
 
