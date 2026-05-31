@@ -36,8 +36,7 @@ extension RoutesRequestDtoMapper on RoutesRequest {
 extension RoutesResponseMapper on RoutesResponseDto {
   RoutingResult toEntity() {
     // Defensive: guard against null journeys even if DTO declares non-null.
-    // ignore: unnecessary_null_comparison
-    final safeJourneys = journeys ?? const <JourneyDto>[];
+    final safeJourneys = journeys ?? const <JourneyDto>[]; // ignore: dead_null_aware_expression
     return RoutingResult(
       numJourneys: numJourneys,
       journeys: safeJourneys.map((j) => j.toEntity()).toList(growable: false),
@@ -48,12 +47,9 @@ extension RoutesResponseMapper on RoutesResponseDto {
 extension JourneyMapper on JourneyDto {
   Journey toEntity() {
     // Defensive: guard against null lists even if DTO declares non-null.
-    // ignore: unnecessary_null_comparison
-    final safeLegs = legs ?? const <RouteLegDto>[];
-    // ignore: unnecessary_null_comparison
-    final safeLabels = labels ?? const <String>[];
-    // ignore: unnecessary_null_comparison
-    final safeLabelsAr = labelsAr ?? const <String>[];
+    final safeLegs = legs ?? const <RouteLegDto>[]; // ignore: dead_null_aware_expression
+    final safeLabels = labels ?? const <String>[]; // ignore: dead_null_aware_expression
+    final safeLabelsAr = labelsAr ?? const <String>[]; // ignore: dead_null_aware_expression
 
     return Journey(
       summary: summary.toEntity(),

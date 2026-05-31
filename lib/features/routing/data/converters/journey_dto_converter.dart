@@ -9,12 +9,10 @@ class JourneyDtoConverter {
   /// Converts a JourneyDto to a Journey domain entity.
   static Journey toDomain(JourneyDto dto) {
     // Defensive: guard against null lists even if DTO declares non-null.
-    // ignore: unnecessary_null_comparison
-    final safeLegs = dto.legs ?? const <RouteLegDto>[];
-    // ignore: unnecessary_null_comparison
-    final safeLabels = dto.labels ?? const <String>[];
-    // ignore: unnecessary_null_comparison
-    final safeLabelsAr = dto.labelsAr ?? const <String>[];
+    // The backend may return null for these fields despite the DTO typing.
+    final safeLegs = dto.legs ?? const <RouteLegDto>[]; // ignore: dead_null_aware_expression
+    final safeLabels = dto.labels ?? const <String>[]; // ignore: dead_null_aware_expression
+    final safeLabelsAr = dto.labelsAr ?? const <String>[]; // ignore: dead_null_aware_expression
 
     return Journey(
       summary: _summarytoDomain(dto.summary),
