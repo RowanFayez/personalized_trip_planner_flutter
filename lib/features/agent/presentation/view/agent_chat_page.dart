@@ -129,10 +129,13 @@ class _AgentTitle extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: AppColors.border),
           ),
-          child: Icon(
-            Icons.auto_awesome_rounded,
-            color: AppColors.primaryTeal,
-            size: 20.r,
+          child: ClipOval(
+            child: Image.asset(
+              'assets/images/osta_avatar.png',
+              width: 38.r,
+              height: 38.r,
+              fit: BoxFit.cover,
+            ),
           ),
         ),
         SizedBox(width: 10.w),
