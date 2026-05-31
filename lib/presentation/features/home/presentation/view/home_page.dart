@@ -1007,27 +1007,11 @@ class _NearbySearchFab extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        SvgPicture.asset(
-                          'assets/icons/bus.svg',
-                          width: 24.r,
-                          height: 24.r,
-                          colorFilter: const ColorFilter.mode(
-                            Colors.white,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: SvgPicture.asset(
-                            'assets/icons/interactive-search.svg',
-                            width: 14.r,
-                            height: 14.r,
-                            colorFilter: const ColorFilter.mode(
-                              Colors.white,
-                              BlendMode.srcIn,
-                            ),
-                          ),
+                        Image.asset(
+                          'assets/icons/nearbytrips.png',
+                          width: 40.r,
+                          height: 40.r,
+                          fit: BoxFit.contain,
                         ),
                       ],
                     ),
