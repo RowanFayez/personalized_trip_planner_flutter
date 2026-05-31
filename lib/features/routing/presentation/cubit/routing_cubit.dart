@@ -110,7 +110,10 @@ class RoutingCubit extends Cubit<RoutingState> {
           emit(
             state.copyWith(
               status: RoutingStatus.failure,
-              result: const RoutingResult(numJourneys: 0, journeys: <Journey>[]),
+              result: const RoutingResult(
+                numJourneys: 0,
+                journeys: <Journey>[],
+              ),
               errorMessage: err.message ?? _noRouteFoundArabicMessage,
               selectedJourneyIndex: 0,
             ),

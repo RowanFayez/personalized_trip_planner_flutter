@@ -717,7 +717,10 @@ class _HomePageState extends State<HomePage> {
 
           if (state.status == RoutingStatus.failure) {
             await _mapService.removeRoute('active');
-            _showRoutingSnackOnce(state.errorMessage ?? 'عفواً، لا توجد مسارات متاحة. حاول تغيير نقطة البداية أو النهاية، أو تعديل تفضيلات البحث.');
+            _showRoutingSnackOnce(
+              state.errorMessage ??
+                  'عفواً، لا توجد مسارات متاحة. حاول تغيير نقطة البداية أو النهاية، أو تعديل تفضيلات البحث.',
+            );
             return;
           }
 
