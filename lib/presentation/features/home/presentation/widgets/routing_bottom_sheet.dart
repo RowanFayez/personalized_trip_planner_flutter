@@ -160,12 +160,16 @@ class _SheetContent extends StatelessWidget {
           controller: scrollController,
           padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
           children: [
-            Text(
-              state.errorMessage ?? 'حدث خطأ ما.',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: Text(
+                state.errorMessage ??
+                    'عفواً، لا توجد مسارات متاحة. حاول تغيير نقطة البداية أو النهاية، أو تعديل تفضيلات البحث.',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             SizedBox(height: 12.h),

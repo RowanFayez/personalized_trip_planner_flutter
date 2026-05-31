@@ -717,7 +717,7 @@ class _HomePageState extends State<HomePage> {
 
           if (state.status == RoutingStatus.failure) {
             await _mapService.removeRoute('active');
-            _showRoutingSnackOnce(state.errorMessage ?? 'لا توجد مسارات متاحة');
+            _showRoutingSnackOnce(state.errorMessage ?? 'عفواً، لا توجد مسارات متاحة. حاول تغيير نقطة البداية أو النهاية، أو تعديل تفضيلات البحث.');
             return;
           }
 
@@ -891,8 +891,14 @@ class _HomePageState extends State<HomePage> {
                       }
                       _toSearch.onChanged(value);
                     },
-                    onFromSubmitted: (_) => _fromSearch.submit(),
-                    onToSubmitted: (_) => _toSearch.submit(),
+                    onFromSubmitted: (_) async {
+                      await _fromSearch.submit();
+                      _maybeFetchRoutes(force: true);
+                    },
+                    onToSubmitted: (_) async {
+                      await _toSearch.submit();
+                      _maybeFetchRoutes(force: true);
+                    },
                     onFromTapped: () {
                       _fromSearch.onFieldTap();
                       setState(() {});

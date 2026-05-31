@@ -57,8 +57,19 @@ class AgentCubit extends Cubit<AgentState> {
 
     final backendQuery = await _buildLocationAwareQuery(userText);
     if (backendQuery == null) {
+      // Rollback the user message on location failure.
+      final rolledBackHistory = List<ChatMessage>.unmodifiable(
+        state.chatHistory.length > 1
+            ? state.chatHistory.sublist(0, state.chatHistory.length - 1)
+            : state.chatHistory,
+      );
+      await _persistConversation(
+        chatHistory: rolledBackHistory,
+        sessionId: state.currentSessionId,
+      );
       emit(
         state.copyWith(
+          chatHistory: rolledBackHistory,
           status: AgentStatus.locationError,
           errorMessage: AppStrings.agentLocationError,
         ),
@@ -102,8 +113,22 @@ class AgentCubit extends Cubit<AgentState> {
         );
       },
       failure: (error) async {
+        // Rollback the user message on failure so it vanishes from the chat.
+        final rolledBackHistory = List<ChatMessage>.unmodifiable(
+          state.chatHistory.length > 1
+              ? state.chatHistory.sublist(0, state.chatHistory.length - 1)
+              : state.chatHistory,
+        );
+
+        // Sync the rolled-back history to local cache immediately.
+        await _persistConversation(
+          chatHistory: rolledBackHistory,
+          sessionId: state.currentSessionId,
+        );
+
         emit(
           state.copyWith(
+            chatHistory: rolledBackHistory,
             status: AgentStatus.failure,
             errorMessage: error.message,
           ),
