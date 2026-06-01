@@ -487,10 +487,7 @@ class _HomePageState extends State<HomePage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          _guestRoutingMessage,
-          textDirection: TextDirection.rtl,
-        ),
+        content: Text(_guestRoutingMessage, textDirection: TextDirection.rtl),
       ),
     );
 

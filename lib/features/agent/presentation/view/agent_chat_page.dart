@@ -138,8 +138,12 @@ class _AgentChatPageState extends State<AgentChatPage> {
                       child: signedIn
                           ? ListView.builder(
                               controller: _scrollController,
-                              padding:
-                                  EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 14.h),
+                              padding: EdgeInsets.fromLTRB(
+                                16.w,
+                                10.h,
+                                16.w,
+                                14.h,
+                              ),
                               itemCount: itemCount,
                               itemBuilder: (context, index) {
                                 if (isLoading && index == itemCount - 1) {
@@ -487,4 +491,3 @@ class _Composer extends StatelessWidget {
     );
   }
 }
-
