@@ -10,13 +10,7 @@ class AgentQueryChipsBar extends StatelessWidget {
   const AgentQueryChipsBar({
     super.key,
     required this.onQuerySelected,
-    this.queries = const [
-      'اروح ازاي رنين السيوف من سابا باشا',
-      'عايز أروح سيدي جابر بس من غير ما أعدي على البحر؟',
-      'إيه أسرع طريق يوديني عزبة سعد ؟',
-      'أجرة المشروع من فيكتوريا لمحطة الرمل كام؟',
-      'هل طريق الكورنيش زحمة دلوقتي عند جليم؟',
-    ],
+    required this.queries,
   });
 
   @override

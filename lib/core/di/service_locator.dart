@@ -95,6 +95,7 @@ class ServiceLocator {
         repository: sl<AgentRepository>(),
         locationService: sl<LocationService>(),
         localDataSource: sl<AgentLocalDataSource>(),
+        authService: sl<AuthService>(),
       ),
     );
   }

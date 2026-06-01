@@ -85,6 +85,10 @@ class _HomePageState extends State<HomePage> {
   String? _lastFromSelectionKey;
   String? _lastToSelectionKey;
 
+  bool _isShowingSignInDialog = false;
+  static const String _guestRoutingMessage =
+      'عذراً، يجب تسجيل الدخول أولاً لاستخدام هذه الميزة.';
+
   @override
   void initState() {
     super.initState();
@@ -477,6 +481,23 @@ class _HomePageState extends State<HomePage> {
     showGoogleSignInDialog(context);
   }
 
+  Future<void> _promptSignInForRouting() async {
+    if (!mounted || _isShowingSignInDialog) return;
+    _isShowingSignInDialog = true;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _guestRoutingMessage,
+          textDirection: TextDirection.rtl,
+        ),
+      ),
+    );
+
+    await showGoogleSignInDialog(context);
+    _isShowingSignInDialog = false;
+  }
+
   Future<bool> _ensureSignedIn() async {
     final token = await _authService.getIdToken();
     if (_authService.currentUser != null &&
@@ -486,7 +507,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     if (!mounted) return false;
-    await showGoogleSignInDialog(context);
+    await _promptSignInForRouting();
     if (!mounted) return false;
     final refreshedToken = await _authService.getIdToken(forceRefresh: true);
     return _authService.currentUser != null &&
@@ -863,33 +884,58 @@ class _HomePageState extends State<HomePage> {
                     fromFocusNode: _fromSearch.focusNode,
                     toFocusNode: _toSearch.focusNode,
                     onFromChanged: (value) {
+                      if (!signedIn) {
+                        _promptSignInForRouting();
+                        return;
+                      }
                       if (_selectedQuickPlaceFrom != null) {
                         setState(() => _selectedQuickPlaceFrom = null);
                       }
                       _fromSearch.onChanged(value);
                     },
                     onToChanged: (value) {
+                      if (!signedIn) {
+                        _promptSignInForRouting();
+                        return;
+                      }
                       if (_selectedQuickPlaceTo != null) {
                         setState(() => _selectedQuickPlaceTo = null);
                       }
                       _toSearch.onChanged(value);
                     },
                     onFromSubmitted: (_) async {
+                      if (!signedIn) {
+                        await _promptSignInForRouting();
+                        return;
+                      }
                       await _fromSearch.submit();
                       _maybeFetchRoutes(force: true);
                     },
                     onToSubmitted: (_) async {
+                      if (!signedIn) {
+                        await _promptSignInForRouting();
+                        return;
+                      }
                       await _toSearch.submit();
                       _maybeFetchRoutes(force: true);
                     },
                     onFromTapped: () {
+                      if (!signedIn) {
+                        _promptSignInForRouting();
+                        return;
+                      }
                       _fromSearch.onFieldTap();
                       setState(() {});
                     },
                     onToTapped: () {
+                      if (!signedIn) {
+                        _promptSignInForRouting();
+                        return;
+                      }
                       _toSearch.onFieldTap();
                       setState(() {});
                     },
+                    inputsEnabled: signedIn,
                     showQuickPlaces:
                         signedIn &&
                         (_fromSearch.focusNode.hasFocus ||
@@ -904,12 +950,20 @@ class _HomePageState extends State<HomePage> {
                     fromSuggestions: _fromSearch.suggestions,
                     toSuggestions: _toSearch.suggestions,
                     onFromSuggestionSelected: (s) async {
+                      if (!signedIn) {
+                        await _promptSignInForRouting();
+                        return;
+                      }
                       if (_selectedQuickPlaceFrom != null) {
                         setState(() => _selectedQuickPlaceFrom = null);
                       }
                       await _fromSearch.selectSuggestion(s);
                     },
                     onToSuggestionSelected: (s) async {
+                      if (!signedIn) {
+                        await _promptSignInForRouting();
+                        return;
+                      }
                       if (_selectedQuickPlaceTo != null) {
                         setState(() => _selectedQuickPlaceTo = null);
                       }
@@ -917,9 +971,27 @@ class _HomePageState extends State<HomePage> {
                     },
                     showFromSuggestions: _fromSearch.showSuggestions,
                     showToSuggestions: _toSearch.showSuggestions,
-                    onPreferencesPressed: _handlePreferencesPressed,
-                    onFromMapPressed: _handleFromMapPick,
-                    onToMapPressed: _handleToMapPick,
+                    onPreferencesPressed: () {
+                      if (!signedIn) {
+                        _promptSignInForRouting();
+                        return;
+                      }
+                      _handlePreferencesPressed();
+                    },
+                    onFromMapPressed: () {
+                      if (!signedIn) {
+                        _promptSignInForRouting();
+                        return;
+                      }
+                      _handleFromMapPick();
+                    },
+                    onToMapPressed: () {
+                      if (!signedIn) {
+                        _promptSignInForRouting();
+                        return;
+                      }
+                      _handleToMapPick();
+                    },
                   );
                 },
               ),

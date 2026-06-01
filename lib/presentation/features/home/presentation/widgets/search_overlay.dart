@@ -20,6 +20,7 @@ class SearchOverlay extends StatelessWidget {
   final ValueChanged<String> onToSubmitted;
   final VoidCallback onFromTapped;
   final VoidCallback onToTapped;
+  final bool inputsEnabled;
   final bool showQuickPlaces;
   final bool showQuickPlacesUnderFrom;
   final String? signedInUserId;
@@ -49,6 +50,7 @@ class SearchOverlay extends StatelessWidget {
     required this.onToSubmitted,
     required this.onFromTapped,
     required this.onToTapped,
+    required this.inputsEnabled,
     required this.showQuickPlaces,
     required this.showQuickPlacesUnderFrom,
     required this.signedInUserId,
@@ -161,6 +163,7 @@ class SearchOverlay extends StatelessWidget {
               onChanged: onFromChanged,
               textInputAction: TextInputAction.search,
               onSubmitted: onFromSubmitted,
+              enabled: inputsEnabled,
               suffixWidget: fromFocusNode.hasFocus
                   ? SvgPicture.asset('assets/icons/map.svg')
                   : null,
@@ -199,6 +202,7 @@ class SearchOverlay extends StatelessWidget {
               onChanged: onToChanged,
               textInputAction: TextInputAction.search,
               onSubmitted: onToSubmitted,
+              enabled: inputsEnabled,
               suffixWidget: toFocusNode.hasFocus
                   ? SvgPicture.asset('assets/icons/map.svg')
                   : null,

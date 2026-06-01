@@ -6,9 +6,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/auth_service.dart';
 import '../cubit/agent_cubit.dart';
 import '../cubit/agent_state.dart';
 import '../widgets/agent_query_chips_bar.dart';
+import '../widgets/agent_sign_in_gate.dart';
+import '../../../../presentation/features/auth/presentation/widgets/google_sign_in_dialog.dart';
 
 class AgentChatPage extends StatefulWidget {
   const AgentChatPage({super.key});
@@ -20,6 +24,14 @@ class AgentChatPage extends StatefulWidget {
 class _AgentChatPageState extends State<AgentChatPage> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final AuthService _authService = sl<AuthService>();
+  bool _isShowingSignInDialog = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
 
   @override
   void dispose() {
@@ -29,6 +41,10 @@ class _AgentChatPageState extends State<AgentChatPage> {
   }
 
   void _send() {
+    if (_authService.uid == null) {
+      _promptSignInForChat();
+      return;
+    }
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
@@ -37,12 +53,33 @@ class _AgentChatPageState extends State<AgentChatPage> {
   }
 
   void _sendSuggestedQuery(String query) {
+    if (_authService.uid == null) {
+      _promptSignInForChat();
+      return;
+    }
     final text = query.trim();
     if (text.isEmpty) return;
 
     FocusScope.of(context).unfocus();
     _controller.clear();
     context.read<AgentCubit>().sendMessage(text);
+  }
+
+  Future<void> _promptSignInForChat() async {
+    if (!mounted || _isShowingSignInDialog) return;
+    _isShowingSignInDialog = true;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppStrings.agentSignInRequired,
+          textDirection: TextDirection.rtl,
+        ),
+      ),
+    );
+
+    await showGoogleSignInDialog(context);
+    _isShowingSignInDialog = false;
   }
 
   void _scrollToBottom() {
@@ -58,72 +95,87 @@ class _AgentChatPageState extends State<AgentChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AgentCubit, AgentState>(
-      listenWhen: (previous, current) =>
-          previous.chatHistory.length != current.chatHistory.length ||
-          previous.status != current.status,
-      listener: (context, state) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-      },
-      builder: (context, state) {
-        final isLoading = state.status == AgentStatus.loading;
-        final itemCount = state.chatHistory.length + (isLoading ? 1 : 0);
+    return StreamBuilder<Object?>(
+      stream: _authService.authStateChanges(),
+      builder: (context, _) {
+        final signedIn = _authService.uid != null;
 
-        return Scaffold(
-          backgroundColor: AppColors.backgroundDark,
-          appBar: AppBar(
-            backgroundColor: AppColors.backgroundDark,
-            elevation: 0,
-            titleSpacing: 0,
-            title: const _AgentTitle(),
-            actions: [
-              IconButton(
-                tooltip: AppStrings.agentClearChatTooltip,
-                onPressed: isLoading
-                    ? null
-                    : () => context.read<AgentCubit>().clearChat(),
-                icon: Icon(Icons.refresh_rounded, size: 22.r),
+        return BlocConsumer<AgentCubit, AgentState>(
+          listenWhen: (previous, current) =>
+              previous.chatHistory.length != current.chatHistory.length ||
+              previous.status != current.status,
+          listener: (context, state) {
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _scrollToBottom(),
+            );
+          },
+          builder: (context, state) {
+            final isLoading = signedIn && state.status == AgentStatus.loading;
+            final itemCount = state.chatHistory.length + (isLoading ? 1 : 0);
+
+            return Scaffold(
+              backgroundColor: AppColors.backgroundDark,
+              appBar: AppBar(
+                backgroundColor: AppColors.backgroundDark,
+                elevation: 0,
+                titleSpacing: 0,
+                title: const _AgentTitle(),
+                actions: [
+                  IconButton(
+                    tooltip: AppStrings.agentClearChatTooltip,
+                    onPressed: signedIn && !isLoading
+                        ? () => context.read<AgentCubit>().clearChat()
+                        : null,
+                    icon: Icon(Icons.refresh_rounded, size: 22.r),
+                  ),
+                  SizedBox(width: 6.w),
+                ],
               ),
-              SizedBox(width: 6.w),
-            ],
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 14.h),
-                    itemCount: itemCount,
-                    itemBuilder: (context, index) {
-                      if (isLoading && index == itemCount - 1) {
-                        return const _TypingBubble();
-                      }
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: signedIn
+                          ? ListView.builder(
+                              controller: _scrollController,
+                              padding:
+                                  EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 14.h),
+                              itemCount: itemCount,
+                              itemBuilder: (context, index) {
+                                if (isLoading && index == itemCount - 1) {
+                                  return const _TypingBubble();
+                                }
 
-                      return _MessageBubble(
-                        message: state.chatHistory[index].text,
-                        isUser: state.chatHistory[index].isUser,
-                      );
-                    },
-                  ),
+                                return _MessageBubble(
+                                  message: state.chatHistory[index].text,
+                                  isUser: state.chatHistory[index].isUser,
+                                );
+                              },
+                            )
+                          : AgentSignInGate(onSignIn: _promptSignInForChat),
+                    ),
+                    if (signedIn &&
+                        state.status == AgentStatus.failure &&
+                        (state.errorMessage ?? '').trim().isNotEmpty)
+                      _ErrorStrip(message: state.errorMessage!.trim()),
+                    if (signedIn)
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 8.h),
+                        child: AgentQueryChipsBar(
+                          onQuerySelected: _sendSuggestedQuery,
+                          queries: AppStrings.agentSuggestedQueries,
+                        ),
+                      ),
+                    _Composer(
+                      controller: _controller,
+                      enabled: signedIn && !isLoading,
+                      onSend: _send,
+                    ),
+                  ],
                 ),
-                if (state.status == AgentStatus.failure &&
-                    (state.errorMessage ?? '').trim().isNotEmpty)
-                  _ErrorStrip(message: state.errorMessage!.trim()),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 8.h),
-                  child: AgentQueryChipsBar(
-                    onQuerySelected: _sendSuggestedQuery,
-                  ),
-                ),
-                _Composer(
-                  controller: _controller,
-                  enabled: !isLoading,
-                  onSend: _send,
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
