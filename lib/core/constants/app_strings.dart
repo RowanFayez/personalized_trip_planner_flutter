@@ -54,4 +54,16 @@ class AppStrings {
       'برجاء تفعيل الـ GPS وصلاحية الموقع لمساعدة الأسطى في معرفة مكانك.';
   static const String agentFallbackAnswer =
       'مش قادر اوصل لاجابة دلوقتي، جرب تسألني بطريقة تانية.';
+  static const String agentSignInRequired =
+      'عذراً، يجب تسجيل الدخول أولاً لاستخدام الدردشة.';
+  static const String agentSignInGateMessage =
+      'سجّل الدخول لاستخدام دردشة المساعد وحفظ محادثاتك.';
+  static const String agentSignInButton = 'تسجيل الدخول';
+  static const List<String> agentSuggestedQueries = <String>[
+    'اروح ازاي رنين السيوف من سابا باشا',
+    'عايز أروح سيدي جابر بس من غير ما أعدي على البحر؟',
+    'إيه أسرع طريق يوديني عزبة سعد ؟',
+    'أجرة المشروع من فيكتوريا لمحطة الرمل كام؟',
+    'هل طريق الكورنيش زحمة دلوقتي عند جليم؟',
+  ];
 }

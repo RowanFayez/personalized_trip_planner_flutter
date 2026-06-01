@@ -17,6 +17,7 @@ class SearchInputField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final Widget? suffixWidget;
   final VoidCallback? onSuffixTap;
+  final bool enabled;
 
   const SearchInputField({
     super.key,
@@ -32,6 +33,7 @@ class SearchInputField extends StatelessWidget {
     this.onSubmitted,
     this.suffixWidget,
     this.onSuffixTap,
+    this.enabled = true,
   });
 
   @override
@@ -63,6 +65,9 @@ class SearchInputField extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 focusNode: focusNode,
+                readOnly: !enabled,
+                enableInteractiveSelection: enabled,
+                showCursor: enabled,
                 onTap: onTap,
                 onChanged: onChanged,
                 textInputAction: textInputAction,

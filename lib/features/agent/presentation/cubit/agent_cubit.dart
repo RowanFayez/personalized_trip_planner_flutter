@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/location_service.dart';
 import '../../data/local/agent_local_data_source.dart';
 import '../../domain/entities/chat_message.dart';
@@ -13,21 +14,40 @@ class AgentCubit extends Cubit<AgentState> {
   final AgentRepository _repository;
   final LocationService _locationService;
   final AgentLocalDataSource _localDataSource;
+  final AuthService _authService;
   late final Future<void> _restoreFuture;
+  StreamSubscription<dynamic>? _authSub;
+  String? _activeUserId;
 
   AgentCubit({
     required AgentRepository repository,
     required LocationService locationService,
     required AgentLocalDataSource localDataSource,
+    required AuthService authService,
   }) : _repository = repository,
        _locationService = locationService,
        _localDataSource = localDataSource,
+       _authService = authService,
        super(AgentState.initial()) {
-    _restoreFuture = _restoreConversation();
+    _activeUserId = _authService.uid;
+    _restoreFuture = _restoreConversationForUser(_activeUserId);
+    _authSub = _authService.authStateChanges().listen(_handleAuthChange);
+  }
+
+  @override
+  Future<void> close() {
+    _authSub?.cancel();
+    _authSub = null;
+    return super.close();
   }
 
   Future<void> sendMessage(String text) async {
     await _restoreFuture;
+
+    final userId = _activeUserId ?? _authService.uid;
+    if (userId == null || userId.trim().isEmpty) {
+      return;
+    }
 
     final userText = text.trim();
     if (userText.isEmpty || state.status == AgentStatus.loading) return;
@@ -51,6 +71,7 @@ class AgentCubit extends Cubit<AgentState> {
       ),
     );
     await _persistConversation(
+      userId: userId,
       chatHistory: historyWithUserMessage,
       sessionId: state.currentSessionId,
     );
@@ -64,6 +85,7 @@ class AgentCubit extends Cubit<AgentState> {
             : state.chatHistory,
       );
       await _persistConversation(
+        userId: userId,
         chatHistory: rolledBackHistory,
         sessionId: state.currentSessionId,
       );
@@ -108,6 +130,7 @@ class AgentCubit extends Cubit<AgentState> {
           ),
         );
         await _persistConversation(
+          userId: userId,
           chatHistory: historyWithAgentMessage,
           sessionId: nextSessionId,
         );
@@ -122,6 +145,7 @@ class AgentCubit extends Cubit<AgentState> {
 
         // Sync the rolled-back history to local cache immediately.
         await _persistConversation(
+          userId: userId,
           chatHistory: rolledBackHistory,
           sessionId: state.currentSessionId,
         );
@@ -140,17 +164,31 @@ class AgentCubit extends Cubit<AgentState> {
   Future<void> clearChat() async {
     final initial = AgentState.initial();
     emit(initial);
+    final userId = _activeUserId ?? _authService.uid;
+    if (userId == null || userId.trim().isEmpty) return;
     await _persistConversation(
+      userId: userId,
       chatHistory: initial.chatHistory,
       sessionId: null,
     );
   }
 
-  Future<void> _restoreConversation() async {
-    final cachedHistory = await _safeLoadChatHistory();
-    final cachedSessionId = await _safeLoadSessionId();
+  Future<void> _restoreConversationForUser(String? userId) async {
+    final normalized = userId?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      emit(AgentState.initial());
+      return;
+    }
 
-    if (isClosed || cachedHistory.isEmpty) return;
+    await _localDataSource.migrateLegacyIfNeeded(userId: normalized);
+    final cachedHistory = await _safeLoadChatHistory(normalized);
+    final cachedSessionId = await _safeLoadSessionId(normalized);
+
+    if (isClosed) return;
+    if (cachedHistory.isEmpty) {
+      emit(AgentState.initial());
+      return;
+    }
 
     emit(
       AgentState.restored(
@@ -172,11 +210,13 @@ class AgentCubit extends Cubit<AgentState> {
   }
 
   Future<void> _persistConversation({
+    required String userId,
     required List<ChatMessage> chatHistory,
     required String? sessionId,
   }) async {
     try {
       await _localDataSource.saveConversation(
+        userId: userId,
         chatHistory: chatHistory,
         sessionId: sessionId,
       );
@@ -185,19 +225,26 @@ class AgentCubit extends Cubit<AgentState> {
     }
   }
 
-  Future<List<ChatMessage>> _safeLoadChatHistory() async {
+  Future<List<ChatMessage>> _safeLoadChatHistory(String userId) async {
     try {
-      return _localDataSource.loadChatHistory();
+      return _localDataSource.loadChatHistory(userId: userId);
     } catch (_) {
       return const <ChatMessage>[];
     }
   }
 
-  Future<String?> _safeLoadSessionId() async {
+  Future<String?> _safeLoadSessionId(String userId) async {
     try {
-      return _localDataSource.loadSessionId();
+      return _localDataSource.loadSessionId(userId: userId);
     } catch (_) {
       return null;
     }
+  }
+
+  void _handleAuthChange(dynamic user) {
+    final nextUserId = _authService.uid;
+    if (nextUserId == _activeUserId) return;
+    _activeUserId = nextUserId;
+    _restoreFuture = _restoreConversationForUser(nextUserId);
   }
 }
