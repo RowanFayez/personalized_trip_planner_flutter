@@ -8,6 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../cubit/agent_cubit.dart';
 import '../cubit/agent_state.dart';
+import '../widgets/agent_query_chips_bar.dart';
 
 class AgentChatPage extends StatefulWidget {
   const AgentChatPage({super.key});
@@ -31,6 +32,15 @@ class _AgentChatPageState extends State<AgentChatPage> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
+    _controller.clear();
+    context.read<AgentCubit>().sendMessage(text);
+  }
+
+  void _sendSuggestedQuery(String query) {
+    final text = query.trim();
+    if (text.isEmpty) return;
+
+    FocusScope.of(context).unfocus();
     _controller.clear();
     context.read<AgentCubit>().sendMessage(text);
   }
@@ -100,6 +110,12 @@ class _AgentChatPageState extends State<AgentChatPage> {
                 if (state.status == AgentStatus.failure &&
                     (state.errorMessage ?? '').trim().isNotEmpty)
                   _ErrorStrip(message: state.errorMessage!.trim()),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 8.h),
+                  child: AgentQueryChipsBar(
+                    onQuerySelected: _sendSuggestedQuery,
+                  ),
+                ),
                 _Composer(
                   controller: _controller,
                   enabled: !isLoading,
@@ -419,3 +435,4 @@ class _Composer extends StatelessWidget {
     );
   }
 }
+
