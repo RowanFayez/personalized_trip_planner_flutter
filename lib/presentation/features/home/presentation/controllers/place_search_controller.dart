@@ -6,6 +6,8 @@ import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 
 class PlaceSearchController extends ChangeNotifier {
+  static const Duration _autocompleteDebounce = Duration(milliseconds: 350);
+
   final MapboxGeocodingService _geocodingService;
   final MapService _mapService;
   final String _markerId;
@@ -65,7 +67,7 @@ class PlaceSearchController extends ChangeNotifier {
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 800), () async {
+    _debounce = Timer(_autocompleteDebounce, () async {
       final results = await _geocodingService.autocomplete(
         query: query,
         country: 'EG',

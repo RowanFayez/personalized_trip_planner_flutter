@@ -11,8 +11,13 @@ import '../constants/app_strings.dart';
 class MapRouteSegment {
   final String mode;
   final List<Position> coordinates;
+  final bool isDashedConnector;
 
-  const MapRouteSegment({required this.mode, required this.coordinates});
+  const MapRouteSegment({
+    required this.mode,
+    required this.coordinates,
+    this.isDashedConnector = false,
+  });
 }
 
 /// Service for managing Mapbox map operations
@@ -177,6 +182,7 @@ class MapService {
     if (usableSegments.isEmpty) return;
 
     final lineFeatures = <Map<String, dynamic>>[];
+    final dashedLineFeatures = <Map<String, dynamic>>[];
     final pointFeatures = <Map<String, dynamic>>[];
 
     for (final segment in usableSegments) {
@@ -185,14 +191,21 @@ class MapService {
           .map((p) => <double>[p.lng.toDouble(), p.lat.toDouble()])
           .toList(growable: false);
 
-      lineFeatures.add({
+      final feature = {
         'type': 'Feature',
         'properties': <String, dynamic>{'mode': mode},
         'geometry': <String, dynamic>{
           'type': 'LineString',
           'coordinates': coords,
         },
-      });
+      };
+
+      if (segment.isDashedConnector) {
+        dashedLineFeatures.add(feature);
+        continue;
+      }
+
+      lineFeatures.add(feature);
 
       if (_svgAssetForMode(mode) != null) {
         pointFeatures.add({
@@ -210,6 +223,10 @@ class MapService {
       'type': 'FeatureCollection',
       'features': lineFeatures,
     };
+    final dashedLineCollection = {
+      'type': 'FeatureCollection',
+      'features': dashedLineFeatures,
+    };
     final pointCollection = {
       'type': 'FeatureCollection',
       'features': pointFeatures,
@@ -219,30 +236,63 @@ class MapService {
 
     final routeSourceId = '${id}_route_source';
     final routeLayerId = '${id}_route_layer';
+    final connectorSourceId = '${id}_route_connectors_source';
+    final connectorLayerId = '${id}_route_connectors_layer';
     final pointSourceId = '${id}_route_points_source';
     final pointCircleLayerId = '${id}_route_points_circle_layer';
 
-    try {
-      await _mapboxMap!.style.addSource(
-        GeoJsonSource(id: routeSourceId, data: jsonEncode(lineCollection)),
-      );
-    } catch (e) {
-      // Source might already exist
+    if (dashedLineFeatures.isNotEmpty) {
+      try {
+        await _mapboxMap!.style.addSource(
+          GeoJsonSource(
+            id: connectorSourceId,
+            data: jsonEncode(dashedLineCollection),
+          ),
+        );
+      } catch (e) {
+        // Source might already exist
+      }
+
+      try {
+        await _mapboxMap!.style.addLayer(
+          LineLayer(
+            id: connectorLayerId,
+            sourceId: connectorSourceId,
+            lineWidth: width * 0.72,
+            lineCap: LineCap.ROUND,
+            lineJoin: LineJoin.ROUND,
+            lineColor: AppColors.textSecondary.toARGB32(),
+            lineDasharray: const <double?>[0.6, 1.4],
+          ),
+        );
+      } catch (e) {
+        // Layer might already exist
+      }
     }
 
-    try {
-      await _mapboxMap!.style.addLayer(
-        LineLayer(
-          id: routeLayerId,
-          sourceId: routeSourceId,
-          lineWidth: width,
-          lineCap: LineCap.ROUND,
-          lineJoin: LineJoin.ROUND,
-          lineColorExpression: _modeToColorExpression(),
-        ),
-      );
-    } catch (e) {
-      // Layer might already exist
+    if (lineFeatures.isNotEmpty) {
+      try {
+        await _mapboxMap!.style.addSource(
+          GeoJsonSource(id: routeSourceId, data: jsonEncode(lineCollection)),
+        );
+      } catch (e) {
+        // Source might already exist
+      }
+
+      try {
+        await _mapboxMap!.style.addLayer(
+          LineLayer(
+            id: routeLayerId,
+            sourceId: routeSourceId,
+            lineWidth: width,
+            lineCap: LineCap.ROUND,
+            lineJoin: LineJoin.ROUND,
+            lineColorExpression: _modeToColorExpression(),
+          ),
+        );
+      } catch (e) {
+        // Layer might already exist
+      }
     }
 
     if (pointFeatures.isNotEmpty) {
@@ -288,6 +338,15 @@ class MapService {
       await _mapboxMap!.style.removeStyleSource('${id}_route_source');
     } catch (e) {
       // Route might not exist
+    }
+
+    try {
+      await _mapboxMap!.style.removeStyleLayer('${id}_route_connectors_layer');
+      await _mapboxMap!.style.removeStyleSource(
+        '${id}_route_connectors_source',
+      );
+    } catch (e) {
+      // Connectors might not exist
     }
 
     try {

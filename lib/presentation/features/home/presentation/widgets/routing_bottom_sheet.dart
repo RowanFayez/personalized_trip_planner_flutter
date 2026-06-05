@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,8 +15,17 @@ import 'journey_summary_stats.dart';
 
 class RoutingBottomSheet extends StatelessWidget {
   final VoidCallback? onClose;
+  final String? requestedDestinationName;
+  final double? requestedDestinationLatitude;
+  final double? requestedDestinationLongitude;
 
-  const RoutingBottomSheet({super.key, this.onClose});
+  const RoutingBottomSheet({
+    super.key,
+    this.onClose,
+    this.requestedDestinationName,
+    this.requestedDestinationLatitude,
+    this.requestedDestinationLongitude,
+  });
 
   Widget _buildHandleAndClose(BuildContext context) {
     return SizedBox(
@@ -87,6 +98,11 @@ class RoutingBottomSheet extends StatelessWidget {
                     child: _SheetContent(
                       state: state,
                       scrollController: scrollController,
+                      requestedDestinationName: requestedDestinationName,
+                      requestedDestinationLatitude:
+                          requestedDestinationLatitude,
+                      requestedDestinationLongitude:
+                          requestedDestinationLongitude,
                     ),
                   ),
                 ],
@@ -116,10 +132,21 @@ class _GrabHandle extends StatelessWidget {
 }
 
 class _SheetContent extends StatelessWidget {
+  static const double _finalGapThresholdMeters = 25.0;
+
   final RoutingState state;
   final ScrollController scrollController;
+  final String? requestedDestinationName;
+  final double? requestedDestinationLatitude;
+  final double? requestedDestinationLongitude;
 
-  const _SheetContent({required this.state, required this.scrollController});
+  const _SheetContent({
+    required this.state,
+    required this.scrollController,
+    this.requestedDestinationName,
+    this.requestedDestinationLatitude,
+    this.requestedDestinationLongitude,
+  });
 
   double _safeBottomSpacing(BuildContext context) {
     return MediaQuery.paddingOf(context).bottom + 16.h;
@@ -218,6 +245,11 @@ class _SheetContent extends StatelessWidget {
         final total = state.result?.journeys.length ?? 0;
         final index = state.selectedJourneyIndex;
         final destinationName = _destinationName(journey.legs);
+        final finalConnection = _finalConnectionInfo(
+          journey.legs,
+          routeDestinationName: destinationName,
+        );
+        final arrivalName = finalConnection?.destinationName ?? destinationName;
 
         return ListView(
           controller: scrollController,
@@ -239,7 +271,12 @@ class _SheetContent extends StatelessWidget {
               ),
             ),
             SizedBox(height: 12.h),
-            ..._buildLegTiles(journey.legs, destinationName: destinationName),
+            ..._buildLegTiles(
+              journey.legs,
+              destinationName: destinationName,
+              finalConnection: finalConnection,
+              arrivalDestinationName: arrivalName,
+            ),
             SizedBox(height: _safeBottomSpacing(context)),
           ],
         );
@@ -263,6 +300,8 @@ class _SheetContent extends StatelessWidget {
   List<Widget> _buildLegTiles(
     List<RouteLeg> legs, {
     required String? destinationName,
+    required _FinalConnectionInfo? finalConnection,
+    required String? arrivalDestinationName,
   }) {
     final tiles = <Widget>[];
 
@@ -283,9 +322,19 @@ class _SheetContent extends StatelessWidget {
       if (i != legs.length - 1) tiles.add(SizedBox(height: 10.h));
       if (isLastLeg) {
         tiles.add(SizedBox(height: 10.h));
+        if (finalConnection != null) {
+          tiles.add(
+            _FinalConnectionTile(
+              info: finalConnection,
+              showTopConnector: true,
+              showBottomConnector: true,
+            ),
+          );
+          tiles.add(SizedBox(height: 10.h));
+        }
         tiles.add(
           _TimelineArrivalTile(
-            destinationName: destinationName,
+            destinationName: arrivalDestinationName,
             showTopConnector: true,
           ),
         );
@@ -294,6 +343,95 @@ class _SheetContent extends StatelessWidget {
 
     return tiles;
   }
+
+  _FinalConnectionInfo? _finalConnectionInfo(
+    List<RouteLeg> legs, {
+    required String? routeDestinationName,
+  }) {
+    final destinationName = (requestedDestinationName ?? '').trim();
+    if (destinationName.isEmpty || legs.isEmpty) return null;
+
+    final requestedLat = requestedDestinationLatitude;
+    final requestedLon = requestedDestinationLongitude;
+    final lastRoutePoint = _lastRoutePoint(legs);
+
+    int? distanceMeters;
+    if (requestedLat != null &&
+        requestedLon != null &&
+        lastRoutePoint != null) {
+      final distance = _distanceMeters(
+        lastRoutePoint.lat,
+        lastRoutePoint.lon,
+        requestedLat,
+        requestedLon,
+      );
+      if (distance <= _finalGapThresholdMeters) return null;
+      distanceMeters = distance.round();
+    } else if (_samePlaceLabel(destinationName, routeDestinationName)) {
+      return null;
+    }
+
+    return _FinalConnectionInfo(
+      destinationName: destinationName,
+      distanceMeters: distanceMeters,
+      fromName: routeDestinationName,
+    );
+  }
+
+  ({double lat, double lon})? _lastRoutePoint(List<RouteLeg> legs) {
+    for (var i = legs.length - 1; i >= 0; i--) {
+      final path = legs[i].path;
+      if (path.isNotEmpty) {
+        final last = path.last;
+        return (lat: last.lat, lon: last.lon);
+      }
+
+      final stop = legs[i].to;
+      if (stop != null) {
+        return (lat: stop.coord.lat, lon: stop.coord.lon);
+      }
+    }
+    return null;
+  }
+
+  bool _samePlaceLabel(String left, String? right) {
+    final normalizedLeft = _normalizePlaceLabel(left);
+    final normalizedRight = _normalizePlaceLabel(right ?? '');
+    if (normalizedLeft.isEmpty || normalizedRight.isEmpty) return false;
+    return normalizedLeft == normalizedRight;
+  }
+
+  String _normalizePlaceLabel(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadiusM = 6371000.0;
+    final dLat = _degToRad(lat2 - lat1);
+    final dLon = _degToRad(lon2 - lon1);
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degToRad(lat1)) *
+            math.cos(_degToRad(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadiusM * c;
+  }
+
+  double _degToRad(double deg) => deg * (math.pi / 180.0);
+}
+
+class _FinalConnectionInfo {
+  final String destinationName;
+  final int? distanceMeters;
+  final String? fromName;
+
+  const _FinalConnectionInfo({
+    required this.destinationName,
+    this.distanceMeters,
+    this.fromName,
+  });
 }
 
 class _ChatAboutRouteRow extends StatelessWidget {
@@ -878,6 +1016,7 @@ class _TimelineArrivalTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
+                    textDirection: TextDirection.rtl,
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 14.sp,
@@ -900,6 +1039,134 @@ class _TimelineArrivalTile extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _FinalConnectionTile extends StatelessWidget {
+  final _FinalConnectionInfo info;
+  final bool showTopConnector;
+  final bool showBottomConnector;
+
+  const _FinalConnectionTile({
+    required this.info,
+    required this.showTopConnector,
+    required this.showBottomConnector,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dotSize = 30.r;
+    final dotCenterY = 18.h;
+    final dotTop = dotCenterY - dotSize / 2;
+    final subtitle = _subtitle();
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 34.w,
+            child: Stack(
+              children: [
+                if (showTopConnector)
+                  Positioned(
+                    left: (34.w - 2.w) / 2,
+                    top: 0,
+                    height: dotCenterY,
+                    child: Container(width: 2.w, color: AppColors.surfaceLight),
+                  ),
+                if (showBottomConnector)
+                  Positioned(
+                    left: (34.w - 2.w) / 2,
+                    top: dotCenterY,
+                    bottom: 0,
+                    child: Container(width: 2.w, color: AppColors.surfaceLight),
+                  ),
+                Positioned(
+                  top: dotTop,
+                  left: (34.w - dotSize) / 2,
+                  child: Container(
+                    width: dotSize,
+                    height: dotSize,
+                    decoration: BoxDecoration(
+                      color: AppColors.searchInputBackground,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.directions_walk_rounded,
+                        size: 16.r,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: AppColors.searchInputBackground,
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'امشي أو خد توكتوك إلى ${info.destinationName}',
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    SizedBox(height: 6.h),
+                    Text(
+                      subtitle,
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? _subtitle() {
+    final distance = info.distanceMeters;
+    if (distance == null) return null;
+
+    final distanceText = _formatDistance(distance);
+    final fromName = info.fromName?.trim();
+    if (fromName == null || fromName.isEmpty) {
+      return 'المسافة المتبقية حوالي $distanceText';
+    }
+    return 'المسافة من $fromName حوالي $distanceText';
+  }
+
+  String _formatDistance(int meters) {
+    if (meters >= 1000) {
+      final km = meters / 1000.0;
+      final fractionDigits = km >= 10 ? 0 : 1;
+      return '${km.toStringAsFixed(fractionDigits)} كم';
+    }
+    return '$meters متر';
   }
 }
 

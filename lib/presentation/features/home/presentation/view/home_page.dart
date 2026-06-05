@@ -7,7 +7,6 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../core/config/map_config.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_strings.dart';
@@ -40,6 +39,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const double _routeConnectorThresholdMeters = 12.0;
+
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
   final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
@@ -740,12 +741,15 @@ class _HomePageState extends State<HomePage> {
 
           final journey = state.selectedJourney;
           if (journey == null) {
-            context.read<RoutingCubit>().emitNoRoutes();
+            routingCubit.emitNoRoutes();
             return;
           }
 
           final allPoints = <Position>[];
           final segments = <MapRouteSegment>[];
+          final fromLat = _fromSearch.selectedLatitude;
+          final fromLon = _fromSearch.selectedLongitude;
+
           for (final leg in journey.legs) {
             final coords = leg.path
                 .map((p) => Position(p.lon, p.lat))
@@ -763,8 +767,30 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (allPoints.isEmpty) {
-            context.read<RoutingCubit>().emitNoRoutes();
+            routingCubit.emitNoRoutes();
             return;
+          }
+
+          final visiblePoints = List<Position>.of(allPoints);
+          if (fromLat != null && fromLon != null) {
+            final firstRoutePoint = allPoints.first;
+            if (_shouldDrawRouteConnector(
+              fromLat,
+              fromLon,
+              firstRoutePoint.lat.toDouble(),
+              firstRoutePoint.lng.toDouble(),
+            )) {
+              final originPoint = Position(fromLon, fromLat);
+              segments.insert(
+                0,
+                MapRouteSegment(
+                  mode: 'connector',
+                  coordinates: <Position>[originPoint, firstRoutePoint],
+                  isDashedConnector: true,
+                ),
+              );
+              visiblePoints.add(originPoint);
+            }
           }
 
           await _mapService.removeRoute('active');
@@ -776,7 +802,7 @@ class _HomePageState extends State<HomePage> {
           } else {
             await _mapService.drawRoute(id: 'active', coordinates: allPoints);
           }
-          await _mapService.fitToRoute(allPoints);
+          await _mapService.fitToRoute(visiblePoints);
         },
         builder: (context, routingState) {
           final isRouting = routingState.status != RoutingStatus.initial;
@@ -1025,13 +1051,29 @@ class _HomePageState extends State<HomePage> {
               // ── Routing bottom sheet ────────────────────────────
               Align(
                 alignment: Alignment.bottomCenter,
-                child: RoutingBottomSheet(onClose: _onRoutingSheetClosed),
+                child: RoutingBottomSheet(
+                  onClose: _onRoutingSheetClosed,
+                  requestedDestinationName: _toSearch.textController.text
+                      .trim(),
+                  requestedDestinationLatitude: _toSearch.selectedLatitude,
+                  requestedDestinationLongitude: _toSearch.selectedLongitude,
+                ),
               ),
             ],
           );
         },
       ),
     );
+  }
+
+  bool _shouldDrawRouteConnector(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    return _distanceMeters(lat1, lon1, lat2, lon2) >
+        _routeConnectorThresholdMeters;
   }
 }
 
