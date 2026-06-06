@@ -132,7 +132,7 @@ class _GrabHandle extends StatelessWidget {
 }
 
 class _SheetContent extends StatelessWidget {
-  static const double _finalGapThresholdMeters = 25.0;
+  static const double _samePointToleranceMeters = 0.5;
 
   final RoutingState state;
   final ScrollController scrollController;
@@ -245,10 +245,7 @@ class _SheetContent extends StatelessWidget {
         final total = state.result?.journeys.length ?? 0;
         final index = state.selectedJourneyIndex;
         final destinationName = _destinationName(journey.legs);
-        final finalConnection = _finalConnectionInfo(
-          journey.legs,
-          routeDestinationName: destinationName,
-        );
+        final finalConnection = _finalConnectionInfo(journey.legs);
         final arrivalName = finalConnection?.destinationName ?? destinationName;
 
         return ListView(
@@ -344,10 +341,7 @@ class _SheetContent extends StatelessWidget {
     return tiles;
   }
 
-  _FinalConnectionInfo? _finalConnectionInfo(
-    List<RouteLeg> legs, {
-    required String? routeDestinationName,
-  }) {
+  _FinalConnectionInfo? _finalConnectionInfo(List<RouteLeg> legs) {
     final destinationName = (requestedDestinationName ?? '').trim();
     if (destinationName.isEmpty || legs.isEmpty) return null;
 
@@ -355,26 +349,23 @@ class _SheetContent extends StatelessWidget {
     final requestedLon = requestedDestinationLongitude;
     final lastRoutePoint = _lastRoutePoint(legs);
 
-    int? distanceMeters;
-    if (requestedLat != null &&
-        requestedLon != null &&
-        lastRoutePoint != null) {
-      final distance = _distanceMeters(
-        lastRoutePoint.lat,
-        lastRoutePoint.lon,
-        requestedLat,
-        requestedLon,
-      );
-      if (distance <= _finalGapThresholdMeters) return null;
-      distanceMeters = distance.round();
-    } else if (_samePlaceLabel(destinationName, routeDestinationName)) {
+    if (requestedLat == null ||
+        requestedLon == null ||
+        lastRoutePoint == null) {
       return null;
     }
 
+    final distance = _distanceMeters(
+      lastRoutePoint.lat,
+      lastRoutePoint.lon,
+      requestedLat,
+      requestedLon,
+    );
+    if (distance <= _samePointToleranceMeters) return null;
+
     return _FinalConnectionInfo(
       destinationName: destinationName,
-      distanceMeters: distanceMeters,
-      fromName: routeDestinationName,
+      distanceMeters: math.max(1, distance.round()),
     );
   }
 
@@ -392,17 +383,6 @@ class _SheetContent extends StatelessWidget {
       }
     }
     return null;
-  }
-
-  bool _samePlaceLabel(String left, String? right) {
-    final normalizedLeft = _normalizePlaceLabel(left);
-    final normalizedRight = _normalizePlaceLabel(right ?? '');
-    if (normalizedLeft.isEmpty || normalizedRight.isEmpty) return false;
-    return normalizedLeft == normalizedRight;
-  }
-
-  String _normalizePlaceLabel(String value) {
-    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
@@ -424,13 +404,11 @@ class _SheetContent extends StatelessWidget {
 
 class _FinalConnectionInfo {
   final String destinationName;
-  final int? distanceMeters;
-  final String? fromName;
+  final int distanceMeters;
 
   const _FinalConnectionInfo({
     required this.destinationName,
-    this.distanceMeters,
-    this.fromName,
+    required this.distanceMeters,
   });
 }
 
@@ -1058,7 +1036,6 @@ class _FinalConnectionTile extends StatelessWidget {
     final dotSize = 30.r;
     final dotCenterY = 18.h;
     final dotTop = dotCenterY - dotSize / 2;
-    final subtitle = _subtitle();
 
     return IntrinsicHeight(
       child: Row(
@@ -1094,10 +1071,25 @@ class _FinalConnectionTile extends StatelessWidget {
                       border: Border.all(color: AppColors.border),
                     ),
                     child: Center(
-                      child: Icon(
-                        Icons.directions_walk_rounded,
-                        size: 16.r,
-                        color: AppColors.textSecondary,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.directions_walk_rounded,
+                            size: 17.r,
+                            color: AppColors.textSecondary,
+                          ),
+                          Positioned(
+                            right: -5.w,
+                            bottom: -4.h,
+                            child: Text(
+                              '🛺',
+                              textDirection: TextDirection.rtl,
+                              style: TextStyle(fontSize: 10.sp),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1118,7 +1110,8 @@ class _FinalConnectionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'امشي أو خد توكتوك إلى ${info.destinationName}',
+                    'امشي أو خد توكتوك إلى ${info.destinationName} '
+                    '(المسافة المتبقية: ${info.distanceMeters} متر)',
                     textDirection: TextDirection.rtl,
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -1126,19 +1119,6 @@ class _FinalConnectionTile extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (subtitle != null) ...[
-                    SizedBox(height: 6.h),
-                    Text(
-                      subtitle,
-                      textDirection: TextDirection.rtl,
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12.5.sp,
-                        fontWeight: FontWeight.w600,
-                        height: 1.25,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -1146,27 +1126,6 @@ class _FinalConnectionTile extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String? _subtitle() {
-    final distance = info.distanceMeters;
-    if (distance == null) return null;
-
-    final distanceText = _formatDistance(distance);
-    final fromName = info.fromName?.trim();
-    if (fromName == null || fromName.isEmpty) {
-      return 'المسافة المتبقية حوالي $distanceText';
-    }
-    return 'المسافة من $fromName حوالي $distanceText';
-  }
-
-  String _formatDistance(int meters) {
-    if (meters >= 1000) {
-      final km = meters / 1000.0;
-      final fractionDigits = km >= 10 ? 0 : 1;
-      return '${km.toStringAsFixed(fractionDigits)} كم';
-    }
-    return '$meters متر';
   }
 }
 

@@ -39,7 +39,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const double _routeConnectorThresholdMeters = 12.0;
+  static const double _originConnectorThresholdMeters = 12.0;
+  static const double _endpointSamePointToleranceMeters = 0.5;
 
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
@@ -749,6 +750,8 @@ class _HomePageState extends State<HomePage> {
           final segments = <MapRouteSegment>[];
           final fromLat = _fromSearch.selectedLatitude;
           final fromLon = _fromSearch.selectedLongitude;
+          final toLat = _toSearch.selectedLatitude;
+          final toLon = _toSearch.selectedLongitude;
 
           for (final leg in journey.legs) {
             final coords = leg.path
@@ -779,6 +782,7 @@ class _HomePageState extends State<HomePage> {
               fromLon,
               firstRoutePoint.lat.toDouble(),
               firstRoutePoint.lng.toDouble(),
+              thresholdMeters: _originConnectorThresholdMeters,
             )) {
               final originPoint = Position(fromLon, fromLat);
               segments.insert(
@@ -790,6 +794,30 @@ class _HomePageState extends State<HomePage> {
                 ),
               );
               visiblePoints.add(originPoint);
+            }
+          }
+
+          if (toLat != null && toLon != null) {
+            final lastRealSegment = segments.lastWhere(
+              (segment) => !segment.isDashedConnector,
+            );
+            final backendFinalPoint = lastRealSegment.coordinates.first;
+            if (_shouldDrawRouteConnector(
+              backendFinalPoint.lat.toDouble(),
+              backendFinalPoint.lng.toDouble(),
+              toLat,
+              toLon,
+              thresholdMeters: _endpointSamePointToleranceMeters,
+            )) {
+              final destinationPoint = Position(toLon, toLat);
+              segments.add(
+                MapRouteSegment(
+                  mode: 'connector',
+                  coordinates: <Position>[backendFinalPoint, destinationPoint],
+                  isDashedConnector: true,
+                ),
+              );
+              visiblePoints.add(destinationPoint);
             }
           }
 
@@ -1070,10 +1098,10 @@ class _HomePageState extends State<HomePage> {
     double lat1,
     double lon1,
     double lat2,
-    double lon2,
-  ) {
-    return _distanceMeters(lat1, lon1, lat2, lon2) >
-        _routeConnectorThresholdMeters;
+    double lon2, {
+    required double thresholdMeters,
+  }) {
+    return _distanceMeters(lat1, lon1, lat2, lon2) > thresholdMeters;
   }
 }
 
