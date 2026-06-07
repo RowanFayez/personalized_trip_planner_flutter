@@ -29,8 +29,8 @@ class ToggleRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 18.r,
-            height: 18.r,
+            width: 36.r,
+            height: 36.r,
             child: Center(child: leading),
           ),
           SizedBox(width: 8.w),

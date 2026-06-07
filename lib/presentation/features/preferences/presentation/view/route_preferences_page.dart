@@ -302,7 +302,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             child: Column(
                               children: [
                                 ModeRow(
-                                  iconAsset: 'assets/icons/microbus.svg',
+                                  iconAsset: 'assets/icons/MICROBUS.png',
                                   label: 'Microbus',
                                   value: _microbus,
                                   onChanged: (v) =>
@@ -310,7 +310,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                 ),
                                 const PanelDivider(),
                                 ModeRow(
-                                  iconAsset: 'assets/icons/tomnaya.svg',
+                                  iconAsset: 'assets/icons/tomnaya.png',
                                   label: 'Tomnaya',
                                   value: _tomnaya,
                                   onChanged: (v) =>
@@ -318,7 +318,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                 ),
                                 const PanelDivider(),
                                 ModeRow(
-                                  iconAsset: 'assets/icons/minibus.svg',
+                                  iconAsset: 'assets/icons/minibus.png',
                                   label: 'Minibus',
                                   value: _minibus,
                                   onChanged: (v) =>
@@ -326,7 +326,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                 ),
                                 const PanelDivider(),
                                 ModeRow(
-                                  iconAsset: 'assets/icons/bus.svg',
+                                  iconAsset: 'assets/icons/BUS.png',
                                   label: 'Bus',
                                   value: _bus,
                                   onChanged: (v) => setState(() => _bus = v),

@@ -7,7 +7,6 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../core/config/map_config.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_strings.dart';
@@ -40,6 +39,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const double _endpointSamePointToleranceMeters = 0.5;
+
   final MapService _mapService = MapService();
   final LocationService _locationService = LocationService();
   final MapboxGeocodingService _geocodingService = MapboxGeocodingService();
@@ -671,6 +672,8 @@ class _HomePageState extends State<HomePage> {
       latitude: place.latitude,
       longitude: place.longitude,
     );
+    _fromSearch.focusNode.unfocus();
+    _toSearch.focusNode.unfocus();
   }
 
   /// Callback for the RoutingBottomSheet close button — removes drawn route.
@@ -740,12 +743,17 @@ class _HomePageState extends State<HomePage> {
 
           final journey = state.selectedJourney;
           if (journey == null) {
-            context.read<RoutingCubit>().emitNoRoutes();
+            routingCubit.emitNoRoutes();
             return;
           }
 
           final allPoints = <Position>[];
           final segments = <MapRouteSegment>[];
+          final fromLat = _fromSearch.selectedLatitude;
+          final fromLon = _fromSearch.selectedLongitude;
+          final toLat = _toSearch.selectedLatitude;
+          final toLon = _toSearch.selectedLongitude;
+
           for (final leg in journey.legs) {
             final coords = leg.path
                 .map((p) => Position(p.lon, p.lat))
@@ -763,8 +771,60 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (allPoints.isEmpty) {
-            context.read<RoutingCubit>().emitNoRoutes();
+            routingCubit.emitNoRoutes();
             return;
+          }
+
+          final visiblePoints = List<Position>.of(allPoints);
+          if (fromLat != null && fromLon != null) {
+            // Mirror the destination connector: anchor from the first real
+            // segment's visible icon position (coordinates.first).
+            final firstRealSegment = segments.firstWhere(
+              (segment) => !segment.isDashedConnector,
+            );
+            final backendStartPoint = firstRealSegment.coordinates.first;
+            if (_shouldDrawRouteConnector(
+              fromLat,
+              fromLon,
+              backendStartPoint.lat.toDouble(),
+              backendStartPoint.lng.toDouble(),
+              thresholdMeters: _endpointSamePointToleranceMeters,
+            )) {
+              final originPoint = Position(fromLon, fromLat);
+              segments.insert(
+                0,
+                MapRouteSegment(
+                  mode: 'connector',
+                  coordinates: <Position>[originPoint, backendStartPoint],
+                  isDashedConnector: true,
+                ),
+              );
+              visiblePoints.add(originPoint);
+            }
+          }
+
+          if (toLat != null && toLon != null) {
+            final lastRealSegment = segments.lastWhere(
+              (segment) => !segment.isDashedConnector,
+            );
+            final backendFinalPoint = lastRealSegment.coordinates.first;
+            if (_shouldDrawRouteConnector(
+              backendFinalPoint.lat.toDouble(),
+              backendFinalPoint.lng.toDouble(),
+              toLat,
+              toLon,
+              thresholdMeters: _endpointSamePointToleranceMeters,
+            )) {
+              final destinationPoint = Position(toLon, toLat);
+              segments.add(
+                MapRouteSegment(
+                  mode: 'connector',
+                  coordinates: <Position>[backendFinalPoint, destinationPoint],
+                  isDashedConnector: true,
+                ),
+              );
+              visiblePoints.add(destinationPoint);
+            }
           }
 
           await _mapService.removeRoute('active');
@@ -776,7 +836,7 @@ class _HomePageState extends State<HomePage> {
           } else {
             await _mapService.drawRoute(id: 'active', coordinates: allPoints);
           }
-          await _mapService.fitToRoute(allPoints);
+          await _mapService.fitToRoute(visiblePoints);
         },
         builder: (context, routingState) {
           final isRouting = routingState.status != RoutingStatus.initial;
@@ -955,6 +1015,7 @@ class _HomePageState extends State<HomePage> {
                         setState(() => _selectedQuickPlaceFrom = null);
                       }
                       await _fromSearch.selectSuggestion(s);
+                      _fromSearch.focusNode.unfocus();
                     },
                     onToSuggestionSelected: (s) async {
                       if (!signedIn) {
@@ -965,6 +1026,7 @@ class _HomePageState extends State<HomePage> {
                         setState(() => _selectedQuickPlaceTo = null);
                       }
                       await _toSearch.selectSuggestion(s);
+                      _toSearch.focusNode.unfocus();
                     },
                     showFromSuggestions: _fromSearch.showSuggestions,
                     showToSuggestions: _toSearch.showSuggestions,
@@ -1025,13 +1087,33 @@ class _HomePageState extends State<HomePage> {
               // ── Routing bottom sheet ────────────────────────────
               Align(
                 alignment: Alignment.bottomCenter,
-                child: RoutingBottomSheet(onClose: _onRoutingSheetClosed),
+                child: RoutingBottomSheet(
+                  onClose: _onRoutingSheetClosed,
+                  requestedOriginName: _fromSearch.textController.text
+                      .trim(),
+                  requestedOriginLatitude: _fromSearch.selectedLatitude,
+                  requestedOriginLongitude: _fromSearch.selectedLongitude,
+                  requestedDestinationName: _toSearch.textController.text
+                      .trim(),
+                  requestedDestinationLatitude: _toSearch.selectedLatitude,
+                  requestedDestinationLongitude: _toSearch.selectedLongitude,
+                ),
               ),
             ],
           );
         },
       ),
     );
+  }
+
+  bool _shouldDrawRouteConnector(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2, {
+    required double thresholdMeters,
+  }) {
+    return _distanceMeters(lat1, lon1, lat2, lon2) > thresholdMeters;
   }
 }
 
