@@ -39,7 +39,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const double _originConnectorThresholdMeters = 12.0;
   static const double _endpointSamePointToleranceMeters = 0.5;
 
   final MapService _mapService = MapService();
@@ -776,20 +775,25 @@ class _HomePageState extends State<HomePage> {
 
           final visiblePoints = List<Position>.of(allPoints);
           if (fromLat != null && fromLon != null) {
-            final firstRoutePoint = allPoints.first;
+            // Mirror the destination connector: anchor from the first real
+            // segment's visible icon position (coordinates.first).
+            final firstRealSegment = segments.firstWhere(
+              (segment) => !segment.isDashedConnector,
+            );
+            final backendStartPoint = firstRealSegment.coordinates.first;
             if (_shouldDrawRouteConnector(
               fromLat,
               fromLon,
-              firstRoutePoint.lat.toDouble(),
-              firstRoutePoint.lng.toDouble(),
-              thresholdMeters: _originConnectorThresholdMeters,
+              backendStartPoint.lat.toDouble(),
+              backendStartPoint.lng.toDouble(),
+              thresholdMeters: _endpointSamePointToleranceMeters,
             )) {
               final originPoint = Position(fromLon, fromLat);
               segments.insert(
                 0,
                 MapRouteSegment(
                   mode: 'connector',
-                  coordinates: <Position>[originPoint, firstRoutePoint],
+                  coordinates: <Position>[originPoint, backendStartPoint],
                   isDashedConnector: true,
                 ),
               );
@@ -1081,6 +1085,10 @@ class _HomePageState extends State<HomePage> {
                 alignment: Alignment.bottomCenter,
                 child: RoutingBottomSheet(
                   onClose: _onRoutingSheetClosed,
+                  requestedOriginName: _fromSearch.textController.text
+                      .trim(),
+                  requestedOriginLatitude: _fromSearch.selectedLatitude,
+                  requestedOriginLongitude: _fromSearch.selectedLongitude,
                   requestedDestinationName: _toSearch.textController.text
                       .trim(),
                   requestedDestinationLatitude: _toSearch.selectedLatitude,
