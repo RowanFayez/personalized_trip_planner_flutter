@@ -451,8 +451,8 @@ class _SheetContent extends StatelessWidget {
     for (var i = legs.length - 1; i >= 0; i--) {
       final path = legs[i].path;
       if (path.isNotEmpty) {
-        final last = path.last;
-        return (lat: last.lat, lon: last.lon);
+        final first = path.first; // match home_page.dart: lastRealSegment.coordinates.first
+        return (lat: first.lat, lon: first.lon);
       }
 
       final stop = legs[i].to;
