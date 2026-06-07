@@ -21,16 +21,26 @@ class ModeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPng = iconAsset.toLowerCase().endsWith('.png');
+    final Widget icon = isPng
+        ? Image.asset(
+            iconAsset,
+            width: 36.r,
+            height: 36.r,
+            fit: BoxFit.contain,
+          )
+        : SvgPicture.asset(
+            iconAsset,
+            width: 20.r,
+            height: 20.r,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textPrimary,
+              BlendMode.srcIn,
+            ),
+          );
+
     return ToggleRow(
-      leading: SvgPicture.asset(
-        iconAsset,
-        width: 20.r,
-        height: 20.r,
-        colorFilter: const ColorFilter.mode(
-          AppColors.textPrimary,
-          BlendMode.srcIn,
-        ),
-      ),
+      leading: icon,
       label: label,
       value: value,
       onChanged: onChanged,

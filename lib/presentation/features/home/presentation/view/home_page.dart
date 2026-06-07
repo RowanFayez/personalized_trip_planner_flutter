@@ -672,6 +672,8 @@ class _HomePageState extends State<HomePage> {
       latitude: place.latitude,
       longitude: place.longitude,
     );
+    _fromSearch.focusNode.unfocus();
+    _toSearch.focusNode.unfocus();
   }
 
   /// Callback for the RoutingBottomSheet close button — removes drawn route.
@@ -1013,6 +1015,7 @@ class _HomePageState extends State<HomePage> {
                         setState(() => _selectedQuickPlaceFrom = null);
                       }
                       await _fromSearch.selectSuggestion(s);
+                      _fromSearch.focusNode.unfocus();
                     },
                     onToSuggestionSelected: (s) async {
                       if (!signedIn) {
@@ -1023,6 +1026,7 @@ class _HomePageState extends State<HomePage> {
                         setState(() => _selectedQuickPlaceTo = null);
                       }
                       await _toSearch.selectSuggestion(s);
+                      _toSearch.focusNode.unfocus();
                     },
                     showFromSuggestions: _fromSearch.showSuggestions,
                     showToSuggestions: _toSearch.showSuggestions,
