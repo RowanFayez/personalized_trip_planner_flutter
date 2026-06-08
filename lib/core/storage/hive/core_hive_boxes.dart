@@ -5,4 +5,6 @@ class CoreHiveBoxes {
   static const String savedPlaces = 'saved_places_box';
   static const String userActivity = 'user_activity_box';
   static const String agent = 'agent_box';
+  static const String crowdsourcingBox = 'crowdsourcing_box';
+  static const String crowdsourcing = crowdsourcingBox;
 }

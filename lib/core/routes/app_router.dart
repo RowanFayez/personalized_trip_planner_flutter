@@ -1,11 +1,19 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../constants/crowdsourcing_constants.dart';
 import '../di/service_locator.dart';
 import '../../features/agent/presentation/cubit/agent_cubit.dart';
 import '../../features/agent/presentation/view/agent_chat_page.dart';
 import '../../features/routing/presentation/cubit/routing_cubit.dart';
 import '../../features/crowdsourcing/presentation/view/fare_feedback_page.dart';
+import '../../features/gps_routes_crowdsourcing/data/models/trip_metadata_model.dart';
+import '../../features/gps_routes_crowdsourcing/data/services/crowdsourcing_permissions_service.dart';
+import '../../features/gps_routes_crowdsourcing/presentation/cubit/recording_cubit.dart';
+import '../../features/gps_routes_crowdsourcing/presentation/views/contributions_page.dart';
+import '../../features/gps_routes_crowdsourcing/presentation/views/crowdsourcing_map_page.dart';
+import '../../features/gps_routes_crowdsourcing/presentation/views/review_page.dart';
+import '../../features/gps_routes_crowdsourcing/presentation/widgets/android_permissions_gate.dart';
 import '../../presentation/features/auth/presentation/view/profile_page.dart';
 import '../../presentation/features/home/presentation/view/home_page.dart';
 import '../../presentation/features/map_picker/presentation/view/map_picker_page.dart';
@@ -58,6 +66,30 @@ class AppRouter {
           final legName = state.uri.queryParameters['legName'];
           return FareFeedbackPage(isTotalRoute: isTotalRoute, legName: legName);
         },
+      ),
+      GoRoute(
+        path: CrowdsourcingRoutes.record,
+        builder: (context, state) {
+          return BlocProvider(
+            create: (_) => sl<RecordingCubit>(),
+            child: AndroidPermissionsGate(
+              permissionsService: sl<CrowdsourcingPermissionsService>(),
+              child: const CrowdsourcingMapPage(),
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: CrowdsourcingRoutes.review,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is! TripMetadataModel) return const ContributionsPage();
+          return ReviewPage(tripMeta: extra);
+        },
+      ),
+      GoRoute(
+        path: CrowdsourcingRoutes.contributions,
+        builder: (context, state) => const ContributionsPage(),
       ),
     ],
   );

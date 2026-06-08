@@ -7,6 +7,7 @@ import 'core/config/env_config.dart';
 import 'core/di/service_locator.dart';
 import 'core/routes/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/gps_routes_crowdsourcing/data/background/recording_background_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,7 @@ void main() async {
 
   // Dependency injection + local storage
   await ServiceLocator.init();
+  await initializeCrowdsourcingBackgroundService();
 
   // Provide Mapbox token at runtime (keeps native config files token-free for GitHub).
   MapboxOptions.setAccessToken(EnvConfig.mapboxAccessToken);
