@@ -67,6 +67,11 @@ class CrowdsourcingIpc {
   static const String gpsLost = 'gps_lost';
   static const String gpsRestored = 'gps_restored';
   static const String tripStopped = 'trip_stopped';
+  static const String bringToForeground = 'bring_to_foreground';
+  static const String notificationTransferRequested =
+      'notification_transfer_requested';
+  static const String showModeSelector = 'show_mode_selector';
+  static const String setCurrentSegmentMode = 'set_current_segment_mode';
 }
 
 class CrowdsourcingPayloadKeys {
@@ -90,6 +95,8 @@ class CrowdsourcingNotifications {
   static const int recordingId = 888;
   static const int smartPromptId = 889;
   static const int stationaryId = 890;
+  static const int reviewReadyId = 891;
+  static const int storageFullId = 892;
   static const String recordingChannelId = 'nextstation_recording';
   static const String promptChannelId = 'nextstation_smart_prompt';
   static const String actionTransfer = 'transfer';
@@ -98,6 +105,7 @@ class CrowdsourcingNotifications {
   static const String actionRejectTransfer = 'reject_transfer';
   static const String actionStop = 'stop';
   static const String actionContinue = 'continue';
+  static const String reviewReadyPayload = 'review_ready';
 }
 
 class CrowdsourcingTiming {
@@ -125,6 +133,7 @@ class CrowdsourcingLimits {
   static const double activeVelocityMs = 0.8;
   static const double stationaryResumeVelocityMs = 1.5;
   static const double stationaryRadiusM = 5;
+  static const double impossibleTransitSpeedMs = 38.89;
   static const int privacyFuzzingMinutes = 3;
 }
 
@@ -179,6 +188,12 @@ class CrowdsourcingStrings {
   static const String submitAnyway = 'Submit Anyway';
   static const String pendingBackend =
       'تم حفظ المساهمة محلياً وجاهزة للإرسال لما الباكند يبقى متاح.';
+  static const String noValidSegments = 'الرحلة دي مفيهاش بيانات كافية للإرسال';
+  static const String mapUnavailable = 'الخريطة مش متاحة لهذه الرحلة';
+  static const String removedShortSegments = 'تم حذف الأجزاء الفارغة من الرحلة';
+  static const String deleteTrip = 'حذف الرحلة';
+  static const String deleteTripQuestion = 'تحذف الرحلة دي؟';
+  static const String tripDeleted = 'تم حذف الرحلة';
   static const String noContributions = 'مفيش مساهمات لحد دلوقتي';
   static const String recordingNotificationTitle = 'NextStation — جاري التسجيل';
   static const String unspecifiedMode = 'وسيلة غير محددة';
@@ -189,6 +204,12 @@ class CrowdsourcingStrings {
   static const String smartPromptNo = 'لأ، زحمة بس';
   static const String stillRecording = 'لسه بتسجل؟ وصلت؟';
   static const String gpsLost = 'GPS اتقفل — التسجيل وقف مؤقتاً.';
+  static const String preparingTripData = 'جاري تجهيز بيانات الرحلة...';
+  static const String reviewReadyTitle = 'الرحلة اتسجلت ✓';
+  static const String reviewReadyBody = 'افتح التطبيق لمراجعتها وإرسالها';
+  static const String storageFullTitle = 'تم إيقاف التسجيل';
+  static const String storageFullBody =
+      'تم إيقاف التسجيل لامتلاء مساحة التخزين';
   static const String permissionsRationale =
       'NextStation محتاج يوصل للموقع وهو في الخلفية عشان يكمل تسجيل رحلتك.';
   static const String allow = 'السماح';

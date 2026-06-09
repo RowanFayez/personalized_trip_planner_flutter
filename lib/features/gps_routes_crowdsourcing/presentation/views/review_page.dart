@@ -39,21 +39,76 @@ class _ReviewView extends StatelessWidget {
       textDirection: TextDirection.rtl,
       child: BlocConsumer<ReviewCubit, ReviewState>(
         listenWhen: (previous, current) =>
-            !previous.removedShortSegments && current.removedShortSegments,
+            (!previous.removedShortSegments && current.removedShortSegments) ||
+            (!previous.noValidSegments && current.noValidSegments) ||
+            (!previous.submitSucceeded && current.submitSucceeded) ||
+            (!previous.tripDeleted && current.tripDeleted),
         listener: (context, state) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Removed empty segments.')),
-          );
+          if (state.noValidSegments) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(CrowdsourcingStrings.noValidSegments),
+              ),
+            );
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(CrowdsourcingRoutes.contributions);
+            }
+            return;
+          }
+          if (state.submitSucceeded) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(CrowdsourcingStrings.pendingBackend),
+              ),
+            );
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(CrowdsourcingRoutes.contributions);
+            }
+            return;
+          }
+          if (state.tripDeleted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text(CrowdsourcingStrings.tripDeleted)),
+            );
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(CrowdsourcingRoutes.contributions);
+            }
+            return;
+          }
+          if (state.removedShortSegments) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(CrowdsourcingStrings.removedShortSegments),
+              ),
+            );
+          }
         },
         builder: (context, state) {
           return Scaffold(
             backgroundColor: AppColors.backgroundDark,
-            appBar: AppBar(title: const Text(CrowdsourcingStrings.reviewTitle)),
+            appBar: AppBar(
+              title: const Text(CrowdsourcingStrings.reviewTitle),
+              actions: [
+                IconButton(
+                  onPressed: () => _confirmDeleteTrip(context),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  tooltip: CrowdsourcingStrings.deleteTrip,
+                ),
+              ],
+            ),
             body: Column(
               children: [
                 SizedBox(
                   height: 0.35.sh,
-                  child: GpxMapPreview(gpxFilePath: state.tripMeta.gpxFilePath),
+                  child: state.tripMeta.gpxFilePath == null
+                      ? const _MissingMapPreview()
+                      : GpxMapPreview(gpxFilePath: state.tripMeta.gpxFilePath),
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -108,6 +163,28 @@ class _ReviewView extends StatelessWidget {
       await context.read<ReviewCubit>().deleteSegment(index);
     }
   }
+
+  Future<void> _confirmDeleteTrip(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text(CrowdsourcingStrings.deleteTripQuestion),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(CrowdsourcingStrings.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(CrowdsourcingStrings.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await context.read<ReviewCubit>().deleteTrip();
+    }
+  }
 }
 
 class _SubmitButton extends StatelessWidget {
@@ -125,13 +202,6 @@ class _SubmitButton extends StatelessWidget {
             ? null
             : () async {
                 await context.read<ReviewCubit>().submitForFutureUpload();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(CrowdsourcingStrings.pendingBackend),
-                  ),
-                );
-                context.go(CrowdsourcingRoutes.contributions);
               },
         child: state.isSubmitting
             ? const CircularProgressIndicator()
@@ -140,6 +210,37 @@ class _SubmitButton extends StatelessWidget {
                     ? CrowdsourcingStrings.submitAnyway
                     : CrowdsourcingStrings.submitAndContribute,
               ),
+      ),
+    );
+  }
+}
+
+class _MissingMapPreview extends StatelessWidget {
+  const _MissingMapPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceDark,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.map_outlined, color: AppColors.textTertiary, size: 36.r),
+            SizedBox(height: 8.h),
+            Text(
+              CrowdsourcingStrings.mapUnavailable,
+              style: TextStyle(
+                color: AppColors.textTertiary,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

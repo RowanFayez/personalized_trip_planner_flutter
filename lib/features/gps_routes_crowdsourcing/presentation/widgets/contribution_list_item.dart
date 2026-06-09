@@ -8,8 +8,14 @@ import '../../data/models/trip_metadata_model.dart';
 class ContributionListItem extends StatelessWidget {
   final TripMetadataModel trip;
   final VoidCallback? onAction;
+  final VoidCallback? onDelete;
 
-  const ContributionListItem({super.key, required this.trip, this.onAction});
+  const ContributionListItem({
+    super.key,
+    required this.trip,
+    this.onAction,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +57,12 @@ class ContributionListItem extends StatelessWidget {
             children: [
               _StatusBadge(label: badge.label, color: badge.color),
               const Spacer(),
+              IconButton(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline_rounded),
+                color: AppColors.error,
+                tooltip: CrowdsourcingStrings.deleteTrip,
+              ),
               if (_actionLabel() != null)
                 TextButton(onPressed: onAction, child: Text(_actionLabel()!))
               else if (trip.status == TripStatuses.pendingUpload)
@@ -105,9 +117,27 @@ class ContributionListItem extends StatelessWidget {
   String _formatDate(String iso) {
     final parsed = DateTime.tryParse(iso);
     if (parsed == null) return iso;
-    final hour = parsed.hour.toString().padLeft(2, '0');
+    const arabicMonths = <String>[
+      '',
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
+    final hour = parsed.hour;
     final minute = parsed.minute.toString().padLeft(2, '0');
-    return '${parsed.day}/${parsed.month}/${parsed.year} · $hour:$minute';
+    final period = hour >= 12 ? 'م' : 'ص';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '${parsed.day} ${arabicMonths[parsed.month]} '
+        '${parsed.year} · $displayHour:$minute $period';
   }
 }
 

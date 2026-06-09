@@ -11,6 +11,7 @@ import '../cubit/recording_state.dart';
 import '../widgets/recording_action_bar.dart';
 import '../widgets/recording_hud.dart';
 import '../widgets/recording_map_canvas.dart';
+import '../widgets/mode_selector_sheet.dart';
 import '../widgets/segment_transition_sheet.dart';
 import '../widgets/start_mode_sheet.dart';
 
@@ -23,6 +24,7 @@ class CrowdsourcingMapPage extends StatefulWidget {
 
 class _CrowdsourcingMapPageState extends State<CrowdsourcingMapPage> {
   bool _startGateShown = false;
+  bool _isFollowing = true;
 
   @override
   void initState() {
@@ -52,6 +54,7 @@ class _CrowdsourcingMapPageState extends State<CrowdsourcingMapPage> {
   RecordingInProgress? _visibleProgress(RecordingState state) {
     if (state is RecordingInProgress) return state;
     if (state is RecordingSmartPromptFired) return state.previous;
+    if (state is RecordingModeSelectionRequested) return state.previous;
     return null;
   }
 
@@ -63,6 +66,9 @@ class _CrowdsourcingMapPageState extends State<CrowdsourcingMapPage> {
         listener: (context, state) {
           if (state is RecordingComplete) {
             context.go(CrowdsourcingRoutes.review, extra: state.tripMeta);
+          }
+          if (state is RecordingModeSelectionRequested) {
+            _openNotificationModeSelector(state.previous);
           }
           if (state is RecordingError) {
             ScaffoldMessenger.of(
@@ -81,6 +87,10 @@ class _CrowdsourcingMapPageState extends State<CrowdsourcingMapPage> {
                     recentPoints: progress?.recentPoints ?? const [],
                     segmentModes: progress?.segmentModes ?? const {},
                     pulsePrompt: state is RecordingSmartPromptFired,
+                    onFollowingChanged: (isFollowing) {
+                      if (_isFollowing == isFollowing) return;
+                      setState(() => _isFollowing = isFollowing);
+                    },
                   ),
                 ),
                 if (progress != null)
@@ -90,6 +100,7 @@ class _CrowdsourcingMapPageState extends State<CrowdsourcingMapPage> {
                     elapsedSeconds: progress.elapsedSeconds,
                     distanceM: progress.distanceM,
                     isGpsLost: progress.isGpsLost,
+                    isFollowing: _isFollowing,
                   ),
                 if (progress != null)
                   RecordingActionBar(
@@ -98,18 +109,29 @@ class _CrowdsourcingMapPageState extends State<CrowdsourcingMapPage> {
                     onMinimize: () => context.go('/'),
                   ),
                 if (state is RecordingGeneratingGpx) const _GeneratingOverlay(),
-                if (state is RecordingOrphanFound)
-                  _OrphanOverlay(
-                    onResume: context
-                        .read<RecordingCubit>()
-                        .resumeOrphanRecording,
-                  ),
               ],
             ),
           );
         },
       ),
     );
+  }
+
+  Future<void> _openNotificationModeSelector(
+    RecordingInProgress previous,
+  ) async {
+    final mode = await ModeSelectorSheet.show(
+      context: context,
+      title: CrowdsourcingStrings.selectNextMode,
+      selectedMode: previous.currentMode,
+    );
+    if (!mounted) return;
+    final cubit = context.read<RecordingCubit>();
+    if (mode == null) {
+      await cubit.restoreProgress(previous);
+      return;
+    }
+    await cubit.setCurrentSegmentMode(mode);
   }
 }
 
@@ -121,26 +143,6 @@ class _GeneratingOverlay extends StatelessWidget {
     return const ColoredBox(
       color: AppColors.overlay,
       child: Center(child: CircularProgressIndicator()),
-    );
-  }
-}
-
-class _OrphanOverlay extends StatelessWidget {
-  final VoidCallback onResume;
-
-  const _OrphanOverlay({required this.onResume});
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.overlay,
-      child: Center(
-        child: ElevatedButton.icon(
-          onPressed: onResume,
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: const Text(CrowdsourcingStrings.startRecording),
-        ),
-      ),
     );
   }
 }

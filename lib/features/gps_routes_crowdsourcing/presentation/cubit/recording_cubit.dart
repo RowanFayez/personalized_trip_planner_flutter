@@ -43,11 +43,36 @@ class RecordingCubit extends Cubit<RecordingState> {
       return;
     }
 
-    if (activeTrip.status == TripStatuses.recording ||
+    final isActiveOrphan =
+        activeTrip.status == TripStatuses.recording ||
         activeTrip.status == TripStatuses.paused ||
-        activeTrip.status == TripStatuses.gpsLost) {
-      emit(RecordingOrphanFound(tripMeta: activeTrip));
+        activeTrip.status == TripStatuses.gpsLost;
+    if (!isActiveOrphan) return;
+
+    final gpsPoints = await localDataSource.getGpsPoints(activeTrip.tripId);
+    final startedAt = DateTime.tryParse(activeTrip.startedAt);
+    final tripAge = startedAt == null
+        ? const Duration(days: 1)
+        : DateTime.now().difference(startedAt);
+    final isLegitimateOrphan =
+        gpsPoints.length >= 5 && tripAge < const Duration(hours: 2);
+
+    if (!isLegitimateOrphan) {
+      await localDataSource.deleteTrip(activeTrip.tripId);
+      _recentPoints.clear();
+      emit(const RecordingInitial());
+      return;
     }
+
+    await _startServiceIfNeeded();
+    backgroundService.invoke(CrowdsourcingIpc.startTrip, <String, dynamic>{
+      CrowdsourcingPayloadKeys.tripId: activeTrip.tripId,
+      CrowdsourcingPayloadKeys.mode: activeTrip.segments.isEmpty
+          ? null
+          : activeTrip.segments.last.mode,
+    });
+    _recentPoints.clear();
+    emit(_inProgressFromTrip(activeTrip));
   }
 
   Future<void> startRecording(String? initialMode) async {
@@ -76,16 +101,6 @@ class RecordingCubit extends Cubit<RecordingState> {
     });
     _recentPoints.clear();
     emit(_inProgressFromTrip(initialTrip));
-  }
-
-  Future<void> resumeOrphanRecording() async {
-    final activeTrip = await localDataSource.getActiveTrip();
-    if (activeTrip == null) {
-      emit(const RecordingInitial());
-      return;
-    }
-    await _startServiceIfNeeded();
-    emit(_inProgressFromTrip(activeTrip));
   }
 
   Future<void> stopRecording() async {
@@ -125,6 +140,7 @@ class RecordingCubit extends Cubit<RecordingState> {
       CrowdsourcingIpc.gpsLost,
       CrowdsourcingIpc.gpsRestored,
       CrowdsourcingIpc.tripStopped,
+      CrowdsourcingIpc.showModeSelector,
     ]) {
       _subscriptions.add(
         backgroundService
@@ -203,7 +219,50 @@ class RecordingCubit extends Cubit<RecordingState> {
           ? await localDataSource.getActiveTrip()
           : TripMetadataModel.fromMap(event);
       if (stoppedTrip != null) await _finalizeStoppedTrip(stoppedTrip);
+      return;
     }
+
+    if (eventName == CrowdsourcingIpc.showModeSelector &&
+        current is RecordingInProgress) {
+      final activeTrip = await localDataSource.getActiveTrip();
+      final refreshed = activeTrip == null
+          ? current
+          : current.copyWith(
+              clearCurrentMode: true,
+              currentModeDisplay: CrowdsourcingStrings.unspecifiedMode,
+              segmentCount: activeTrip.segments.length,
+              segmentModes: _segmentModeMap(activeTrip),
+            );
+      emit(RecordingModeSelectionRequested(previous: refreshed));
+    }
+  }
+
+  Future<void> restoreProgress(RecordingInProgress progress) async {
+    emit(progress);
+  }
+
+  Future<void> setCurrentSegmentMode(String? mode) async {
+    final current = state;
+    final progress = current is RecordingModeSelectionRequested
+        ? current.previous
+        : current is RecordingInProgress
+        ? current
+        : null;
+    if (progress == null) return;
+    await localDataSource.updateCurrentSegmentMode(progress.tripId, mode);
+    backgroundService.invoke(CrowdsourcingIpc.setCurrentSegmentMode, {
+      CrowdsourcingPayloadKeys.mode: mode,
+    });
+    final activeTrip = await localDataSource.getActiveTrip();
+    emit(
+      progress.copyWith(
+        currentMode: mode,
+        currentModeDisplay: CrowdsourcingModes.displayName(mode),
+        segmentModes: activeTrip == null
+            ? progress.segmentModes
+            : _segmentModeMap(activeTrip),
+      ),
+    );
   }
 
   Future<void> _refreshAfterSegmentSplit() async {

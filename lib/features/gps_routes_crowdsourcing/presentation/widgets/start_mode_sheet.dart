@@ -12,8 +12,9 @@ class StartModeSheet {
       isDismissible: false,
       enableDrag: false,
       backgroundColor: Colors.transparent,
-      builder: (_) => const ModeSelectorSheet(
-        title: CrowdsourcingStrings.selectCurrentMode,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: ModeSelectorSheet(title: CrowdsourcingStrings.selectCurrentMode),
       ),
     );
   }

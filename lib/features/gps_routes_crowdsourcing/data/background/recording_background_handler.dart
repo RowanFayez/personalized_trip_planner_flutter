@@ -90,24 +90,32 @@ void _onNotificationResponse(NotificationResponse response) {
 
 void _forwardNotificationAction(NotificationResponse response) {
   final actionId = response.actionId;
+  final service = FlutterBackgroundService();
+
+  if ((actionId == null || actionId.isEmpty) &&
+      response.payload == CrowdsourcingNotifications.reviewReadyPayload) {
+    service.invoke(CrowdsourcingIpc.bringToForeground);
+    return;
+  }
+
   if (actionId == null || actionId.isEmpty) return;
   final payload = _decodePayload(response.payload);
-  final service = FlutterBackgroundService();
 
   if (actionId == CrowdsourcingNotifications.actionArrived ||
       actionId == CrowdsourcingNotifications.actionStop) {
+    service.invoke(CrowdsourcingIpc.bringToForeground);
     service.invoke(CrowdsourcingIpc.stopTrip);
     return;
   }
 
   if (actionId == CrowdsourcingNotifications.actionTransfer) {
-    service.invoke(CrowdsourcingIpc.addSegment, <String, dynamic>{
-      CrowdsourcingPayloadKeys.mode: null,
-    });
+    service.invoke(CrowdsourcingIpc.bringToForeground);
+    service.invoke(CrowdsourcingIpc.notificationTransferRequested);
     return;
   }
 
   if (actionId == CrowdsourcingNotifications.actionConfirmTransfer) {
+    service.invoke(CrowdsourcingIpc.bringToForeground);
     service.invoke(CrowdsourcingIpc.confirmTransfer, payload);
     return;
   }
@@ -119,7 +127,12 @@ void _forwardNotificationAction(NotificationResponse response) {
 
 Map<String, dynamic> _decodePayload(String? payload) {
   if (payload == null || payload.trim().isEmpty) return <String, dynamic>{};
-  final decoded = jsonDecode(payload);
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(payload);
+  } on FormatException {
+    return <String, dynamic>{};
+  }
   if (decoded is Map<String, dynamic>) return decoded;
   return <String, dynamic>{};
 }
@@ -165,6 +178,9 @@ class _RecordingBackgroundController {
   double _distanceM = 0;
   bool _isGpsLost = false;
   bool _isAutoPaused = false;
+  bool _isFlushing = false;
+  bool _isStopping = false;
+  bool _storageFullHandled = false;
   DateTime? _stationarySince;
 
   _RecordingBackgroundController(this.service);
@@ -191,10 +207,22 @@ class _RecordingBackgroundController {
     service.on(CrowdsourcingIpc.startTrip).listen(_handleStartTrip);
     service.on(CrowdsourcingIpc.stopTrip).listen((_) => _handleStopTrip());
     service.on(CrowdsourcingIpc.addSegment).listen(_handleAddSegment);
+    service
+        .on(CrowdsourcingIpc.notificationTransferRequested)
+        .listen(_handleNotificationTransferRequested);
+    service
+        .on(CrowdsourcingIpc.setCurrentSegmentMode)
+        .listen(_handleSetCurrentSegmentMode);
     service.on(CrowdsourcingIpc.confirmTransfer).listen(_handleConfirmTransfer);
     service.on(CrowdsourcingIpc.rejectTransfer).listen(_handleRejectTransfer);
     service.on(CrowdsourcingIpc.pauseTrip).listen((_) => _setPaused(true));
     service.on(CrowdsourcingIpc.resumeTrip).listen((_) => _setPaused(false));
+    service.on(CrowdsourcingIpc.bringToForeground).listen((_) {
+      final androidService = service;
+      if (androidService is AndroidServiceInstance) {
+        unawaited(androidService.openApp());
+      }
+    });
   }
 
   Future<void> _handleStartTrip(Map<String, dynamic>? event) async {
@@ -202,6 +230,20 @@ class _RecordingBackgroundController {
     final tripId = event?[CrowdsourcingPayloadKeys.tripId]?.toString();
     if (tripId == null || tripId.trim().isEmpty) return;
     final mode = event?[CrowdsourcingPayloadKeys.mode]?.toString();
+
+    final existing = await localDataSource.getActiveTrip();
+    if (existing != null &&
+        existing.tripId == tripId &&
+        _isResumableStatus(existing.status)) {
+      final resumed = existing.copyWith(status: TripStatuses.recording);
+      _activeTrip = resumed;
+      _distanceM = resumed.totalDistanceM ?? 0;
+      _resetRuntimeTracking();
+      await localDataSource.saveActiveTrip(resumed);
+      await _startStreams();
+      await _showRecordingNotification();
+      return;
+    }
 
     final trip = TripMetadataModel(
       tripId: tripId,
@@ -221,16 +263,29 @@ class _RecordingBackgroundController {
 
     _activeTrip = trip;
     _distanceM = 0;
-    _lastAcceptedAt = null;
-    _lastReceivedAt = null;
-    _lastAcceptedPoint = null;
-    _isGpsLost = false;
-    _isAutoPaused = false;
-    _buffer.clear();
-    _speedWindow.clear();
+    _resetRuntimeTracking();
     await localDataSource.saveActiveTrip(trip);
     await _startStreams();
     await _showRecordingNotification();
+  }
+
+  bool _isResumableStatus(String status) {
+    return status == TripStatuses.recording ||
+        status == TripStatuses.paused ||
+        status == TripStatuses.gpsLost;
+  }
+
+  void _resetRuntimeTracking() {
+    _lastAcceptedAt = null;
+    _lastReceivedAt = null;
+    _lastAcceptedPoint = null;
+    _potentialTransferStartTime = null;
+    _latestPendingTransferDetectedAt = null;
+    _isGpsLost = false;
+    _isAutoPaused = false;
+    _stationarySince = null;
+    _buffer.clear();
+    _speedWindow.clear();
   }
 
   Future<void> _startStreams() async {
@@ -315,8 +370,28 @@ class _RecordingBackgroundController {
       speedMs: position.speed,
     );
 
+    if (_isImpossibleOutlier(nextPoint, now)) return;
     if (!_passesStaticDriftFilter(nextPoint, now)) return;
     _appendPoint(nextPoint, now);
+  }
+
+  bool _isImpossibleOutlier(GpsPointModel point, DateTime now) {
+    final previous = _lastAcceptedPoint;
+    final previousAt = _lastAcceptedAt;
+    if (previous == null || previousAt == null) return false;
+
+    final distance = _distanceBetween(
+      previous.lat,
+      previous.lon,
+      point.lat,
+      point.lon,
+    );
+    final elapsedSeconds = math.max(
+      1.0,
+      now.difference(previousAt).inMilliseconds / 1000,
+    );
+    final impliedSpeedMs = distance / elapsedSeconds;
+    return impliedSpeedMs > CrowdsourcingLimits.impossibleTransitSpeedMs;
   }
 
   bool _passesStaticDriftFilter(GpsPointModel point, DateTime now) {
@@ -373,15 +448,44 @@ class _RecordingBackgroundController {
   }
 
   Future<void> _flushBuffer() async {
+    if (_isFlushing) return;
     final activeTrip = _activeTrip;
     if (activeTrip == null || _buffer.isEmpty) return;
-    final points = List<GpsPointModel>.of(_buffer, growable: false);
-    _buffer.clear();
-    await localDataSource.appendGpsPointsBatch(activeTrip.tripId, points);
-    await localDataSource.saveActiveTrip(
-      activeTrip.copyWith(totalDistanceM: _distanceM),
-    );
-    _activeTrip = activeTrip.copyWith(totalDistanceM: _distanceM);
+    _isFlushing = true;
+    try {
+      final points = List<GpsPointModel>.of(_buffer, growable: false);
+      _buffer.clear();
+      await localDataSource.appendGpsPointsBatch(activeTrip.tripId, points);
+      final updated = activeTrip.copyWith(totalDistanceM: _distanceM);
+      await localDataSource.saveActiveTrip(updated);
+      _activeTrip = updated;
+    } on Object catch (error) {
+      if (!_isStorageError(error)) rethrow;
+      await _handleStorageFull();
+    } finally {
+      _isFlushing = false;
+    }
+  }
+
+  bool _isStorageError(Object error) {
+    if (error is CrowdsourcingStorageFullException ||
+        error is FileSystemException) {
+      return true;
+    }
+    final message = error.toString().toLowerCase();
+    return message.contains('space') ||
+        message.contains('quota') ||
+        message.contains('full') ||
+        message.contains('file system');
+  }
+
+  Future<void> _handleStorageFull() async {
+    if (_storageFullHandled) return;
+    _storageFullHandled = true;
+    await _showStorageFullNotification();
+    if (!_isStopping) {
+      await _handleStopTrip(flushPendingBuffer: false);
+    }
   }
 
   void _trackSpeed(double speed) {
@@ -555,6 +659,34 @@ class _RecordingBackgroundController {
     await _showRecordingNotification();
   }
 
+  Future<void> _handleNotificationTransferRequested(
+    Map<String, dynamic>? event,
+  ) async {
+    final androidService = service;
+    if (androidService is AndroidServiceInstance) {
+      await androidService.openApp();
+    }
+    await _handleAddSegment(<String, dynamic>{
+      CrowdsourcingPayloadKeys.mode: null,
+    });
+    service.invoke(CrowdsourcingIpc.showModeSelector);
+  }
+
+  Future<void> _handleSetCurrentSegmentMode(Map<String, dynamic>? event) async {
+    final activeTrip = _activeTrip ?? await localDataSource.getActiveTrip();
+    if (activeTrip == null) return;
+    final modeValue = event?[CrowdsourcingPayloadKeys.mode];
+    final mode = modeValue?.toString().trim();
+    final normalizedMode = mode == null || mode.isEmpty ? null : mode;
+
+    await localDataSource.updateCurrentSegmentMode(
+      activeTrip.tripId,
+      normalizedMode,
+    );
+    _activeTrip = await localDataSource.getActiveTrip();
+    await _showRecordingNotification();
+  }
+
   Future<void> _handleConfirmTransfer(Map<String, dynamic>? event) async {
     final activeTrip = _activeTrip ?? await localDataSource.getActiveTrip();
     if (activeTrip == null) return;
@@ -595,17 +727,19 @@ class _RecordingBackgroundController {
     service.invoke(CrowdsourcingIpc.transferRejected);
   }
 
-  Future<void> _handleStopTrip() async {
+  Future<void> _handleStopTrip({bool flushPendingBuffer = true}) async {
+    if (_isStopping) return;
+    _isStopping = true;
     final activeTrip = _activeTrip ?? await localDataSource.getActiveTrip();
-    if (activeTrip == null) return;
-    await _flushBuffer();
-    await _gpsSubscription?.cancel();
-    await _activitySubscription?.cancel();
-    _flushTimer?.cancel();
-    _gpsWatchTimer?.cancel();
-    _notificationTimer?.cancel();
-    _debounceTimer?.cancel();
-    _promptExpiryTimer?.cancel();
+    if (activeTrip == null) {
+      _isStopping = false;
+      return;
+    }
+    await _showPreparingTripNotification();
+    if (flushPendingBuffer) {
+      await _flushBuffer();
+    }
+    await _cancelRecordingResources();
 
     final endedAt = DateTime.now().toIso8601String();
     final segments = activeTrip.segments
@@ -625,10 +759,25 @@ class _RecordingBackgroundController {
       totalDistanceM: _distanceM,
     );
 
-    await localDataSource.saveActiveTrip(stopped);
+    try {
+      await localDataSource.saveActiveTrip(stopped);
+    } on Object catch (error) {
+      if (!_isStorageError(error)) rethrow;
+    }
     await notifications.cancel(CrowdsourcingNotifications.recordingId);
     service.invoke(CrowdsourcingIpc.tripStopped, stopped.toMap());
+    await _showReviewReadyNotification();
     service.stopSelf();
+  }
+
+  Future<void> _cancelRecordingResources() async {
+    await _gpsSubscription?.cancel();
+    await _activitySubscription?.cancel();
+    _flushTimer?.cancel();
+    _gpsWatchTimer?.cancel();
+    _notificationTimer?.cancel();
+    _debounceTimer?.cancel();
+    _promptExpiryTimer?.cancel();
   }
 
   Future<void> _showRecordingNotification() async {
@@ -672,6 +821,53 @@ class _RecordingBackgroundController {
               showsUserInterface: true,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPreparingTripNotification() async {
+    final androidService = service;
+    if (androidService is AndroidServiceInstance) {
+      await androidService.setForegroundNotificationInfo(
+        title: CrowdsourcingStrings.recordingNotificationTitle,
+        content: CrowdsourcingStrings.preparingTripData,
+      );
+    }
+  }
+
+  Future<void> _showReviewReadyNotification() async {
+    await notifications.show(
+      CrowdsourcingNotifications.reviewReadyId,
+      CrowdsourcingStrings.reviewReadyTitle,
+      CrowdsourcingStrings.reviewReadyBody,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          CrowdsourcingNotifications.promptChannelId,
+          CrowdsourcingStrings.reviewReadyTitle,
+          icon: '@mipmap/ic_launcher',
+          autoCancel: true,
+          priority: Priority.high,
+          importance: Importance.defaultImportance,
+        ),
+      ),
+      payload: CrowdsourcingNotifications.reviewReadyPayload,
+    );
+  }
+
+  Future<void> _showStorageFullNotification() async {
+    await notifications.show(
+      CrowdsourcingNotifications.storageFullId,
+      CrowdsourcingStrings.storageFullTitle,
+      CrowdsourcingStrings.storageFullBody,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          CrowdsourcingNotifications.promptChannelId,
+          CrowdsourcingStrings.storageFullTitle,
+          icon: '@mipmap/ic_launcher',
+          autoCancel: true,
+          priority: Priority.high,
+          importance: Importance.defaultImportance,
         ),
       ),
     );

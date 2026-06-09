@@ -14,15 +14,6 @@ class RecordingInitial extends RecordingState {
   const RecordingInitial();
 }
 
-class RecordingOrphanFound extends RecordingState {
-  final TripMetadataModel tripMeta;
-
-  const RecordingOrphanFound({required this.tripMeta});
-
-  @override
-  List<Object?> get props => <Object?>[tripMeta];
-}
-
 class RecordingInProgress extends RecordingState {
   final String tripId;
   final String? currentMode;
@@ -102,6 +93,15 @@ class RecordingSmartPromptFired extends RecordingState {
 
   @override
   List<Object?> get props => <Object?>[detectedAt, previous];
+}
+
+class RecordingModeSelectionRequested extends RecordingState {
+  final RecordingInProgress previous;
+
+  const RecordingModeSelectionRequested({required this.previous});
+
+  @override
+  List<Object?> get props => <Object?>[previous];
 }
 
 class RecordingGeneratingGpx extends RecordingState {

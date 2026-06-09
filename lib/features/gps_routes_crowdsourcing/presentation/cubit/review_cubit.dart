@@ -18,6 +18,11 @@ class ReviewCubit extends Cubit<ReviewState> {
     final kept = state.segments
         .where((segment) => segment.pointCount >= 2)
         .toList(growable: false);
+    if (kept.isEmpty) {
+      await localDataSource.deleteTrip(state.tripMeta.tripId);
+      emit(state.copyWith(noValidSegments: true, segments: const []));
+      return;
+    }
     if (kept.length == state.segments.length) return;
     final meta = state.tripMeta.copyWith(segments: kept);
     await localDataSource.saveTripMetadata(meta);
@@ -60,6 +65,11 @@ class ReviewCubit extends Cubit<ReviewState> {
     final updated = state.segments
         .where((segment) => segment.index != index)
         .toList(growable: false);
+    if (updated.isEmpty) {
+      await localDataSource.deleteTrip(state.tripMeta.tripId);
+      emit(state.copyWith(segments: const [], noValidSegments: true));
+      return;
+    }
     await _saveSegments(updated);
   }
 
@@ -72,11 +82,13 @@ class ReviewCubit extends Cubit<ReviewState> {
         uploadAttemptCount: state.tripMeta.uploadAttemptCount + 1,
       );
       await localDataSource.saveTripMetadata(updated);
+      await localDataSource.clearActiveTrip();
       emit(
         state.copyWith(
           tripMeta: updated,
           isSubmitting: false,
           clearError: true,
+          submitSucceeded: true,
         ),
       );
     } catch (error) {
@@ -88,5 +100,10 @@ class ReviewCubit extends Cubit<ReviewState> {
     final meta = state.tripMeta.copyWith(segments: segments);
     await localDataSource.saveTripMetadata(meta);
     emit(state.copyWith(tripMeta: meta, segments: segments));
+  }
+
+  Future<void> deleteTrip() async {
+    await localDataSource.deleteTrip(state.tripMeta.tripId);
+    emit(state.copyWith(tripDeleted: true));
   }
 }

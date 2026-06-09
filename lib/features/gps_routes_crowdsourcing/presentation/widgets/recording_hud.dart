@@ -10,6 +10,7 @@ class RecordingHud extends StatelessWidget {
   final int elapsedSeconds;
   final double distanceM;
   final bool isGpsLost;
+  final bool isFollowing;
 
   const RecordingHud({
     super.key,
@@ -18,6 +19,7 @@ class RecordingHud extends StatelessWidget {
     required this.elapsedSeconds,
     required this.distanceM,
     required this.isGpsLost,
+    required this.isFollowing,
   });
 
   @override
@@ -54,6 +56,14 @@ class RecordingHud extends StatelessWidget {
             if (isGpsLost) ...[
               SizedBox(width: 8.w),
               const Icon(Icons.gps_off_rounded, color: AppColors.warning),
+            ],
+            if (!isFollowing) ...[
+              SizedBox(width: 8.w),
+              Icon(
+                Icons.gps_not_fixed_rounded,
+                color: AppColors.textTertiary,
+                size: 16.r,
+              ),
             ],
           ],
         ),

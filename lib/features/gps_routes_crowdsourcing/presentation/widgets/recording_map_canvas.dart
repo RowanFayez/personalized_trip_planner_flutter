@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../../../../core/config/map_config.dart';
@@ -14,12 +15,14 @@ class RecordingMapCanvas extends StatefulWidget {
   final List<GpsPointModel> recentPoints;
   final Map<int, String?> segmentModes;
   final bool pulsePrompt;
+  final ValueChanged<bool> onFollowingChanged;
 
   const RecordingMapCanvas({
     super.key,
     required this.recentPoints,
     required this.segmentModes,
     required this.pulsePrompt,
+    required this.onFollowingChanged,
   });
 
   @override
@@ -30,6 +33,8 @@ class _RecordingMapCanvasState extends State<RecordingMapCanvas> {
   final MapService _mapService = MapService();
   final Completer<void> _ready = Completer<void>();
   MapboxMap? _mapboxMap;
+  bool _userHasPanned = false;
+  Position? _lastCameraPosition;
 
   @override
   void didUpdateWidget(covariant RecordingMapCanvas oldWidget) {
@@ -42,22 +47,49 @@ class _RecordingMapCanvasState extends State<RecordingMapCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    return MapWidget(
-      key: const ValueKey('crowdsourcing_recording_map'),
-      cameraOptions: MapConfig.defaultCamera,
-      styleUri: MapConfig.styleUrl,
-      textureView: true,
-      onMapCreated: (mapboxMap) {
-        _mapboxMap = mapboxMap;
-        _mapService.initialize(mapboxMap);
-        _hideOrnaments(mapboxMap);
-        if (!_ready.isCompleted) {
-          Future<void>.delayed(const Duration(milliseconds: 220), () {
-            if (!_ready.isCompleted) _ready.complete();
-            unawaited(_draw());
-          });
-        }
-      },
+    return Stack(
+      children: [
+        MapWidget(
+          key: const ValueKey('crowdsourcing_recording_map'),
+          cameraOptions: MapConfig.defaultCamera,
+          styleUri: MapConfig.styleUrl,
+          textureView: true,
+          onScrollListener: (_) {
+            if (_userHasPanned) return;
+            setState(() => _userHasPanned = true);
+            widget.onFollowingChanged(false);
+          },
+          onMapCreated: (mapboxMap) {
+            _mapboxMap = mapboxMap;
+            _mapService.initialize(mapboxMap);
+            _hideOrnaments(mapboxMap);
+            if (!_ready.isCompleted) {
+              Future<void>.delayed(const Duration(milliseconds: 220), () {
+                if (!_ready.isCompleted) _ready.complete();
+                unawaited(_draw());
+              });
+            }
+          },
+        ),
+        if (_userHasPanned)
+          Positioned(
+            right: 16.w,
+            bottom: CrowdsourcingUi.bottomBarHeight.h + 16.h,
+            child: FloatingActionButton.small(
+              backgroundColor: AppColors.surfaceDark,
+              onPressed: () {
+                setState(() => _userHasPanned = false);
+                widget.onFollowingChanged(true);
+                unawaited(_draw());
+              },
+              child: Icon(
+                Icons.my_location_rounded,
+                color: AppColors.primaryTeal,
+                size: 20.r,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -72,23 +104,42 @@ class _RecordingMapCanvasState extends State<RecordingMapCanvas> {
         segments: segments,
         width: CrowdsourcingUi.routeWidth,
       );
-      final allPositions = segments
-          .expand((segment) => segment.coordinates)
-          .toList(growable: false);
-      await _mapService.fitToRoute(allPositions);
     }
 
     final last = widget.recentPoints.lastOrNull;
-    if (last != null) {
-      await _mapService.upsertMarker(
-        id: 'recording_current',
-        latitude: last.lat,
-        longitude: last.lon,
-        color: widget.pulsePrompt || _isStationary()
-            ? AppColors.warning
-            : AppColors.primaryTeal,
-      );
-    }
+    if (last == null) return;
+    await _mapService.upsertMarker(
+      id: 'recording_current',
+      latitude: last.lat,
+      longitude: last.lon,
+      color: widget.pulsePrompt || _isStationary()
+          ? AppColors.warning
+          : AppColors.primaryTeal,
+    );
+    await _followCameraIfNeeded(last);
+  }
+
+  Future<void> _followCameraIfNeeded(GpsPointModel last) async {
+    if (_mapboxMap == null || _userHasPanned) return;
+    final newPosition = Position(last.lon, last.lat);
+    if (!_shouldMoveCamera(newPosition)) return;
+    _lastCameraPosition = newPosition;
+    await _mapboxMap!.flyTo(
+      CameraOptions(center: Point(coordinates: newPosition), zoom: 16.0),
+      MapAnimationOptions(duration: 800),
+    );
+  }
+
+  bool _shouldMoveCamera(Position newPosition) {
+    final last = _lastCameraPosition;
+    if (last == null) return true;
+    return _distanceBetween(
+          last.lat.toDouble(),
+          last.lng.toDouble(),
+          newPosition.lat.toDouble(),
+          newPosition.lng.toDouble(),
+        ) >
+        20;
   }
 
   List<MapRouteSegment> _routeSegments() {

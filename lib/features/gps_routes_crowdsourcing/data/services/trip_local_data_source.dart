@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:hive/hive.dart';
 
 import '../../../../core/constants/crowdsourcing_constants.dart';
@@ -35,27 +37,34 @@ class TripLocalDataSource {
     List<GpsPointModel> points,
   ) async {
     if (points.isEmpty) return;
-    final box = await _box;
-    var batchCount = _readInt(box.get(_gpsBatchCountKey(tripId)));
+    try {
+      final box = await _box;
+      var batchCount = _readInt(box.get(_gpsBatchCountKey(tripId)));
 
-    for (
-      var start = 0;
-      start < points.length;
-      start += CrowdsourcingLimits.gpsBufferMax
-    ) {
-      final end = (start + CrowdsourcingLimits.gpsBufferMax).clamp(
-        0,
-        points.length,
-      );
-      final chunk = points
-          .sublist(start, end)
-          .map((point) => point.toMap())
-          .toList(growable: false);
-      batchCount += 1;
-      await box.put(_gpsBatchKey(tripId, batchCount), chunk);
+      for (
+        var start = 0;
+        start < points.length;
+        start += CrowdsourcingLimits.gpsBufferMax
+      ) {
+        final end = (start + CrowdsourcingLimits.gpsBufferMax).clamp(
+          0,
+          points.length,
+        );
+        final chunk = points
+            .sublist(start, end)
+            .map((point) => point.toMap())
+            .toList(growable: false);
+        batchCount += 1;
+        await box.put(_gpsBatchKey(tripId, batchCount), chunk);
+      }
+
+      await box.put(_gpsBatchCountKey(tripId), batchCount);
+    } on FileSystemException catch (error) {
+      throw CrowdsourcingStorageFullException(error.toString());
+    } on HiveError catch (error) {
+      if (!_isStorageFailure(error.message)) rethrow;
+      throw CrowdsourcingStorageFullException(error.message);
     }
-
-    await box.put(_gpsBatchCountKey(tripId), batchCount);
   }
 
   Future<List<GpsPointModel>> getGpsPoints(String tripId) async {
@@ -89,6 +98,26 @@ class TripLocalDataSource {
     }
     await box.delete(_gpsBatchCountKey(tripId));
     await box.delete('${CrowdsourcingHiveKeys.gpsPrefix}$tripId');
+  }
+
+  Future<void> deleteTrip(String tripId) async {
+    final box = await _box;
+    final meta = await getTripMetadata(tripId);
+    final active = await getActiveTrip();
+    final gpxPath = meta?.gpxFilePath ?? active?.gpxFilePath;
+
+    if (gpxPath != null && gpxPath.trim().isNotEmpty) {
+      final file = File(gpxPath);
+      if (await file.exists()) await file.delete();
+    }
+
+    await deleteGpsPoints(tripId);
+    await box.delete(_transfersKey(tripId));
+    await box.delete(_tripMetaKey(tripId));
+    final keys = _readStringList(box.get(CrowdsourcingHiveKeys.tripMetaKeys))
+      ..removeWhere((key) => key == tripId);
+    await box.put(CrowdsourcingHiveKeys.tripMetaKeys, keys);
+    if (active?.tripId == tripId) await clearActiveTrip();
   }
 
   Future<void> addPotentialTransfer(
@@ -233,6 +262,24 @@ class TripLocalDataSource {
     await saveActiveTrip(
       activeTrip.copyWith(segments: segments, currentSegmentIndex: nextIndex),
     );
+  }
+
+  Future<void> updateCurrentSegmentMode(String tripId, String? mode) async {
+    final activeTrip = await getActiveTrip();
+    if (activeTrip == null || activeTrip.tripId != tripId) return;
+    final updatedSegments = activeTrip.segments
+        .map((segment) {
+          if (segment.index != activeTrip.currentSegmentIndex) return segment;
+          return segment.copyWith(
+            mode: mode,
+            clearMode: mode == null,
+            confidence: mode == null
+                ? SegmentConfidence.unknown
+                : SegmentConfidence.userConfirmed,
+          );
+        })
+        .toList(growable: false);
+    await saveActiveTrip(activeTrip.copyWith(segments: updatedSegments));
   }
 
   Future<void> saveTripMetadata(TripMetadataModel meta) async {
@@ -386,4 +433,21 @@ class TripLocalDataSource {
         .where((item) => item.trim().isNotEmpty)
         .toList(growable: true);
   }
+
+  bool _isStorageFailure(String message) {
+    final normalized = message.toLowerCase();
+    return normalized.contains('space') ||
+        normalized.contains('quota') ||
+        normalized.contains('full') ||
+        normalized.contains('file system');
+  }
+}
+
+class CrowdsourcingStorageFullException implements Exception {
+  final String message;
+
+  const CrowdsourcingStorageFullException(this.message);
+
+  @override
+  String toString() => message;
 }

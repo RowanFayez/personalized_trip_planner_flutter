@@ -54,7 +54,8 @@ class _ContributionsView extends StatelessWidget {
                   return ContributionListItem(
                     trip: trip,
                     onAction: () =>
-                        context.go(CrowdsourcingRoutes.review, extra: trip),
+                        context.push(CrowdsourcingRoutes.review, extra: trip),
+                    onDelete: () => _confirmDeleteTrip(context, trip.tripId),
                   );
                 },
               ),
@@ -62,6 +63,31 @@ class _ContributionsView extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  Future<void> _confirmDeleteTrip(BuildContext context, String tripId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text(CrowdsourcingStrings.deleteTripQuestion),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(CrowdsourcingStrings.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(CrowdsourcingStrings.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await context.read<ContributionsCubit>().deleteTrip(tripId);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(CrowdsourcingStrings.tripDeleted)),
     );
   }
 }
@@ -89,7 +115,7 @@ class _EmptyContributions extends StatelessWidget {
             ),
             SizedBox(height: 16.h),
             ElevatedButton.icon(
-              onPressed: () => context.go(CrowdsourcingRoutes.record),
+              onPressed: () => context.push(CrowdsourcingRoutes.record),
               icon: const Icon(Icons.fiber_manual_record_rounded),
               label: const Text(CrowdsourcingStrings.startRecording),
             ),

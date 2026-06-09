@@ -9,6 +9,9 @@ class ReviewState extends Equatable {
   final bool isSubmitting;
   final String? error;
   final bool removedShortSegments;
+  final bool noValidSegments;
+  final bool submitSucceeded;
+  final bool tripDeleted;
 
   const ReviewState({
     required this.tripMeta,
@@ -16,6 +19,9 @@ class ReviewState extends Equatable {
     this.isSubmitting = false,
     this.error,
     this.removedShortSegments = false,
+    this.noValidSegments = false,
+    this.submitSucceeded = false,
+    this.tripDeleted = false,
   });
 
   ReviewState copyWith({
@@ -25,6 +31,9 @@ class ReviewState extends Equatable {
     String? error,
     bool clearError = false,
     bool? removedShortSegments,
+    bool? noValidSegments,
+    bool? submitSucceeded,
+    bool? tripDeleted,
   }) {
     return ReviewState(
       tripMeta: tripMeta ?? this.tripMeta,
@@ -32,6 +41,9 @@ class ReviewState extends Equatable {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       error: clearError ? null : error ?? this.error,
       removedShortSegments: removedShortSegments ?? this.removedShortSegments,
+      noValidSegments: noValidSegments ?? this.noValidSegments,
+      submitSucceeded: submitSucceeded ?? this.submitSucceeded,
+      tripDeleted: tripDeleted ?? this.tripDeleted,
     );
   }
 
@@ -46,5 +58,8 @@ class ReviewState extends Equatable {
     isSubmitting,
     error,
     removedShortSegments,
+    noValidSegments,
+    submitSucceeded,
+    tripDeleted,
   ];
 }

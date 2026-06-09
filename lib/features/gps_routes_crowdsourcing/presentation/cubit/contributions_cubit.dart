@@ -19,4 +19,9 @@ class ContributionsCubit extends Cubit<ContributionsState> {
       emit(state.copyWith(isLoading: false, error: error.toString()));
     }
   }
+
+  Future<void> deleteTrip(String tripId) async {
+    await localDataSource.deleteTrip(tripId);
+    await load();
+  }
 }
