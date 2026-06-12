@@ -202,7 +202,7 @@ class CrowdsourcingStrings {
   static const String submittedSuccess = 'تم إرسال الرحلة التجريبية بنجاح';
   static const String maxDraftsReached =
       'مسموح لحد 5 رحلات محفوظة. امسح رحلة قديمة الأول.';
-  static const String silentRecordingTitle = '🚌 Yastaa — جاري التسجيل';
+  static const String silentRecordingTitle = 'Yastaa — جاري التسجيل';
   static const String silentRecordingBody =
       'التسجيل شغال، تقدر توقفه من هنا أو من الإشعار.';
   static const String pendingBackend =
@@ -214,7 +214,7 @@ class CrowdsourcingStrings {
   static const String deleteTripQuestion = 'تحذف الرحلة دي؟';
   static const String tripDeleted = 'تم حذف الرحلة';
   static const String noContributions = 'مفيش مساهمات لحد دلوقتي';
-  static const String recordingNotificationTitle = '🚌 Yastaa — جاري التسجيل';
+  static const String recordingNotificationTitle = 'Yastaa — جاري التسجيل';
   static const String recordingNotificationInitialBody =
       'الوقت: 00:00:00 • المسافة: 0.0 كم';
   static const String unspecifiedMode = 'وسيلة غير محددة';
@@ -244,6 +244,17 @@ class CrowdsourcingStrings {
       'Yastaa — تم إيقاف التسجيل';
   static const String locationPermissionStoppedBody =
       'تم إيقاف التسجيل لعدم وجود صلاحية الموقع';
+  static const String permissionsTitle = 'صلاحيات التسجيل';
+  static const String locationPermissionRequired =
+      'Yastaa محتاج صلاحية الموقع عشان يبدأ تسجيل الرحلة.';
+  static const String backgroundLocationRequired =
+      'Yastaa محتاج صلاحية الموقع في الخلفية عشان التسجيل يكمل والشاشة مقفولة.';
+  static const String activityRecognitionOptional =
+      'هتكمل التسجيل عادي، بس اقتراحات تبديل المواصلة مش هتظهر من غير صلاحية النشاط.';
+  static const String gpsDisabledForRecording =
+      'افتح GPS عشان Yastaa يقدر يسجل الرحلة بدقة.';
+  static const String openGpsSettings = 'فتح إعدادات GPS';
+  static const String openAppSettings = 'فتح إعدادات التطبيق';
   static const String permissionsRationale =
       'Yastaa محتاج يوصل للموقع وهو في الخلفية عشان يكمل تسجيل رحلتك.';
   static const String allow = 'السماح';

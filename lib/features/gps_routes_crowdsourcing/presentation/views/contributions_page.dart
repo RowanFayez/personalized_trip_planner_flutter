@@ -178,10 +178,9 @@ class _StartRecordingContent extends StatelessWidget {
           ),
         ),
         SizedBox(width: 12.w),
-        ElevatedButton.icon(
+        ElevatedButton(
           onPressed: canCreateTrip ? () => _startRecording(context) : null,
-          icon: const Icon(Icons.add_rounded),
-          label: const Text(CrowdsourcingStrings.recordTrip),
+          child: const Text(CrowdsourcingStrings.recordTrip),
         ),
       ],
     );

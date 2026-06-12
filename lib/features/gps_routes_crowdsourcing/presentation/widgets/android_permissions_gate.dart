@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/crowdsourcing_constants.dart';
@@ -36,9 +35,6 @@ class _AndroidPermissionsGateState extends State<AndroidPermissionsGate> {
     final allowed = await widget.permissionsService.ensureAndroidPermissions(
       context,
     );
-    if (allowed) {
-      await Permission.ignoreBatteryOptimizations.request();
-    }
     if (!mounted) return;
     setState(() {
       _isAllowed = allowed;
