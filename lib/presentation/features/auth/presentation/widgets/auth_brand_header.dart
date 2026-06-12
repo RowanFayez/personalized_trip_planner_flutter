@@ -9,7 +9,7 @@ class AuthBrandHeader extends StatelessWidget {
 
   const AuthBrandHeader({
     super.key,
-    this.title = 'NextStation',
+    this.title = 'Yastaa',
     this.subtitle = 'Sign in with your Google account to continue.',
   });
 

@@ -55,6 +55,7 @@ class CrowdsourcingIpc {
 
   static const String startTrip = 'start_trip';
   static const String stopTrip = 'stop_trip';
+  static const String stopService = 'stopService';
   static const String addSegment = 'add_segment';
   static const String confirmTransfer = 'confirm_transfer';
   static const String rejectTransfer = 'reject_transfer';
@@ -99,8 +100,9 @@ class CrowdsourcingNotifications {
   static const int stationaryId = 890;
   static const int reviewReadyId = 891;
   static const int storageFullId = 892;
-  static const String recordingChannelId = 'nextstation_recording';
-  static const String promptChannelId = 'nextstation_smart_prompt';
+  static const int permissionStoppedId = 893;
+  static const String recordingChannelId = 'yastaa_recording';
+  static const String promptChannelId = 'yastaa_smart_prompt';
   static const String actionTransfer = 'transfer';
   static const String actionArrived = 'arrived';
   static const String actionConfirmTransfer = 'confirm_transfer';
@@ -148,10 +150,10 @@ class CrowdsourcingGpx {
 
   static const String appVersion = '1.0.0';
   static const String deviceOs = 'android';
-  static const String creator = 'NextStation-Android';
+  static const String creator = 'Yastaa-Android';
   static const String namespace = 'http://www.topografix.com/GPX/1/1';
   static const String extensionNamespace =
-      'http://nextstation.app/gpx/extensions/v1';
+      'http://yastaa.app/gpx/extensions/v1';
   static const String folderName = 'crowdsourcing';
 }
 
@@ -200,9 +202,9 @@ class CrowdsourcingStrings {
   static const String submittedSuccess = 'تم إرسال الرحلة التجريبية بنجاح';
   static const String maxDraftsReached =
       'مسموح لحد 5 رحلات محفوظة. امسح رحلة قديمة الأول.';
-  static const String silentRecordingTitle = 'التسجيل شغال في الخلفية';
+  static const String silentRecordingTitle = '🚌 Yastaa — جاري التسجيل';
   static const String silentRecordingBody =
-      'استخدم التطبيق عادي. هنحفظ الرحلة كمسودة لما توقف.';
+      'التسجيل شغال، تقدر توقفه من هنا أو من الإشعار.';
   static const String pendingBackend =
       'تم حفظ المساهمة محلياً وجاهزة للإرسال لما الباكند يبقى متاح.';
   static const String noValidSegments = 'الرحلة دي مفيهاش بيانات كافية للإرسال';
@@ -212,32 +214,38 @@ class CrowdsourcingStrings {
   static const String deleteTripQuestion = 'تحذف الرحلة دي؟';
   static const String tripDeleted = 'تم حذف الرحلة';
   static const String noContributions = 'مفيش مساهمات لحد دلوقتي';
-  static const String recordingNotificationTitle = 'NextStation — جاري التسجيل';
+  static const String recordingNotificationTitle = '🚌 Yastaa — جاري التسجيل';
+  static const String recordingNotificationInitialBody =
+      'الوقت: 00:00:00 • المسافة: 0.0 كم';
   static const String unspecifiedMode = 'وسيلة غير محددة';
-  static const String smartPromptTitle = 'الأسطى بيسأل — تبديل مواصلة؟';
+  static const String smartPromptTitle = 'Yastaa — تبديل مواصلة؟';
   static const String smartPromptBody =
       'حسّينا إنك نزلت وركبت مواصلة تانية. هل غيّرت فعلاً؟';
   static const String smartPromptYes = 'أيوه، غيّرت';
   static const String smartPromptNo = 'لأ، زحمة بس';
-  static const String stillRecording = 'لسه بتسجل؟ وصلت؟';
+  static const String stillRecording = 'Yastaa — لسه بتسجل؟ وصلت؟';
   static const String gpsLost = 'GPS اتقفل — التسجيل وقف مؤقتاً.';
   static const String preparingTripData = 'جاري تجهيز بيانات الرحلة...';
-  static const String reviewReadyTitle = 'الرحلة اتسجلت ✓';
+  static const String reviewReadyTitle = 'Yastaa — الرحلة اتسجلت ✓';
   static const String reviewReadyBody = 'افتح التطبيق لمراجعتها وإرسالها';
-  static const String tripSavedReviewTitle = 'Trip saved!';
+  static const String tripSavedReviewTitle = 'Yastaa — Trip saved!';
   static const String tripSavedReviewBody = 'Tap to review.';
-  static const String gpsDisabledTitle = 'GPS مقفول';
+  static const String gpsDisabledTitle = 'Yastaa — GPS مقفول';
   static const String gpsDisabledBody =
       'وقفنا التسجيل مؤقتا. افتح GPS عشان نكمل.';
-  static const String splitPromptTitle = 'نزلت وبتمشي؟';
+  static const String splitPromptTitle = 'Yastaa — نزلت وبتمشي؟';
   static const String splitPromptBody =
       'لو غيرت المواصلة دوس هنا عشان نفصل الجزء. لو تجاهلت الرسالة هنكمل نفس المواصلة.';
   static const String splitPromptAction = 'افصل المواصلة';
-  static const String storageFullTitle = 'تم إيقاف التسجيل';
+  static const String storageFullTitle = 'Yastaa — تم إيقاف التسجيل';
   static const String storageFullBody =
       'تم إيقاف التسجيل لامتلاء مساحة التخزين';
+  static const String locationPermissionStoppedTitle =
+      'Yastaa — تم إيقاف التسجيل';
+  static const String locationPermissionStoppedBody =
+      'تم إيقاف التسجيل لعدم وجود صلاحية الموقع';
   static const String permissionsRationale =
-      'NextStation محتاج يوصل للموقع وهو في الخلفية عشان يكمل تسجيل رحلتك.';
+      'Yastaa محتاج يوصل للموقع وهو في الخلفية عشان يكمل تسجيل رحلتك.';
   static const String allow = 'السماح';
   static const String notNow = 'مش دلوقتي';
   static const String settings = 'الإعدادات';

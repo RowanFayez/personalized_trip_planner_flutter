@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// App color palette based on NextStation UI mockups
+/// App color palette based on Yastaa UI mockups
 class AppColors {
   AppColors._();
 

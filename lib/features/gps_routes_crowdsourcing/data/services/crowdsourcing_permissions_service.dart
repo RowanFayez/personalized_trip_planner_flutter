@@ -26,6 +26,7 @@ class CrowdsourcingPermissionsService {
     if (!background.isGranted) return false;
 
     await Permission.notification.request();
+    await Permission.ignoreBatteryOptimizations.request();
     return true;
   }
 

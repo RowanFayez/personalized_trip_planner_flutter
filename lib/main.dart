@@ -35,11 +35,11 @@ void main() async {
     ),
   );
 
-  runApp(const NextStationApp());
+  runApp(const YastaaApp());
 }
 
-class NextStationApp extends StatelessWidget {
-  const NextStationApp({super.key});
+class YastaaApp extends StatelessWidget {
+  const YastaaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +49,7 @@ class NextStationApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp.router(
-          title: 'NextStation',
+          title: 'Yastaa',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.darkTheme,
           routerConfig: AppRouter.router,

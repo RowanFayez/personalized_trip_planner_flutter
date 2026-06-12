@@ -88,12 +88,14 @@ class ReviewCubit extends Cubit<ReviewState> {
     emit(state.copyWith(isSubmitting: true, clearError: true));
     try {
       await Future<void>.delayed(const Duration(seconds: 2));
+      localDataSource.deleteGpxFileSync(state.tripMeta.gpxFilePath);
       final updated = state.tripMeta.copyWith(
         status: TripStatuses.uploaded,
         segments: state.segments,
         uploadAttemptCount: state.tripMeta.uploadAttemptCount + 1,
         contributionId: 'mock_${state.tripMeta.tripId}',
         lastUploadedAt: DateTime.now().toIso8601String(),
+        clearGpxFilePath: true,
       );
       await localDataSource.saveTripMetadata(updated);
       await localDataSource.clearActiveTrip();

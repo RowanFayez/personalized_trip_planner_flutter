@@ -3,7 +3,7 @@ class AppStrings {
   AppStrings._();
 
   // App Info
-  static const String appName = 'NextStation';
+  static const String appName = 'Yastaa';
   static const String appNameAr = 'المحطة التالية';
 
   // Map Configuration

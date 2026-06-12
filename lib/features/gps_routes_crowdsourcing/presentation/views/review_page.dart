@@ -364,7 +364,10 @@ class _SubmitButton extends StatelessWidget {
                 await context.read<ReviewCubit>().submitForFutureUpload();
               },
         child: state.isSubmitting
-            ? const CircularProgressIndicator()
+            ? SizedBox.square(
+                dimension: 20.r,
+                child: const CircularProgressIndicator(strokeWidth: 2),
+              )
             : Text(
                 state.hasMissingModes
                     ? CrowdsourcingStrings.submitAnyway

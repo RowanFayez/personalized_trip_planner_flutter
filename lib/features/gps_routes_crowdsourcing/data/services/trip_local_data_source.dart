@@ -133,10 +133,7 @@ class TripLocalDataSource {
     final active = await getActiveTrip();
     final gpxPath = meta?.gpxFilePath ?? active?.gpxFilePath;
 
-    if (gpxPath != null && gpxPath.trim().isNotEmpty) {
-      final file = File(gpxPath);
-      if (await file.exists()) await file.delete();
-    }
+    deleteGpxFileSync(gpxPath);
 
     await deleteGpsPoints(tripId);
     await box.delete(_transfersKey(tripId));
@@ -145,6 +142,17 @@ class TripLocalDataSource {
       ..removeWhere((key) => key == tripId);
     await box.put(CrowdsourcingHiveKeys.tripMetaKeys, keys);
     if (active?.tripId == tripId) await clearActiveTrip();
+  }
+
+  void deleteGpxFileSync(String? gpxFilePath) {
+    final path = gpxFilePath?.trim();
+    if (path == null || path.isEmpty) return;
+    try {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+    } on FileSystemException {
+      return;
+    }
   }
 
   Future<void> addPotentialTransfer(
@@ -420,6 +428,7 @@ class TripLocalDataSource {
   ) async {
     final meta = await getTripMetadata(tripId);
     if (meta == null) return;
+    deleteGpxFileSync(meta.gpxFilePath);
     await saveTripMetadata(
       meta.copyWith(
         status: TripStatuses.uploaded,

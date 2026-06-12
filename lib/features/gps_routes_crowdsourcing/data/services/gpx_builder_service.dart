@@ -61,7 +61,7 @@ String assembleGpxXml(Map<String, dynamic> input) {
       'xmlns:ns="${_xml(CrowdsourcingGpx.extensionNamespace)}">',
     )
     ..writeln('  <metadata>')
-    ..writeln('    <name>NextStation Contribution</name>')
+    ..writeln('    <name>Yastaa Contribution</name>')
     ..writeln('    <time>${_utcIso(DateTime.now())}</time>')
     ..writeln('    <extensions>')
     ..writeln('      <ns:trip_id>${_xml(tripMeta.tripId)}</ns:trip_id>')
