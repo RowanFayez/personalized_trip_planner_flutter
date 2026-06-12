@@ -14,7 +14,16 @@ class ContributionsCubit extends Cubit<ContributionsState> {
     try {
       final trips = await localDataSource.getAllCompletedTripMetadata();
       trips.sort((a, b) => b.startedAt.compareTo(a.startedAt));
-      emit(state.copyWith(isLoading: false, trips: trips));
+      final activeTrip = await localDataSource.getActiveTrip();
+      emit(
+        state.copyWith(
+          isLoading: false,
+          trips: trips,
+          activeTrip: activeTrip,
+          clearActiveTrip: activeTrip == null,
+          canCreateTrip: await localDataSource.canCreateTrip(),
+        ),
+      );
     } catch (error) {
       emit(state.copyWith(isLoading: false, error: error.toString()));
     }

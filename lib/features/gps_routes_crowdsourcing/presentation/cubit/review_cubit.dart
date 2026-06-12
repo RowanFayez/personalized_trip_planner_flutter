@@ -61,6 +61,17 @@ class ReviewCubit extends Cubit<ReviewState> {
     await _saveSegments(updated);
   }
 
+  Future<void> updateRouteName(String value) async {
+    final normalized = value.trim();
+    final routeName = normalized.isEmpty ? null : normalized;
+    final meta = state.tripMeta.copyWith(
+      routeName: routeName,
+      clearRouteName: routeName == null,
+    );
+    await localDataSource.saveTripMetadata(meta);
+    emit(state.copyWith(tripMeta: meta));
+  }
+
   Future<void> deleteSegment(int index) async {
     final updated = state.segments
         .where((segment) => segment.index != index)
@@ -76,10 +87,13 @@ class ReviewCubit extends Cubit<ReviewState> {
   Future<void> submitForFutureUpload() async {
     emit(state.copyWith(isSubmitting: true, clearError: true));
     try {
+      await Future<void>.delayed(const Duration(seconds: 2));
       final updated = state.tripMeta.copyWith(
-        status: TripStatuses.pendingUpload,
+        status: TripStatuses.uploaded,
         segments: state.segments,
         uploadAttemptCount: state.tripMeta.uploadAttemptCount + 1,
+        contributionId: 'mock_${state.tripMeta.tripId}',
+        lastUploadedAt: DateTime.now().toIso8601String(),
       );
       await localDataSource.saveTripMetadata(updated);
       await localDataSource.clearActiveTrip();

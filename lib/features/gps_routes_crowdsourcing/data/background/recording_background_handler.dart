@@ -11,6 +11,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart' hide ActivityType;
 
 import '../../../../core/constants/crowdsourcing_constants.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../../core/storage/hive/hive_service.dart';
 import '../models/gps_point_model.dart';
 import '../models/potential_transfer_model.dart';
@@ -81,19 +82,23 @@ void crowdsourcingServiceOnStart(ServiceInstance service) {
 @pragma('vm:entry-point')
 void crowdsourcingNotificationTapBackground(NotificationResponse response) {
   DartPluginRegistrant.ensureInitialized();
-  _forwardNotificationAction(response);
+  unawaited(_forwardNotificationAction(response, canNavigate: false));
 }
 
 void _onNotificationResponse(NotificationResponse response) {
-  _forwardNotificationAction(response);
+  unawaited(_forwardNotificationAction(response, canNavigate: true));
 }
 
-void _forwardNotificationAction(NotificationResponse response) {
+Future<void> _forwardNotificationAction(
+  NotificationResponse response, {
+  required bool canNavigate,
+}) async {
   final actionId = response.actionId;
   final service = FlutterBackgroundService();
 
   if ((actionId == null || actionId.isEmpty) &&
-      response.payload == CrowdsourcingNotifications.reviewReadyPayload) {
+      _isReviewReadyPayload(response.payload)) {
+    await _handleReviewReadyTap(response.payload, canNavigate: canNavigate);
     service.invoke(CrowdsourcingIpc.bringToForeground);
     return;
   }
@@ -109,13 +114,13 @@ void _forwardNotificationAction(NotificationResponse response) {
   }
 
   if (actionId == CrowdsourcingNotifications.actionTransfer) {
-    service.invoke(CrowdsourcingIpc.bringToForeground);
-    service.invoke(CrowdsourcingIpc.notificationTransferRequested);
+    service.invoke(CrowdsourcingIpc.addSegment, <String, dynamic>{
+      CrowdsourcingPayloadKeys.mode: null,
+    });
     return;
   }
 
   if (actionId == CrowdsourcingNotifications.actionConfirmTransfer) {
-    service.invoke(CrowdsourcingIpc.bringToForeground);
     service.invoke(CrowdsourcingIpc.confirmTransfer, payload);
     return;
   }
@@ -123,6 +128,27 @@ void _forwardNotificationAction(NotificationResponse response) {
   if (actionId == CrowdsourcingNotifications.actionRejectTransfer) {
     service.invoke(CrowdsourcingIpc.rejectTransfer, payload);
   }
+}
+
+bool _isReviewReadyPayload(String? payload) {
+  if (payload == CrowdsourcingNotifications.reviewReadyPayload) return true;
+  final decoded = _decodePayload(payload);
+  return decoded[CrowdsourcingPayloadKeys.type] ==
+      CrowdsourcingNotifications.reviewReadyPayloadType;
+}
+
+Future<void> _handleReviewReadyTap(
+  String? payload, {
+  required bool canNavigate,
+}) async {
+  final decoded = _decodePayload(payload);
+  final tripId = decoded[CrowdsourcingPayloadKeys.tripId]?.toString();
+  if (tripId == null || tripId.trim().isEmpty) return;
+  await HiveService.init();
+  final dataSource = TripLocalDataSource();
+  await dataSource.savePendingReviewTripId(tripId);
+  if (!canNavigate) return;
+  AppRouter.router.go('${CrowdsourcingRoutes.review}/$tripId');
 }
 
 Map<String, dynamic> _decodePayload(String? payload) {
@@ -157,12 +183,14 @@ class _RecordingBackgroundController {
       FlutterLocalNotificationsPlugin();
 
   StreamSubscription<Position>? _gpsSubscription;
+  StreamSubscription<ServiceStatus>? _serviceStatusSubscription;
   StreamSubscription<Activity>? _activitySubscription;
   Timer? _flushTimer;
   Timer? _gpsWatchTimer;
   Timer? _notificationTimer;
   Timer? _debounceTimer;
   Timer? _promptExpiryTimer;
+  Timer? _safetyTimer;
 
   TripMetadataModel? _activeTrip;
   final List<GpsPointModel> _buffer = <GpsPointModel>[];
@@ -178,6 +206,7 @@ class _RecordingBackgroundController {
   double _distanceM = 0;
   bool _isGpsLost = false;
   bool _isAutoPaused = false;
+  bool _isLocationServiceEnabled = true;
   bool _isFlushing = false;
   bool _isStopping = false;
   bool _storageFullHandled = false;
@@ -290,10 +319,22 @@ class _RecordingBackgroundController {
 
   Future<void> _startStreams() async {
     await _gpsSubscription?.cancel();
+    await _serviceStatusSubscription?.cancel();
     await _activitySubscription?.cancel();
     _flushTimer?.cancel();
     _gpsWatchTimer?.cancel();
     _notificationTimer?.cancel();
+    _safetyTimer?.cancel();
+
+    _isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
+    _serviceStatusSubscription = Geolocator.getServiceStatusStream().listen(
+      _onLocationServiceStatus,
+      onError: (_) => _handleGpsDisabled(),
+    );
+    if (!_isLocationServiceEnabled) {
+      await _handleGpsDisabled();
+    }
+    _scheduleSafetyStop();
 
     _flushTimer = Timer.periodic(
       CrowdsourcingTiming.flushInterval,
@@ -331,7 +372,45 @@ class _RecordingBackgroundController {
     }
   }
 
+  void _onLocationServiceStatus(ServiceStatus status) {
+    if (status == ServiceStatus.disabled) {
+      unawaited(_handleGpsDisabled());
+      return;
+    }
+
+    _isLocationServiceEnabled = true;
+    if (_isGpsLost) {
+      _isGpsLost = false;
+      service.invoke(CrowdsourcingIpc.gpsRestored);
+    }
+    unawaited(_setPaused(false));
+    unawaited(_showRecordingNotification());
+  }
+
+  Future<void> _handleGpsDisabled() async {
+    _isLocationServiceEnabled = false;
+    _markGpsLost();
+    await _setPaused(true);
+    await _showGpsDisabledNotification();
+  }
+
+  void _scheduleSafetyStop() {
+    _safetyTimer?.cancel();
+    final activeTrip = _activeTrip;
+    if (activeTrip == null) return;
+    final startedAt = DateTime.tryParse(activeTrip.startedAt);
+    if (startedAt == null) return;
+    final elapsed = DateTime.now().difference(startedAt);
+    final remaining = CrowdsourcingTiming.maxRecordingDuration - elapsed;
+    if (remaining <= Duration.zero) {
+      unawaited(_handleStopTrip());
+      return;
+    }
+    _safetyTimer = Timer(remaining, () => unawaited(_handleStopTrip()));
+  }
+
   Future<void> _onPosition(Position position) async {
+    if (!_isLocationServiceEnabled) return;
     _lastReceivedAt = DateTime.now();
     if (_isGpsLost) {
       _isGpsLost = false;
@@ -643,6 +722,7 @@ class _RecordingBackgroundController {
     final activeTrip = _activeTrip ?? await localDataSource.getActiveTrip();
     if (activeTrip == null) return;
     _activeTrip = activeTrip;
+    await _flushBuffer();
 
     final modeValue = event?[CrowdsourcingPayloadKeys.mode];
     final mode = modeValue?.toString();
@@ -662,14 +742,9 @@ class _RecordingBackgroundController {
   Future<void> _handleNotificationTransferRequested(
     Map<String, dynamic>? event,
   ) async {
-    final androidService = service;
-    if (androidService is AndroidServiceInstance) {
-      await androidService.openApp();
-    }
     await _handleAddSegment(<String, dynamic>{
       CrowdsourcingPayloadKeys.mode: null,
     });
-    service.invoke(CrowdsourcingIpc.showModeSelector);
   }
 
   Future<void> _handleSetCurrentSegmentMode(Map<String, dynamic>? event) async {
@@ -695,6 +770,7 @@ class _RecordingBackgroundController {
         _latestPendingTransferDetectedAt;
     if (detectedAt == null) return;
 
+    await _flushBuffer();
     await localDataSource.retroactiveSplitSegment(
       activeTrip.tripId,
       detectedAt,
@@ -761,23 +837,26 @@ class _RecordingBackgroundController {
 
     try {
       await localDataSource.saveActiveTrip(stopped);
+      await localDataSource.savePendingReviewTripId(stopped.tripId);
     } on Object catch (error) {
       if (!_isStorageError(error)) rethrow;
     }
     await notifications.cancel(CrowdsourcingNotifications.recordingId);
     service.invoke(CrowdsourcingIpc.tripStopped, stopped.toMap());
-    await _showReviewReadyNotification();
+    await _showReviewReadyNotification(stopped.tripId);
     service.stopSelf();
   }
 
   Future<void> _cancelRecordingResources() async {
     await _gpsSubscription?.cancel();
+    await _serviceStatusSubscription?.cancel();
     await _activitySubscription?.cancel();
     _flushTimer?.cancel();
     _gpsWatchTimer?.cancel();
     _notificationTimer?.cancel();
     _debounceTimer?.cancel();
     _promptExpiryTimer?.cancel();
+    _safetyTimer?.cancel();
   }
 
   Future<void> _showRecordingNotification() async {
@@ -791,18 +870,19 @@ class _RecordingBackgroundController {
         .inSeconds;
     final body = _isGpsLost
         ? CrowdsourcingStrings.gpsLost
-        : '${CrowdsourcingModes.displayName(mode)} · '
+        : '${CrowdsourcingStrings.silentRecordingBody} · '
+              '${CrowdsourcingModes.displayName(mode)} · '
               '${(_distanceM / 1000).toStringAsFixed(1)} km · '
               '${_formatElapsed(elapsed)}';
 
     await notifications.show(
       CrowdsourcingNotifications.recordingId,
-      CrowdsourcingStrings.recordingNotificationTitle,
+      CrowdsourcingStrings.silentRecordingTitle,
       body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
           CrowdsourcingNotifications.recordingChannelId,
-          CrowdsourcingStrings.recordingNotificationTitle,
+          CrowdsourcingStrings.silentRecordingTitle,
           icon: '@mipmap/ic_launcher',
           ongoing: true,
           autoCancel: false,
@@ -812,7 +892,7 @@ class _RecordingBackgroundController {
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction(
               CrowdsourcingNotifications.actionTransfer,
-              CrowdsourcingStrings.changedTransport,
+              CrowdsourcingStrings.splitPromptAction,
               showsUserInterface: false,
             ),
             AndroidNotificationAction(
@@ -836,22 +916,44 @@ class _RecordingBackgroundController {
     }
   }
 
-  Future<void> _showReviewReadyNotification() async {
+  Future<void> _showReviewReadyNotification(String tripId) async {
     await notifications.show(
       CrowdsourcingNotifications.reviewReadyId,
-      CrowdsourcingStrings.reviewReadyTitle,
-      CrowdsourcingStrings.reviewReadyBody,
+      CrowdsourcingStrings.tripSavedReviewTitle,
+      CrowdsourcingStrings.tripSavedReviewBody,
       const NotificationDetails(
         android: AndroidNotificationDetails(
           CrowdsourcingNotifications.promptChannelId,
-          CrowdsourcingStrings.reviewReadyTitle,
+          CrowdsourcingStrings.tripSavedReviewTitle,
           icon: '@mipmap/ic_launcher',
           autoCancel: true,
           priority: Priority.high,
           importance: Importance.defaultImportance,
         ),
       ),
-      payload: CrowdsourcingNotifications.reviewReadyPayload,
+      payload: jsonEncode(<String, dynamic>{
+        CrowdsourcingPayloadKeys.type:
+            CrowdsourcingNotifications.reviewReadyPayloadType,
+        CrowdsourcingPayloadKeys.tripId: tripId,
+      }),
+    );
+  }
+
+  Future<void> _showGpsDisabledNotification() async {
+    await notifications.show(
+      CrowdsourcingNotifications.stationaryId,
+      CrowdsourcingStrings.gpsDisabledTitle,
+      CrowdsourcingStrings.gpsDisabledBody,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          CrowdsourcingNotifications.promptChannelId,
+          CrowdsourcingStrings.gpsDisabledTitle,
+          icon: '@mipmap/ic_launcher',
+          autoCancel: true,
+          priority: Priority.high,
+          importance: Importance.defaultImportance,
+        ),
+      ),
     );
   }
 
@@ -879,12 +981,12 @@ class _RecordingBackgroundController {
   ) async {
     await notifications.show(
       CrowdsourcingNotifications.smartPromptId,
-      CrowdsourcingStrings.smartPromptTitle,
-      CrowdsourcingStrings.smartPromptBody,
+      CrowdsourcingStrings.splitPromptTitle,
+      CrowdsourcingStrings.splitPromptBody,
       NotificationDetails(
         android: AndroidNotificationDetails(
           CrowdsourcingNotifications.promptChannelId,
-          CrowdsourcingStrings.smartPromptTitle,
+          CrowdsourcingStrings.splitPromptTitle,
           icon: '@mipmap/ic_launcher',
           autoCancel: true,
           ongoing: false,
@@ -893,8 +995,8 @@ class _RecordingBackgroundController {
           actions: const <AndroidNotificationAction>[
             AndroidNotificationAction(
               CrowdsourcingNotifications.actionConfirmTransfer,
-              CrowdsourcingStrings.smartPromptYes,
-              showsUserInterface: true,
+              CrowdsourcingStrings.splitPromptAction,
+              showsUserInterface: false,
             ),
             AndroidNotificationAction(
               CrowdsourcingNotifications.actionRejectTransfer,

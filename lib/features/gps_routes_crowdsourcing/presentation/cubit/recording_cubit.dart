@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -9,13 +8,13 @@ import '../../../../core/constants/crowdsourcing_constants.dart';
 import '../../data/models/gps_point_model.dart';
 import '../../data/models/trip_metadata_model.dart';
 import '../../data/models/trip_segment_model.dart';
-import '../../data/services/gpx_builder_service.dart';
+import '../../data/services/trip_finalizer_service.dart';
 import '../../data/services/trip_local_data_source.dart';
 import 'recording_state.dart';
 
 class RecordingCubit extends Cubit<RecordingState> {
   final TripLocalDataSource localDataSource;
-  final GpxBuilderService gpxBuilderService;
+  final TripFinalizerService tripFinalizerService;
   final FlutterBackgroundService backgroundService;
   final Uuid uuid;
 
@@ -25,7 +24,7 @@ class RecordingCubit extends Cubit<RecordingState> {
 
   RecordingCubit({
     required this.localDataSource,
-    required this.gpxBuilderService,
+    required this.tripFinalizerService,
     FlutterBackgroundService? backgroundService,
     Uuid? uuid,
   }) : backgroundService = backgroundService ?? FlutterBackgroundService(),
@@ -49,18 +48,19 @@ class RecordingCubit extends Cubit<RecordingState> {
         activeTrip.status == TripStatuses.gpsLost;
     if (!isActiveOrphan) return;
 
-    final gpsPoints = await localDataSource.getGpsPoints(activeTrip.tripId);
     final startedAt = DateTime.tryParse(activeTrip.startedAt);
     final tripAge = startedAt == null
         ? const Duration(days: 1)
         : DateTime.now().difference(startedAt);
-    final isLegitimateOrphan =
-        gpsPoints.length >= 5 && tripAge < const Duration(hours: 2);
 
-    if (!isLegitimateOrphan) {
-      await localDataSource.deleteTrip(activeTrip.tripId);
-      _recentPoints.clear();
-      emit(const RecordingInitial());
+    if (tripAge >= CrowdsourcingTiming.maxRecordingDuration) {
+      final stopped = activeTrip.copyWith(
+        status: TripStatuses.stopped,
+        endedAt: DateTime.now().toIso8601String(),
+      );
+      await localDataSource.saveActiveTrip(stopped);
+      emit(const RecordingGeneratingGpx());
+      await _finalizeStoppedTrip(stopped);
       return;
     }
 
@@ -76,6 +76,12 @@ class RecordingCubit extends Cubit<RecordingState> {
   }
 
   Future<void> startRecording(String? initialMode) async {
+    if (!await localDataSource.canCreateTrip()) {
+      emit(
+        const RecordingError(message: CrowdsourcingStrings.maxDraftsReached),
+      );
+      return;
+    }
     final tripId = uuid.v4();
     final startedAt = DateTime.now().toIso8601String();
     final initialTrip = TripMetadataModel(
@@ -282,61 +288,14 @@ class RecordingCubit extends Cubit<RecordingState> {
 
   Future<void> _finalizeStoppedTrip(TripMetadataModel stoppedTrip) async {
     try {
-      final rawPoints = await localDataSource.getGpsPoints(stoppedTrip.tripId);
-      final transfers = await localDataSource.getPotentialTransfers(
-        stoppedTrip.tripId,
+      final completed = await tripFinalizerService.finalizeStoppedTrip(
+        stoppedTrip,
       );
-      final countedSegments = _withPointCounts(stoppedTrip.segments, rawPoints);
-      final totalDistance = _distanceFor(rawPoints);
-      final metaForGpx = stoppedTrip.copyWith(
-        status: TripStatuses.pendingReview,
-        segments: countedSegments,
-        potentialTransfers: transfers,
-        totalDistanceM: totalDistance,
-      );
-      final gpxPath = await gpxBuilderService.buildGpxFile(
-        tripMeta: metaForGpx,
-        rawPoints: rawPoints,
-      );
-      final completed = metaForGpx.copyWith(gpxFilePath: gpxPath);
-      await localDataSource.saveTripMetadata(completed);
-      await localDataSource.deleteGpsPoints(stoppedTrip.tripId);
-      await localDataSource.clearActiveTrip();
       _recentPoints.clear();
       emit(RecordingComplete(tripMeta: completed));
     } catch (error) {
       emit(RecordingError(message: error.toString()));
     }
-  }
-
-  List<TripSegmentModel> _withPointCounts(
-    List<TripSegmentModel> segments,
-    List<GpsPointModel> points,
-  ) {
-    return segments
-        .map((segment) {
-          final count = points
-              .where((point) => point.segmentIndex == segment.index)
-              .length;
-          return segment.copyWith(pointCount: count);
-        })
-        .toList(growable: false);
-  }
-
-  double _distanceFor(List<GpsPointModel> points) {
-    if (points.length < 2) return 0;
-    var distance = 0.0;
-    for (var i = 1; i < points.length; i += 1) {
-      final previous = points[i - 1];
-      final current = points[i];
-      distance += _distanceBetween(
-        previous.lat,
-        previous.lon,
-        current.lat,
-        current.lon,
-      );
-    }
-    return distance;
   }
 
   void _appendRecentPoint(GpsPointModel point) {
@@ -376,22 +335,6 @@ class RecordingCubit extends Cubit<RecordingState> {
       await backgroundService.startService();
     }
   }
-
-  double _distanceBetween(double lat1, double lon1, double lat2, double lon2) {
-    const earthRadiusM = 6371000.0;
-    final dLat = _degToRad(lat2 - lat1);
-    final dLon = _degToRad(lon2 - lon1);
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_degToRad(lat1)) *
-            math.cos(_degToRad(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadiusM * c;
-  }
-
-  double _degToRad(double degrees) => degrees * math.pi / 180;
 
   double _readDouble(Object? value) {
     if (value is num) return value.toDouble();

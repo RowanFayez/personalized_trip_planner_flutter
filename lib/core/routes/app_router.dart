@@ -80,6 +80,16 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: '${CrowdsourcingRoutes.review}/:tripId',
+        builder: (context, state) {
+          final tripId = state.pathParameters['tripId'];
+          if (tripId == null || tripId.trim().isEmpty) {
+            return const ContributionsPage();
+          }
+          return ReviewLookupPage(tripId: tripId);
+        },
+      ),
+      GoRoute(
         path: CrowdsourcingRoutes.review,
         builder: (context, state) {
           final extra = state.extra;

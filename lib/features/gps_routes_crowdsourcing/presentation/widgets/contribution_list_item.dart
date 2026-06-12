@@ -31,13 +31,26 @@ class ContributionListItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            _formatDate(trip.startedAt),
+            trip.routeName?.trim().isNotEmpty == true
+                ? trip.routeName!
+                : _formatDate(trip.startedAt),
             style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 14.sp,
               fontWeight: FontWeight.w800,
             ),
           ),
+          if (trip.routeName?.trim().isNotEmpty == true) ...[
+            SizedBox(height: 4.h),
+            Text(
+              _formatDate(trip.startedAt),
+              style: TextStyle(
+                color: AppColors.textTertiary,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           SizedBox(height: 8.h),
           Text(
             trip.segments

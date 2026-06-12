@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
@@ -50,13 +51,7 @@ String assembleGpxXml(Map<String, dynamic> input) {
     pointsBySegment[point.segmentIndex]!.add(point);
   }
 
-  final startedAt = DateTime.tryParse(tripMeta.startedAt);
-  final endedAt = tripMeta.endedAt == null
-      ? null
-      : DateTime.tryParse(tripMeta.endedAt!);
-  final privacyWindow = Duration(
-    minutes: CrowdsourcingLimits.privacyFuzzingMinutes,
-  );
+  final fuzzedPointKeys = _fuzzedPointKeys(points);
 
   final buffer = StringBuffer()
     ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
@@ -70,6 +65,9 @@ String assembleGpxXml(Map<String, dynamic> input) {
     ..writeln('    <time>${_utcIso(DateTime.now())}</time>')
     ..writeln('    <extensions>')
     ..writeln('      <ns:trip_id>${_xml(tripMeta.tripId)}</ns:trip_id>')
+    ..writeln(
+      '      <ns:route_name>${_xml(tripMeta.routeName ?? '')}</ns:route_name>',
+    )
     ..writeln(
       '      <ns:app_version>${_xml(CrowdsourcingGpx.appVersion)}</ns:app_version>',
     )
@@ -129,12 +127,7 @@ String assembleGpxXml(Map<String, dynamic> input) {
         point.timestampMs,
         isUtc: false,
       );
-      final shouldFuzz = _shouldFuzzPoint(
-        pointAt: pointAt,
-        startedAt: startedAt,
-        endedAt: endedAt,
-        privacyWindow: privacyWindow,
-      );
+      final shouldFuzz = fuzzedPointKeys.contains(_pointKey(point));
       final lat = shouldFuzz ? _fuzzCoordinate(point.lat) : point.lat;
       final lon = shouldFuzz ? _fuzzCoordinate(point.lon) : point.lon;
 
@@ -184,25 +177,57 @@ bool _isAllowedGpxPoint(GpsPointModel point) {
   return true;
 }
 
-bool _shouldFuzzPoint({
-  required DateTime pointAt,
-  required DateTime? startedAt,
-  required DateTime? endedAt,
-  required Duration privacyWindow,
-}) {
-  if (startedAt != null &&
-      pointAt.difference(startedAt).abs() <= privacyWindow) {
-    return true;
+Set<String> _fuzzedPointKeys(List<GpsPointModel> points) {
+  if (points.isEmpty) return <String>{};
+  final sorted = List<GpsPointModel>.of(points, growable: false)
+    ..sort((a, b) => a.timestampMs.compareTo(b.timestampMs));
+  final fuzzed = <String>{};
+  _addDistanceWindow(sorted, fuzzed);
+  _addDistanceWindow(sorted.reversed.toList(growable: false), fuzzed);
+  return fuzzed;
+}
+
+void _addDistanceWindow(List<GpsPointModel> points, Set<String> fuzzed) {
+  if (points.isEmpty) return;
+  fuzzed.add(_pointKey(points.first));
+  var distance = 0.0;
+  for (var index = 1; index < points.length; index += 1) {
+    final previous = points[index - 1];
+    final current = points[index];
+    distance += _distanceBetween(
+      previous.lat,
+      previous.lon,
+      current.lat,
+      current.lon,
+    );
+    fuzzed.add(_pointKey(current));
+    if (distance >= CrowdsourcingLimits.privacyFuzzingDistanceM) return;
   }
-  if (endedAt != null && endedAt.difference(pointAt).abs() <= privacyWindow) {
-    return true;
-  }
-  return false;
+}
+
+String _pointKey(GpsPointModel point) {
+  return '${point.timestampMs}:${point.segmentIndex}:${point.lat}:${point.lon}';
 }
 
 double _fuzzCoordinate(double value) {
   return double.parse(value.toStringAsFixed(3));
 }
+
+double _distanceBetween(double lat1, double lon1, double lat2, double lon2) {
+  const earthRadiusM = 6371000.0;
+  final dLat = _degToRad(lat2 - lat1);
+  final dLon = _degToRad(lon2 - lon1);
+  final a =
+      math.sin(dLat / 2) * math.sin(dLat / 2) +
+      math.cos(_degToRad(lat1)) *
+          math.cos(_degToRad(lat2)) *
+          math.sin(dLon / 2) *
+          math.sin(dLon / 2);
+  final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  return earthRadiusM * c;
+}
+
+double _degToRad(double degrees) => degrees * math.pi / 180;
 
 String _utcIso(DateTime value) {
   return value.toUtc().toIso8601String();

@@ -16,6 +16,7 @@ class TripMetadataModel extends Equatable {
   final String? contributionId;
   final String? lastUploadedAt;
   final int currentSegmentIndex;
+  final String? routeName;
 
   const TripMetadataModel({
     required this.tripId,
@@ -30,6 +31,7 @@ class TripMetadataModel extends Equatable {
     this.contributionId,
     this.lastUploadedAt,
     this.currentSegmentIndex = 0,
+    this.routeName,
   });
 
   factory TripMetadataModel.fromMap(Map<dynamic, dynamic> map) {
@@ -51,6 +53,7 @@ class TripMetadataModel extends Equatable {
       contributionId: _readString(map['contribution_id']),
       lastUploadedAt: _readString(map['last_uploaded_at']),
       currentSegmentIndex: _readInt(map['current_segment_index']),
+      routeName: _readString(map['route_name']),
     );
   }
 
@@ -70,6 +73,7 @@ class TripMetadataModel extends Equatable {
       'contribution_id': contributionId,
       'last_uploaded_at': lastUploadedAt,
       'current_segment_index': currentSegmentIndex,
+      'route_name': routeName,
     };
   }
 
@@ -91,6 +95,8 @@ class TripMetadataModel extends Equatable {
     String? lastUploadedAt,
     bool clearLastUploadedAt = false,
     int? currentSegmentIndex,
+    String? routeName,
+    bool clearRouteName = false,
   }) {
     return TripMetadataModel(
       tripId: tripId ?? this.tripId,
@@ -111,6 +117,7 @@ class TripMetadataModel extends Equatable {
           ? null
           : lastUploadedAt ?? this.lastUploadedAt,
       currentSegmentIndex: currentSegmentIndex ?? this.currentSegmentIndex,
+      routeName: clearRouteName ? null : routeName ?? this.routeName,
     );
   }
 
@@ -153,5 +160,6 @@ class TripMetadataModel extends Equatable {
     contributionId,
     lastUploadedAt,
     currentSegmentIndex,
+    routeName,
   ];
 }

@@ -16,6 +16,7 @@ import '../../features/agent/presentation/cubit/agent_cubit.dart';
 import '../../features/gps_routes_crowdsourcing/data/services/crowdsourcing_permissions_service.dart';
 import '../../features/gps_routes_crowdsourcing/data/services/gpx_builder_service.dart';
 import '../../features/gps_routes_crowdsourcing/data/services/gpx_track_reader.dart';
+import '../../features/gps_routes_crowdsourcing/data/services/trip_finalizer_service.dart';
 import '../../features/gps_routes_crowdsourcing/data/services/trip_local_data_source.dart';
 import '../../features/gps_routes_crowdsourcing/presentation/cubit/recording_cubit.dart';
 import '../../features/preferences/data/managers/preferences_manager.dart';
@@ -60,6 +61,12 @@ class ServiceLocator {
     );
     sl.registerLazySingleton<TripLocalDataSource>(() => TripLocalDataSource());
     sl.registerLazySingleton<GpxBuilderService>(() => GpxBuilderService());
+    sl.registerLazySingleton<TripFinalizerService>(
+      () => TripFinalizerService(
+        localDataSource: sl<TripLocalDataSource>(),
+        gpxBuilderService: sl<GpxBuilderService>(),
+      ),
+    );
     sl.registerLazySingleton<GpxTrackReader>(() => GpxTrackReader());
     sl.registerLazySingleton<CrowdsourcingPermissionsService>(
       () => CrowdsourcingPermissionsService(),
@@ -112,7 +119,7 @@ class ServiceLocator {
     sl.registerFactory<RecordingCubit>(
       () => RecordingCubit(
         localDataSource: sl<TripLocalDataSource>(),
-        gpxBuilderService: sl<GpxBuilderService>(),
+        tripFinalizerService: sl<TripFinalizerService>(),
       ),
     );
   }

@@ -100,6 +100,33 @@ class TripLocalDataSource {
     await box.delete('${CrowdsourcingHiveKeys.gpsPrefix}$tripId');
   }
 
+  Future<void> replaceGpsPoints(
+    String tripId,
+    List<GpsPointModel> points,
+  ) async {
+    await deleteGpsPoints(tripId);
+    await appendGpsPointsBatch(tripId, points);
+  }
+
+  Future<GpsPointModel?> getLastGpsPoint(String tripId) async {
+    final box = await _box;
+    final batchCount = _readInt(box.get(_gpsBatchCountKey(tripId)));
+    for (var i = batchCount; i >= 1; i -= 1) {
+      final raw = box.get(_gpsBatchKey(tripId, i));
+      if (raw is! Iterable || raw.isEmpty) continue;
+      final maps = raw.whereType<Map>().toList(growable: false);
+      if (maps.isEmpty) continue;
+      return GpsPointModel.fromMap(maps.last);
+    }
+
+    final legacyRaw = box.get('${CrowdsourcingHiveKeys.gpsPrefix}$tripId');
+    if (legacyRaw is Iterable && legacyRaw.isNotEmpty) {
+      final maps = legacyRaw.whereType<Map>().toList(growable: false);
+      if (maps.isNotEmpty) return GpsPointModel.fromMap(maps.last);
+    }
+    return null;
+  }
+
   Future<void> deleteTrip(String tripId) async {
     final box = await _box;
     final meta = await getTripMetadata(tripId);
@@ -224,6 +251,12 @@ class TripLocalDataSource {
       );
     }
 
+    await _rewriteGpsForRetroactiveSplit(
+      tripId: tripId,
+      splitAtIso8601: splitAtIso8601,
+      currentIndex: currentIndex,
+      nextIndex: nextIndex,
+    );
     await saveActiveTrip(
       activeTrip.copyWith(segments: segments, currentSegmentIndex: nextIndex),
     );
@@ -259,9 +292,15 @@ class TripLocalDataSource {
       ),
     );
 
+    final boundaryPoint = await getLastGpsPoint(tripId);
     await saveActiveTrip(
       activeTrip.copyWith(segments: segments, currentSegmentIndex: nextIndex),
     );
+    if (boundaryPoint != null) {
+      await appendGpsPointsBatch(tripId, [
+        boundaryPoint.copyWith(segmentIndex: nextIndex),
+      ]);
+    }
   }
 
   Future<void> updateCurrentSegmentMode(String tripId, String? mode) async {
@@ -309,6 +348,58 @@ class TripLocalDataSource {
       if (raw is Map) trips.add(TripMetadataModel.fromMap(raw));
     }
     return trips;
+  }
+
+  Future<int> getSavedTripCount() async {
+    final trips = await getAllCompletedTripMetadata();
+    final activeTrip = await getActiveTrip();
+    if (activeTrip == null ||
+        trips.any((trip) => trip.tripId == activeTrip.tripId)) {
+      return trips.length;
+    }
+    return trips.length + 1;
+  }
+
+  Future<bool> canCreateTrip() async {
+    return await getSavedTripCount() < CrowdsourcingLimits.maxSavedTrips;
+  }
+
+  Future<void> updateTripRouteName(String tripId, String? routeName) async {
+    final normalized = routeName?.trim();
+    final nextName = normalized == null || normalized.isEmpty
+        ? null
+        : normalized;
+    final activeTrip = await getActiveTrip();
+    if (activeTrip != null && activeTrip.tripId == tripId) {
+      await saveActiveTrip(
+        activeTrip.copyWith(
+          routeName: nextName,
+          clearRouteName: nextName == null,
+        ),
+      );
+    }
+
+    final meta = await getTripMetadata(tripId);
+    if (meta != null) {
+      await saveTripMetadata(
+        meta.copyWith(routeName: nextName, clearRouteName: nextName == null),
+      );
+    }
+  }
+
+  Future<void> savePendingReviewTripId(String tripId) async {
+    final box = await _box;
+    await box.put(CrowdsourcingHiveKeys.pendingReviewTripId, tripId);
+  }
+
+  Future<String?> consumePendingReviewTripId() async {
+    final box = await _box;
+    final tripId = box
+        .get(CrowdsourcingHiveKeys.pendingReviewTripId)
+        ?.toString();
+    await box.delete(CrowdsourcingHiveKeys.pendingReviewTripId);
+    if (tripId == null || tripId.trim().isEmpty) return null;
+    return tripId;
   }
 
   Future<void> updateTripStatus(String tripId, String status) async {
@@ -402,6 +493,58 @@ class TripLocalDataSource {
     if (meta != null) {
       await saveTripMetadata(meta.copyWith(potentialTransfers: transfers));
     }
+  }
+
+  Future<void> _rewriteGpsForRetroactiveSplit({
+    required String tripId,
+    required String splitAtIso8601,
+    required int currentIndex,
+    required int nextIndex,
+  }) async {
+    final splitAt = DateTime.tryParse(splitAtIso8601);
+    if (splitAt == null) return;
+
+    final splitMs = splitAt.millisecondsSinceEpoch;
+    final points = await getGpsPoints(tripId);
+    if (points.isEmpty) return;
+
+    final rewritten = <GpsPointModel>[];
+    GpsPointModel? previousSegmentPoint;
+    var insertedBoundary = false;
+
+    for (final point in points) {
+      final shouldMove =
+          point.segmentIndex == currentIndex && point.timestampMs >= splitMs;
+      if (!shouldMove) {
+        rewritten.add(point);
+        if (point.segmentIndex == currentIndex) {
+          previousSegmentPoint = point;
+        }
+        continue;
+      }
+
+      if (!insertedBoundary && previousSegmentPoint != null) {
+        rewritten.add(
+          previousSegmentPoint.copyWith(
+            segmentIndex: nextIndex,
+            timestampMs: splitMs,
+          ),
+        );
+        insertedBoundary = true;
+      }
+      rewritten.add(point.copyWith(segmentIndex: nextIndex));
+    }
+
+    if (!insertedBoundary && previousSegmentPoint != null) {
+      rewritten.add(
+        previousSegmentPoint.copyWith(
+          segmentIndex: nextIndex,
+          timestampMs: splitMs,
+        ),
+      );
+    }
+
+    await replaceGpsPoints(tripId, rewritten);
   }
 
   String _gpsBatchCountKey(String tripId) {
