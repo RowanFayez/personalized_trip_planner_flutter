@@ -139,13 +139,9 @@ class _SegmentTransitionSheetState extends State<SegmentTransitionSheet> {
                     .toList(growable: false),
               ),
               SizedBox(height: 16.h),
-              OutlinedButton.icon(
+              OutlinedButton(
                 onPressed: _chooseMode,
-                icon: const Icon(Icons.directions_bus_rounded),
-                label: Text(
-                  '${CrowdsourcingModes.emoji(_mode)} '
-                  '${CrowdsourcingModes.displayName(_mode)}',
-                ),
+                child: Text(CrowdsourcingModes.displayName(_mode)),
               ),
               SizedBox(height: 12.h),
               Row(

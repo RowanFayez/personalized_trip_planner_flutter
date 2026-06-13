@@ -20,6 +20,13 @@ class TripFinalizerService {
     TripMetadataModel stoppedTrip,
   ) async {
     final rawPoints = await localDataSource.getGpsPoints(stoppedTrip.tripId);
+    if (rawPoints.isEmpty) {
+      final emptyMeta = stoppedTrip.copyWith(status: TripStatuses.pendingReview);
+      await localDataSource.saveTripMetadata(emptyMeta);
+      await localDataSource.clearActiveTrip();
+      return emptyMeta;
+    }
+
     final transfers = await localDataSource.getPotentialTransfers(
       stoppedTrip.tripId,
     );
@@ -42,13 +49,40 @@ class TripFinalizerService {
   }
 
   Future<TripMetadataModel?> loadOrFinalizeForReview(String tripId) async {
-    final completed = await localDataSource.getTripMetadata(tripId);
+    var completed = await localDataSource.getTripMetadata(tripId);
     if (completed != null) return completed;
 
-    final active = await localDataSource.getActiveTrip();
+    final active = await _waitForReviewableActiveTrip(tripId);
+    completed = await localDataSource.getTripMetadata(tripId);
+    if (completed != null) return completed;
     if (active == null || active.tripId != tripId) return null;
     if (active.status != TripStatuses.stopped) return active;
     return finalizeStoppedTrip(active);
+  }
+
+  Future<TripMetadataModel?> _waitForReviewableActiveTrip(String tripId) async {
+    const attempts = 60;
+    const delay = Duration(milliseconds: 500);
+    TripMetadataModel? latest;
+
+    for (var attempt = 0; attempt < attempts; attempt += 1) {
+      final completed = await localDataSource.getTripMetadata(tripId);
+      if (completed != null) return completed;
+      latest = await localDataSource.getActiveTrip();
+      if (latest == null || latest.tripId != tripId) return latest;
+      if (latest.status == TripStatuses.stopped) return latest;
+      if (!_isStoppingOrRecording(latest.status)) return latest;
+      await Future<void>.delayed(delay);
+    }
+
+    return latest;
+  }
+
+  bool _isStoppingOrRecording(String status) {
+    return status == TripStatuses.stopping ||
+        status == TripStatuses.recording ||
+        status == TripStatuses.paused ||
+        status == TripStatuses.gpsLost;
   }
 
   List<TripSegmentModel> _withPointCounts(

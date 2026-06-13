@@ -51,6 +51,10 @@ class ReviewState extends Equatable {
     return segments.any((segment) => segment.mode == null);
   }
 
+  bool get hasRouteName {
+    return tripMeta.routeName?.trim().isNotEmpty == true;
+  }
+
   @override
   List<Object?> get props => <Object?>[
     tripMeta,

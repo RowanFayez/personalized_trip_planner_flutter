@@ -30,6 +30,21 @@ class TripLocalDataSource {
   Future<void> clearActiveTrip() async {
     final box = await _box;
     await box.delete(CrowdsourcingHiveKeys.activeTrip);
+    await box.delete(CrowdsourcingHiveKeys.recordingServiceArmed);
+  }
+
+  Future<void> setRecordingServiceArmed(bool isArmed) async {
+    final box = await _box;
+    if (isArmed) {
+      await box.put(CrowdsourcingHiveKeys.recordingServiceArmed, true);
+      return;
+    }
+    await box.delete(CrowdsourcingHiveKeys.recordingServiceArmed);
+  }
+
+  Future<bool> isRecordingServiceArmed() async {
+    final box = await _box;
+    return box.get(CrowdsourcingHiveKeys.recordingServiceArmed) == true;
   }
 
   Future<void> appendGpsPointsBatch(
@@ -361,8 +376,13 @@ class TripLocalDataSource {
   Future<int> getSavedTripCount() async {
     final trips = await getAllCompletedTripMetadata();
     final activeTrip = await getActiveTrip();
-    if (activeTrip == null ||
-        trips.any((trip) => trip.tripId == activeTrip.tripId)) {
+    final isArmed = await isRecordingServiceArmed();
+
+    final activeTripAlreadyCounted =
+        activeTrip != null &&
+        trips.any((trip) => trip.tripId == activeTrip.tripId);
+
+    if (activeTrip == null || !isArmed || activeTripAlreadyCounted) {
       return trips.length;
     }
     return trips.length + 1;

@@ -45,7 +45,14 @@ class _ContributionsView extends StatelessWidget {
         listener: (context, state) {
           if (state is RecordingComplete) {
             context.read<ContributionsCubit>().load();
-            context.push(CrowdsourcingRoutes.review, extra: state.tripMeta);
+            if (state.shouldOpenReview) {
+              context.push(
+                '${CrowdsourcingRoutes.review}/${state.tripMeta.tripId}',
+              );
+            }
+          }
+          if (state is RecordingInitial) {
+            context.read<ContributionsCubit>().load();
           }
           if (state is RecordingError) {
             ScaffoldMessenger.of(
@@ -76,9 +83,11 @@ class _ContributionsView extends StatelessWidget {
                       for (final trip in state.trips) ...[
                         ContributionListItem(
                           trip: trip,
+                          onTap: () => context.push(
+                            '${CrowdsourcingRoutes.review}/${trip.tripId}',
+                          ),
                           onAction: () => context.push(
-                            CrowdsourcingRoutes.review,
-                            extra: trip,
+                            '${CrowdsourcingRoutes.review}/${trip.tripId}',
                           ),
                           onDelete: () =>
                               _confirmDeleteTrip(context, trip.tripId),

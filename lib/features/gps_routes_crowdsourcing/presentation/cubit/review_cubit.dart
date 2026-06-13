@@ -15,22 +15,20 @@ class ReviewCubit extends Cubit<ReviewState> {
   }) : super(ReviewState(tripMeta: tripMeta, segments: tripMeta.segments));
 
   Future<void> init() async {
-    final kept = state.segments
-        .where((segment) => segment.pointCount >= 2)
-        .toList(growable: false);
-    if (kept.isEmpty) {
-      await localDataSource.deleteTrip(state.tripMeta.tripId);
-      emit(state.copyWith(noValidSegments: true, segments: const []));
-      return;
-    }
-    if (kept.length == state.segments.length) return;
-    final meta = state.tripMeta.copyWith(segments: kept);
+    if (state.segments.isNotEmpty) return;
+    final fallbackSegment = TripSegmentModel(
+      index: 0,
+      startedAt: state.tripMeta.startedAt,
+      confidence: SegmentConfidence.unknown,
+    );
+    final meta = state.tripMeta.copyWith(
+      segments: <TripSegmentModel>[fallbackSegment],
+    );
     await localDataSource.saveTripMetadata(meta);
     emit(
       state.copyWith(
         tripMeta: meta,
-        segments: kept,
-        removedShortSegments: true,
+        segments: <TripSegmentModel>[fallbackSegment],
       ),
     );
   }
@@ -69,7 +67,7 @@ class ReviewCubit extends Cubit<ReviewState> {
       clearRouteName: routeName == null,
     );
     await localDataSource.saveTripMetadata(meta);
-    emit(state.copyWith(tripMeta: meta));
+    emit(state.copyWith(tripMeta: meta, clearError: true));
   }
 
   Future<void> deleteSegment(int index) async {
@@ -85,6 +83,10 @@ class ReviewCubit extends Cubit<ReviewState> {
   }
 
   Future<void> submitForFutureUpload() async {
+    if (!state.hasRouteName) {
+      emit(state.copyWith(error: CrowdsourcingStrings.routeNameRequired));
+      return;
+    }
     emit(state.copyWith(isSubmitting: true, clearError: true));
     try {
       await Future<void>.delayed(const Duration(seconds: 2));

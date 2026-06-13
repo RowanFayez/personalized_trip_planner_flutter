@@ -110,11 +110,15 @@ class RecordingGeneratingGpx extends RecordingState {
 
 class RecordingComplete extends RecordingState {
   final TripMetadataModel tripMeta;
+  final bool shouldOpenReview;
 
-  const RecordingComplete({required this.tripMeta});
+  const RecordingComplete({
+    required this.tripMeta,
+    this.shouldOpenReview = true,
+  });
 
   @override
-  List<Object?> get props => <Object?>[tripMeta];
+  List<Object?> get props => <Object?>[tripMeta, shouldOpenReview];
 }
 
 class RecordingError extends RecordingState {

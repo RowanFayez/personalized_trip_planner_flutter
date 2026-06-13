@@ -42,11 +42,13 @@ class RecordingCubit extends Cubit<RecordingState> {
       return;
     }
 
-    final isActiveOrphan =
-        activeTrip.status == TripStatuses.recording ||
-        activeTrip.status == TripStatuses.paused ||
-        activeTrip.status == TripStatuses.gpsLost;
-    if (!isActiveOrphan) return;
+    if (activeTrip.status == TripStatuses.stopping) {
+      await _handleStoppingTripOnInit(activeTrip);
+      return;
+    }
+
+    if (!_isActiveRecordingStatus(activeTrip.status)) return;
+    if (!await localDataSource.isRecordingServiceArmed()) return;
 
     final startedAt = DateTime.tryParse(activeTrip.startedAt);
     final tripAge = startedAt == null
@@ -100,6 +102,7 @@ class RecordingCubit extends Cubit<RecordingState> {
       ],
     );
     await localDataSource.saveActiveTrip(initialTrip);
+    await localDataSource.setRecordingServiceArmed(true);
     await _startServiceIfNeeded();
     backgroundService.invoke(CrowdsourcingIpc.startTrip, <String, dynamic>{
       CrowdsourcingPayloadKeys.tripId: tripId,
@@ -113,7 +116,10 @@ class RecordingCubit extends Cubit<RecordingState> {
     final current = state;
     if (current is! RecordingInProgress) return;
     emit(const RecordingGeneratingGpx());
-    backgroundService.invoke(CrowdsourcingIpc.stopTrip);
+    backgroundService.invoke(CrowdsourcingIpc.stopTrip, <String, dynamic>{
+      CrowdsourcingPayloadKeys.stopSource:
+          CrowdsourcingPayloadKeys.stopSourceApp,
+    });
   }
 
   Future<void> addSegmentTransition({String? mode, double? fareEgp}) async {
@@ -145,6 +151,7 @@ class RecordingCubit extends Cubit<RecordingState> {
       CrowdsourcingIpc.tripAutoPaused,
       CrowdsourcingIpc.gpsLost,
       CrowdsourcingIpc.gpsRestored,
+      CrowdsourcingIpc.tripStopAcknowledged,
       CrowdsourcingIpc.tripStopped,
       CrowdsourcingIpc.showModeSelector,
     ]) {
@@ -161,6 +168,11 @@ class RecordingCubit extends Cubit<RecordingState> {
     Map<String, dynamic>? event,
   ) async {
     final current = state;
+    if (eventName == CrowdsourcingIpc.tripStopAcknowledged) {
+      await _handleStopAcknowledged(event);
+      return;
+    }
+
     if (eventName == CrowdsourcingIpc.gpsPoint) {
       if (current is! RecordingInProgress || event == null) return;
       final point = GpsPointModel(
@@ -220,11 +232,17 @@ class RecordingCubit extends Cubit<RecordingState> {
     }
 
     if (eventName == CrowdsourcingIpc.tripStopped) {
+      const shouldOpenReview = true;
       emit(const RecordingGeneratingGpx());
       final stoppedTrip = event == null
           ? await localDataSource.getActiveTrip()
           : TripMetadataModel.fromMap(event);
-      if (stoppedTrip != null) await _finalizeStoppedTrip(stoppedTrip);
+      if (stoppedTrip != null) {
+        await _finalizeStoppedTrip(
+          stoppedTrip,
+          shouldOpenReview: shouldOpenReview,
+        );
+      }
       return;
     }
 
@@ -286,13 +304,62 @@ class RecordingCubit extends Cubit<RecordingState> {
     );
   }
 
-  Future<void> _finalizeStoppedTrip(TripMetadataModel stoppedTrip) async {
+  Future<void> _handleStopAcknowledged(Map<String, dynamic>? event) async {
+    final source = event?[CrowdsourcingPayloadKeys.stopSource]?.toString();
+    if (source != CrowdsourcingPayloadKeys.stopSourceNotification) return;
+
+    _recentPoints.clear();
+    final activeTrip = await localDataSource.getActiveTrip();
+    if (activeTrip != null && _isActiveRecordingStatus(activeTrip.status)) {
+      await localDataSource.saveActiveTrip(
+        _closedTrip(activeTrip, TripStatuses.stopping),
+      );
+    }
+    emit(const RecordingInitial());
+  }
+
+  Future<void> _handleStoppingTripOnInit(TripMetadataModel activeTrip) async {
+    _recentPoints.clear();
+    emit(const RecordingInitial());
+    if (await backgroundService.isRunning()) return;
+
+    final stopped = _closedTrip(activeTrip, TripStatuses.stopped);
+    await localDataSource.saveActiveTrip(stopped);
+    await _finalizeStoppedTrip(stopped, shouldOpenReview: true);
+  }
+
+  TripMetadataModel _closedTrip(TripMetadataModel trip, String status) {
+    final endedAt = trip.endedAt ?? DateTime.now().toIso8601String();
+    final segments = trip.segments
+        .map((segment) {
+          if (segment.index != trip.currentSegmentIndex) return segment;
+          return segment.copyWith(endedAt: endedAt);
+        })
+        .toList(growable: false);
+    return trip.copyWith(status: status, endedAt: endedAt, segments: segments);
+  }
+
+  bool _isActiveRecordingStatus(String status) {
+    return status == TripStatuses.recording ||
+        status == TripStatuses.paused ||
+        status == TripStatuses.gpsLost;
+  }
+
+  Future<void> _finalizeStoppedTrip(
+    TripMetadataModel stoppedTrip, {
+    bool shouldOpenReview = true,
+  }) async {
     try {
       final completed = await tripFinalizerService.finalizeStoppedTrip(
         stoppedTrip,
       );
       _recentPoints.clear();
-      emit(RecordingComplete(tripMeta: completed));
+      emit(
+        RecordingComplete(
+          tripMeta: completed,
+          shouldOpenReview: shouldOpenReview,
+        ),
+      );
     } catch (error) {
       emit(RecordingError(message: error.toString()));
     }

@@ -114,11 +114,6 @@ class _ModeTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Text(
-                CrowdsourcingModes.emoji(mode),
-                style: TextStyle(fontSize: 20.sp),
-              ),
-              SizedBox(width: 8.w),
               Expanded(
                 child: Text(
                   CrowdsourcingModes.displayName(mode),

@@ -31,7 +31,6 @@ class ReviewPage extends StatelessWidget {
     );
   }
 }
-
 class ReviewLookupPage extends StatelessWidget {
   final String tripId;
 
@@ -73,11 +72,18 @@ class _ReviewView extends StatelessWidget {
       textDirection: TextDirection.rtl,
       child: BlocConsumer<ReviewCubit, ReviewState>(
         listenWhen: (previous, current) =>
+            previous.error != current.error ||
             (!previous.removedShortSegments && current.removedShortSegments) ||
             (!previous.noValidSegments && current.noValidSegments) ||
             (!previous.submitSucceeded && current.submitSucceeded) ||
             (!previous.tripDeleted && current.tripDeleted),
         listener: (context, state) {
+          if (state.error != null) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.error!)));
+            return;
+          }
           if (state.noValidSegments) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -139,16 +145,15 @@ class _ReviewView extends StatelessWidget {
             body: Column(
               children: [
                 GestureDetector(
-                  onTap: state.tripMeta.gpxFilePath == null
-                      ? null
-                      : () => _openFullMap(context, state.tripMeta.gpxFilePath),
+                  onTap: () => _openFullMap(
+                    context,
+                    state.tripMeta.gpxFilePath,
+                  ),
                   child: SizedBox(
                     height: 0.35.sh,
-                    child: state.tripMeta.gpxFilePath == null
-                        ? const _MissingMapPreview()
-                        : GpxMapPreview(
-                            gpxFilePath: state.tripMeta.gpxFilePath,
-                          ),
+                    child: GpxMapPreview(
+                      gpxFilePath: state.tripMeta.gpxFilePath,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -232,7 +237,6 @@ class _ReviewView extends StatelessWidget {
   }
 
   void _openFullMap(BuildContext context, String? gpxFilePath) {
-    if (gpxFilePath == null) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
@@ -327,7 +331,7 @@ class _ShareGpxButton extends StatelessWidget {
 }
 
 class _FullScreenMapPreview extends StatelessWidget {
-  final String gpxFilePath;
+  final String? gpxFilePath;
 
   const _FullScreenMapPreview({required this.gpxFilePath});
 
@@ -373,37 +377,6 @@ class _SubmitButton extends StatelessWidget {
                     ? CrowdsourcingStrings.submitAnyway
                     : CrowdsourcingStrings.submitAndContribute,
               ),
-      ),
-    );
-  }
-}
-
-class _MissingMapPreview extends StatelessWidget {
-  const _MissingMapPreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceDark,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.map_outlined, color: AppColors.textTertiary, size: 36.r),
-            SizedBox(height: 8.h),
-            Text(
-              CrowdsourcingStrings.mapUnavailable,
-              style: TextStyle(
-                color: AppColors.textTertiary,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
