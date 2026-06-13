@@ -107,7 +107,7 @@ class CrowdsourcingNotifications {
   static const int reviewReadyId = 891;
   static const int storageFullId = 892;
   static const int permissionStoppedId = 893;
-  static const String recordingChannelId = 'yastaa_recording_high';
+  static const String recordingChannelId = 'yastaa_recording_silent_v1';
   static const String promptChannelId = 'yastaa_smart_prompt';
   static const String actionTransfer = 'transfer';
   static const String actionArrived = 'arrived';

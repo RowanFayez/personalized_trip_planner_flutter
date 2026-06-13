@@ -37,6 +37,8 @@ Future<void> initializeCrowdsourcingBackgroundService() async {
           CrowdsourcingNotifications.recordingChannelId,
           CrowdsourcingStrings.recordingNotificationTitle,
           importance: Importance.high,
+          playSound: false,
+          enableVibration: false,
         ),
       );
 
@@ -1101,6 +1103,8 @@ class _RecordingBackgroundController {
           ongoing: true,
           autoCancel: false,
           onlyAlertOnce: true,
+          playSound: false,
+          enableVibration: false,
           priority: Priority.high,
           importance: Importance.high,
           actions: <AndroidNotificationAction>[
