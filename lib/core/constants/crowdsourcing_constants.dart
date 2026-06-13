@@ -20,6 +20,7 @@ class CrowdsourcingHiveKeys {
   static const String transfersPrefix = 'transfers_';
   static const String tripMetaPrefix = 'trip_meta_';
   static const String pendingReviewTripId = 'pending_review_trip_id';
+  static const String recordingServiceArmed = 'recording_service_armed';
 }
 
 class TripStatuses {
@@ -28,6 +29,7 @@ class TripStatuses {
   static const String recording = 'recording';
   static const String paused = 'paused';
   static const String gpsLost = 'gps_lost';
+  static const String stopping = 'stopping';
   static const String stopped = 'stopped';
   static const String pendingReview = 'pending_review';
   static const String pendingUpload = 'pending_upload';
@@ -68,6 +70,7 @@ class CrowdsourcingIpc {
   static const String tripAutoPaused = 'trip_auto_paused';
   static const String gpsLost = 'gps_lost';
   static const String gpsRestored = 'gps_restored';
+  static const String tripStopAcknowledged = 'trip_stop_acknowledged';
   static const String tripStopped = 'trip_stopped';
   static const String bringToForeground = 'bring_to_foreground';
   static const String notificationTransferRequested =
@@ -90,6 +93,9 @@ class CrowdsourcingPayloadKeys {
   static const String elapsedSeconds = 'elapsedSeconds';
   static const String isGpsLost = 'isGpsLost';
   static const String type = 'type';
+  static const String stopSource = 'stopSource';
+  static const String stopSourceApp = 'app';
+  static const String stopSourceNotification = 'notification';
 }
 
 class CrowdsourcingNotifications {
@@ -101,7 +107,7 @@ class CrowdsourcingNotifications {
   static const int reviewReadyId = 891;
   static const int storageFullId = 892;
   static const int permissionStoppedId = 893;
-  static const String recordingChannelId = 'yastaa_recording';
+  static const String recordingChannelId = 'yastaa_recording_high';
   static const String promptChannelId = 'yastaa_smart_prompt';
   static const String actionTransfer = 'transfer';
   static const String actionArrived = 'arrived';
@@ -116,9 +122,10 @@ class CrowdsourcingNotifications {
 class CrowdsourcingTiming {
   CrowdsourcingTiming._();
 
-  static const Duration minPointInterval = Duration(seconds: 10);
+  static const Duration minPointInterval = Duration(seconds: 5);
   static const Duration flushInterval = Duration(seconds: 30);
   static const Duration gpsLostAfter = Duration(seconds: 60);
+  static const Duration locationKickstartTimeout = Duration(seconds: 5);
   static const Duration transferDebounce = Duration(seconds: 60);
   static const Duration promptCooldown = Duration(seconds: 180);
   static const Duration promptExpiresAfter = Duration(minutes: 5);
@@ -132,6 +139,7 @@ class CrowdsourcingLimits {
   static const int gpsBufferMax = 50;
   static const int liveMapPointMax = 500;
   static const int speedWindowMax = 10;
+  static const int gpsStreamDistanceFilterM = 2;
   static const double gpsRecordingAccuracyMaxM = 50;
   static const double gpxAccuracyMaxM = 30;
   static const double gpxStillAccuracyMaxM = 15;
@@ -195,8 +203,10 @@ class CrowdsourcingStrings {
   static const String submitAndContribute = 'Submit & Contribute';
   static const String submitAnyway = 'Submit Anyway';
   static const String recordTrip = '+ Record Trip';
-  static const String routeNameLabel = 'اسم الخط';
+  static const String routeNameLabel = 'اسم الخط (إجباري)';
   static const String routeNameHint = 'مثال: عصافرة - محطة مصر';
+  static const String routeNameRequired =
+      'اكتب اسم الخط الأول، مثال: عصافرة - محطة مصر';
   static const String shareGpx = 'Share GPX';
   static const String shareUnavailable = 'ملف GPX مش جاهز لسه';
   static const String submittedSuccess = 'تم إرسال الرحلة التجريبية بنجاح';
@@ -294,8 +304,8 @@ class CrowdsourcingModes {
     return switch (mode) {
       AppStrings.modeMicrobus => 'ميكروباص',
       AppStrings.modeMinibus => 'ميني باص',
-      AppStrings.modeTomnaya => 'تمنية',
-      AppStrings.modeTonaya => 'تمنية',
+      AppStrings.modeTomnaya => 'تومناية',
+      AppStrings.modeTonaya => 'تومناية',
       AppStrings.modeBus => 'أتوبيس',
       _ => CrowdsourcingStrings.unspecifiedMode,
     };

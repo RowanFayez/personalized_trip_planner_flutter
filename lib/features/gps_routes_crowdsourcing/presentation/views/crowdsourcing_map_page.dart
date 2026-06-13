@@ -65,7 +65,9 @@ class _CrowdsourcingMapPageState extends State<CrowdsourcingMapPage> {
       child: BlocConsumer<RecordingCubit, RecordingState>(
         listener: (context, state) {
           if (state is RecordingComplete) {
-            context.go(CrowdsourcingRoutes.review, extra: state.tripMeta);
+            context.go(
+              '${CrowdsourcingRoutes.review}/${state.tripMeta.tripId}',
+            );
           }
           if (state is RecordingModeSelectionRequested) {
             _openNotificationModeSelector(state.previous);

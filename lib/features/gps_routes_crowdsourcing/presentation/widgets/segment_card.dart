@@ -112,13 +112,9 @@ class _SegmentCardState extends State<SegmentCard> {
             ],
           ),
           SizedBox(height: 10.h),
-          OutlinedButton.icon(
+          OutlinedButton(
             onPressed: _chooseMode,
-            icon: const Icon(Icons.directions_bus_rounded),
-            label: Text(
-              '${CrowdsourcingModes.emoji(widget.segment.mode)} '
-              '${CrowdsourcingModes.displayName(widget.segment.mode)}',
-            ),
+            child: Text(CrowdsourcingModes.displayName(widget.segment.mode)),
           ),
           SizedBox(height: 10.h),
           _CompactFareInput(

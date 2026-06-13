@@ -39,7 +39,7 @@ class GpxTrackReader {
           .map(_readPosition)
           .whereType<Position>()
           .toList(growable: false);
-      if (coordinates.length < 2) continue;
+      if (coordinates.isEmpty) continue;
       segments.add(
         GpxTrackSegment(
           index: index,

@@ -9,6 +9,7 @@ import '../../features/routing/presentation/cubit/routing_cubit.dart';
 import '../../features/crowdsourcing/presentation/view/fare_feedback_page.dart';
 import '../../features/gps_routes_crowdsourcing/data/models/trip_metadata_model.dart';
 import '../../features/gps_routes_crowdsourcing/data/services/crowdsourcing_permissions_service.dart';
+import '../../features/gps_routes_crowdsourcing/data/services/trip_local_data_source.dart';
 import '../../features/gps_routes_crowdsourcing/presentation/cubit/recording_cubit.dart';
 import '../../features/gps_routes_crowdsourcing/presentation/views/contributions_page.dart';
 import '../../features/gps_routes_crowdsourcing/presentation/views/crowdsourcing_map_page.dart';
@@ -24,6 +25,16 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     initialLocation: '/',
+    redirect: (context, state) async {
+      final currentPath = state.uri.path;
+      if (currentPath.startsWith(CrowdsourcingRoutes.review)) return null;
+      if (!sl.isRegistered<TripLocalDataSource>()) return null;
+
+      final tripId = await sl<TripLocalDataSource>()
+          .consumePendingReviewTripId();
+      if (tripId == null || tripId.trim().isEmpty) return null;
+      return '${CrowdsourcingRoutes.review}/$tripId';
+    },
     routes: <RouteBase>[
       GoRoute(
         path: '/',

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../../../../core/config/map_config.dart';
@@ -59,8 +60,17 @@ class _GpxMapPreviewState extends State<GpxMapPreview> {
   }
 
   Future<void> _draw() async {
+    if (_mapboxMap == null || !_ready.isCompleted) return;
+    await _mapService.removeRoute('gpx_preview');
+    await _mapService.removeMarker('gpx_preview_single_point');
+    await _mapService.removeMarker('gpx_preview_current_location');
+
     final path = widget.gpxFilePath;
-    if (path == null || _mapboxMap == null || !_ready.isCompleted) return;
+    if (path == null || path.trim().isEmpty) {
+      await _showCurrentLocationFallback();
+      return;
+    }
+
     final tracks = await _reader.readSegments(path);
     final segments = tracks
         .map(
@@ -70,16 +80,64 @@ class _GpxMapPreviewState extends State<GpxMapPreview> {
           ),
         )
         .toList(growable: false);
-    if (segments.isEmpty) return;
-    await _mapService.removeRoute('gpx_preview');
-    await _mapService.drawSegmentedRoute(
-      id: 'gpx_preview',
-      segments: segments,
-      width: CrowdsourcingUi.routeWidth,
-    );
     final allPositions = segments
         .expand((segment) => segment.coordinates)
         .toList(growable: false);
-    await _mapService.fitToRoute(allPositions);
+    if (allPositions.isEmpty) {
+      await _showCurrentLocationFallback();
+      return;
+    }
+
+    final drawableSegments = segments
+        .where((segment) => segment.coordinates.length >= 2)
+        .toList(growable: false);
+    if (drawableSegments.isNotEmpty) {
+      await _mapService.drawSegmentedRoute(
+        id: 'gpx_preview',
+        segments: drawableSegments,
+        width: CrowdsourcingUi.routeWidth,
+      );
+      await _mapService.fitToRoute(allPositions);
+      return;
+    }
+
+    final onlyPoint = allPositions.first;
+    await _mapService.upsertMarker(
+      id: 'gpx_preview_single_point',
+      latitude: onlyPoint.lat.toDouble(),
+      longitude: onlyPoint.lng.toDouble(),
+    );
+    await _mapService.animateCamera(
+      latitude: onlyPoint.lat.toDouble(),
+      longitude: onlyPoint.lng.toDouble(),
+      zoom: 16,
+    );
+  }
+
+  Future<void> _showCurrentLocationFallback() async {
+    try {
+      if (!await geo.Geolocator.isLocationServiceEnabled()) return;
+      final permission = await geo.Geolocator.checkPermission();
+      if (permission == geo.LocationPermission.denied ||
+          permission == geo.LocationPermission.deniedForever) {
+        return;
+      }
+      final current = await geo.Geolocator.getCurrentPosition(
+        desiredAccuracy: geo.LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 4),
+      );
+      await _mapService.upsertMarker(
+        id: 'gpx_preview_current_location',
+        latitude: current.latitude,
+        longitude: current.longitude,
+      );
+      await _mapService.animateCamera(
+        latitude: current.latitude,
+        longitude: current.longitude,
+        zoom: 16,
+      );
+    } on Object {
+      // Keep the Alexandria default camera visible if live location is unavailable.
+    }
   }
 }
