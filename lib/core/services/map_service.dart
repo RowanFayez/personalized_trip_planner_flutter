@@ -465,8 +465,8 @@ class MapService {
     if (m.contains('mini')) return AppStrings.modeMinibus;
     if (m.contains('bus')) return AppStrings.modeBus;
     if (m.contains('tram')) return AppStrings.modeTram;
-    if (m.contains('tonaya') || m.contains('taxi')) {
-      return AppStrings.modeTonaya;
+    if (m.contains('tomnaya') || m.contains('tonaya') || m.contains('taxi')) {
+      return AppStrings.modeTomnaya;
     }
 
     return m;
@@ -479,6 +479,7 @@ class MapService {
       AppStrings.modeTram => 'assets/icons/tram.svg',
       AppStrings.modeMicrobus => 'assets/icons/microbus.svg',
       AppStrings.modeMinibus => 'assets/icons/minibus.svg',
+      AppStrings.modeTomnaya => 'assets/icons/tomnaya.svg',
       AppStrings.modeTonaya => 'assets/icons/tomnaya.svg',
       _ => null,
     };
@@ -592,6 +593,8 @@ class MapService {
       tram,
       AppStrings.modeMinibus,
       minibus,
+      AppStrings.modeTomnaya,
+      tonaya,
       AppStrings.modeTonaya,
       tonaya,
       fallback,

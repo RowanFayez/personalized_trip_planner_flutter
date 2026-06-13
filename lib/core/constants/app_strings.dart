@@ -3,7 +3,7 @@ class AppStrings {
   AppStrings._();
 
   // App Info
-  static const String appName = 'NextStation';
+  static const String appName = 'Yastaa';
   static const String appNameAr = 'المحطة التالية';
 
   // Map Configuration
@@ -20,6 +20,7 @@ class AppStrings {
   static const String modeMinibus = 'minibus';
   static const String modeBus = 'bus';
   static const String modeWalking = 'walking';
+  static const String modeTomnaya = 'tomnaya';
   static const String modeTonaya = 'tonaya';
 
   // Route Preferences

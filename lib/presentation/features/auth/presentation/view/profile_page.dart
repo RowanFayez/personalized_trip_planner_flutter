@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/crowdsourcing_constants.dart';
 import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/services/auth_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
@@ -180,6 +181,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   lastRoute: _lastRoute,
                 ),
                 SizedBox(height: 18.h),
+                _ContributionsCard(
+                  onOpen: () => context.push(CrowdsourcingRoutes.contributions),
+                ),
+                SizedBox(height: 18.h),
                 SizedBox(
                   height: 52.h,
                   child: ElevatedButton(
@@ -208,6 +213,50 @@ class _ProfilePageState extends State<ProfilePage> {
       SavedPlaceType.work => 'Work',
       SavedPlaceType.college => 'College',
     };
+  }
+}
+
+class _ContributionsCard extends StatelessWidget {
+  final VoidCallback onOpen;
+
+  const _ContributionsCard({required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 14.r,
+            offset: Offset(0, 6.h),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(16.r),
+      child: Row(
+        children: [
+          Icon(Icons.route_rounded, color: AppColors.primaryTeal, size: 24.r),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              CrowdsourcingStrings.contributionsTitle,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onOpen,
+            child: const Text(CrowdsourcingStrings.openContributions),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 
-/// NextStation app theme configuration
+/// Yastaa app theme configuration
 class AppTheme {
   AppTheme._();
 
@@ -10,7 +10,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      
+
       // Color Scheme
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primaryTeal,
@@ -22,10 +22,10 @@ class AppTheme {
         onSurface: AppColors.textPrimary,
         onError: AppColors.textPrimary,
       ),
-      
+
       // Scaffold
       scaffoldBackgroundColor: AppColors.backgroundDark,
-      
+
       // AppBar
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.backgroundDark,
@@ -39,17 +39,15 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
       ),
-      
+
       // Card
       cardTheme: CardThemeData(
         color: AppColors.surfaceDark,
         elevation: 4,
         shadowColor: AppColors.shadow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-      
+
       // Input Decoration (Search fields)
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -77,7 +75,10 @@ class AppTheme {
           fontSize: 16,
           fontWeight: FontWeight.w400,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
       ),
 
       // Text selection / cursor colors (avoid light-blue accents in inputs)
@@ -86,7 +87,7 @@ class AppTheme {
         selectionColor: Color(0x00FFFFFF),
         selectionHandleColor: AppColors.textPrimary,
       ),
-      
+
       // Elevated Button
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -97,20 +98,17 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
-      
+
       // Floating Action Button
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.primaryTeal,
         foregroundColor: AppColors.textPrimary,
         elevation: 6,
       ),
-      
+
       // Bottom Navigation Bar
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.searchInputBackground,
@@ -119,7 +117,7 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-      
+
       // Text Theme
       textTheme: const TextTheme(
         displayLarge: TextStyle(
