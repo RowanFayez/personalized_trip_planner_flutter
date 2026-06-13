@@ -20,6 +20,13 @@ class TripFinalizerService {
     TripMetadataModel stoppedTrip,
   ) async {
     final rawPoints = await localDataSource.getGpsPoints(stoppedTrip.tripId);
+    if (rawPoints.isEmpty) {
+      final emptyMeta = stoppedTrip.copyWith(status: TripStatuses.pendingReview);
+      await localDataSource.saveTripMetadata(emptyMeta);
+      await localDataSource.clearActiveTrip();
+      return emptyMeta;
+    }
+
     final transfers = await localDataSource.getPotentialTransfers(
       stoppedTrip.tripId,
     );
@@ -54,7 +61,7 @@ class TripFinalizerService {
   }
 
   Future<TripMetadataModel?> _waitForReviewableActiveTrip(String tripId) async {
-    const attempts = 12;
+    const attempts = 60;
     const delay = Duration(milliseconds: 500);
     TripMetadataModel? latest;
 

@@ -377,9 +377,12 @@ class TripLocalDataSource {
     final trips = await getAllCompletedTripMetadata();
     final activeTrip = await getActiveTrip();
     final isArmed = await isRecordingServiceArmed();
-    if (activeTrip == null ||
-        !isArmed ||
-        trips.any((trip) => trip.tripId == activeTrip.tripId)) {
+
+    final activeTripAlreadyCounted =
+        activeTrip != null &&
+        trips.any((trip) => trip.tripId == activeTrip.tripId);
+
+    if (activeTrip == null || !isArmed || activeTripAlreadyCounted) {
       return trips.length;
     }
     return trips.length + 1;

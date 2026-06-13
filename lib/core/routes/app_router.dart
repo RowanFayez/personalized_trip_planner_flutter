@@ -23,17 +23,33 @@ import '../../presentation/features/preferences/presentation/view/route_preferen
 class AppRouter {
   AppRouter._();
 
+  static String? _pendingReviewTripId;
+
+  static Future<void> checkPendingReview() async {
+    if (!sl.isRegistered<TripLocalDataSource>()) return;
+    _pendingReviewTripId = await sl<TripLocalDataSource>()
+        .consumePendingReviewTripId();
+  }
+
+  static Future<void> openPendingReviewIfAny() async {
+    if (!sl.isRegistered<TripLocalDataSource>()) return;
+    final tripId = await sl<TripLocalDataSource>().consumePendingReviewTripId();
+    if (tripId == null || tripId.trim().isEmpty) return;
+    router.go('${CrowdsourcingRoutes.review}/$tripId');
+  }
+
   static final GoRouter router = GoRouter(
     initialLocation: '/',
-    redirect: (context, state) async {
+    redirect: (context, state) {
       final currentPath = state.uri.path;
       if (currentPath.startsWith(CrowdsourcingRoutes.review)) return null;
-      if (!sl.isRegistered<TripLocalDataSource>()) return null;
 
-      final tripId = await sl<TripLocalDataSource>()
-          .consumePendingReviewTripId();
-      if (tripId == null || tripId.trim().isEmpty) return null;
-      return '${CrowdsourcingRoutes.review}/$tripId';
+      final pending = _pendingReviewTripId;
+      if (pending != null && pending.trim().isNotEmpty) {
+        _pendingReviewTripId = null;
+        return '${CrowdsourcingRoutes.review}/$pending';
+      }
+      return null;
     },
     routes: <RouteBase>[
       GoRoute(

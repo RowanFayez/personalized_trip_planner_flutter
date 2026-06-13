@@ -66,6 +66,7 @@ Future<void> initializeCrowdsourcingBackgroundService() async {
       foregroundServiceNotificationId: CrowdsourcingNotifications.recordingId,
       foregroundServiceTypes: <AndroidForegroundType>[
         AndroidForegroundType.location,
+        AndroidForegroundType.dataSync,
       ],
     ),
     iosConfiguration: IosConfiguration(
@@ -262,6 +263,7 @@ class _RecordingBackgroundController {
   bool _isFlushing = false;
   bool _isStopping = false;
   bool _isCheckingGpsHealth = false;
+  bool _recordingNotificationActionsAttached = false;
   bool _storageFullHandled = false;
   DateTime? _stationarySince;
 
@@ -338,13 +340,14 @@ class _RecordingBackgroundController {
           _activeTrip?.tripId == tripId && _gpsSubscription != null;
       final resumed = existing.copyWith(status: TripStatuses.recording);
       _activeTrip = resumed;
-      _distanceM = resumed.totalDistanceM ?? 0;
       await localDataSource.saveActiveTrip(resumed);
       if (isAlreadyTracking) {
+        _distanceM = resumed.totalDistanceM ?? 0;
         await _showRecordingNotification();
         return;
       }
       _resetRuntimeTracking();
+      _distanceM = resumed.totalDistanceM ?? 0;
       await _startStreams();
       await _showRecordingNotification();
       return;
@@ -398,6 +401,7 @@ class _RecordingBackgroundController {
     _isGpsLost = false;
     _isAutoPaused = false;
     _isCheckingGpsHealth = false;
+    _recordingNotificationActionsAttached = false;
     _stationarySince = null;
     _buffer.clear();
     _speedWindow.clear();
@@ -438,8 +442,9 @@ class _RecordingBackgroundController {
     final locationSettings = AndroidSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: CrowdsourcingLimits.gpsStreamDistanceFilterM,
-      forceLocationManager: false,
+      forceLocationManager: true,
       intervalDuration: CrowdsourcingTiming.minPointInterval,
+      useMSLAltitude: false,
       foregroundNotificationConfig: const ForegroundNotificationConfig(
         notificationText: 'جاري تتبع المسار بدقة...',
         notificationTitle: 'Yastaa',
@@ -477,7 +482,14 @@ class _RecordingBackgroundController {
           .checkPermission();
       if (permission != ActivityPermission.GRANTED) return;
       _activitySubscription = FlutterActivityRecognition.instance.activityStream
-          .handleError((Object error) => debugPrint(error.toString()))
+          .handleError(
+            (Object error) {
+              debugPrint('Activity stream error (non-fatal): $error');
+            },
+          )
+          .where(
+            (activity) => activity.confidence == ActivityConfidence.HIGH,
+          )
           .listen(_onActivity);
     } catch (error) {
       debugPrint(error.toString());
@@ -1058,23 +1070,29 @@ class _RecordingBackgroundController {
     if (_isStopping) return;
     final activeTrip = _activeTrip;
     if (activeTrip == null) return;
+
     final elapsed = DateTime.now()
         .difference(DateTime.parse(activeTrip.startedAt))
         .inSeconds;
+
     final body = _isGpsLost
         ? CrowdsourcingStrings.gpsLost
-        : 'الوقت: ${_formatElapsed(elapsed)} • '
-              'المسافة: ${(_distanceM / 1000).toStringAsFixed(1)} كم';
+        : 'الوقت: ${_formatElapsed(elapsed)} • المسافة: '
+              '${(_distanceM / 1000).toStringAsFixed(1)} كم';
 
-    final displayBody = _isGpsLost
-        ? body
-        : 'الوقت: ${_formatElapsed(elapsed)} • '
-              'المسافة: ${(_distanceM / 1000).toStringAsFixed(1)} كم';
+    if (service is AndroidServiceInstance &&
+        _recordingNotificationActionsAttached) {
+      await (service as AndroidServiceInstance).setForegroundNotificationInfo(
+        title: CrowdsourcingStrings.recordingNotificationTitle,
+        content: body,
+      );
+      return;
+    }
 
     await notifications.show(
       CrowdsourcingNotifications.recordingId,
       CrowdsourcingStrings.recordingNotificationTitle,
-      displayBody,
+      body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
           CrowdsourcingNotifications.recordingChannelId,
@@ -1100,6 +1118,7 @@ class _RecordingBackgroundController {
         ),
       ),
     );
+    _recordingNotificationActionsAttached = true;
   }
 
   Future<void> _showReviewReadyNotification(String tripId) async {

@@ -143,7 +143,7 @@ class CrowdsourcingLimits {
   static const double gpsRecordingAccuracyMaxM = 50;
   static const double gpxAccuracyMaxM = 30;
   static const double gpxStillAccuracyMaxM = 15;
-  static const double staticDriftMinDistanceM = 12;
+  static const double staticDriftMinDistanceM = 8;
   static const double activeVelocityMs = 0.8;
   static const double stationaryResumeVelocityMs = 1.5;
   static const double stationaryRadiusM = 5;
