@@ -172,20 +172,17 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
           Positioned.fill(child: const RoutePreferencesGradient()),
           SafeArea(
             child: LayoutBuilder(
-              builder: (context, constraints) {
+              builder: (context, _) {
                 return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(10.w, 2.h, 10.w, 8.h),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        RoutePreferencesHeader(
-                          onClose: () => context.pop(false),
-                        ),
-                        SizedBox(height: 2.h),
+                  padding: EdgeInsets.fromLTRB(10.w, 4.h, 10.w, 10.h),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RoutePreferencesHeader(
+                        onClose: () => context.pop(false),
+                      ),
+                        SizedBox(height: 6.h),
                         Text(
                           'Prioritize by',
                           style: TextStyle(
@@ -194,38 +191,38 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        SizedBox(height: 3.h),
+                        SizedBox(height: 6.h),
                         PriorityTile(
                           width: double.infinity,
-                          height: 40,
+                          height: 46,
                           label: 'Fastest Route',
                           selected: _priority == RoutePriority.fastest,
                           onTap: () =>
                               setState(() => _priority = RoutePriority.fastest),
                         ),
-                        SizedBox(height: 3.h),
+                        SizedBox(height: 4.h),
                         PriorityTile(
                           width: double.infinity,
-                          height: 40,
+                          height: 46,
                           label: 'Cheapest Route',
                           selected: _priority == RoutePriority.cheapest,
                           onTap: () => setState(
                             () => _priority = RoutePriority.cheapest,
                           ),
                         ),
-                        SizedBox(height: 3.h),
+                        SizedBox(height: 4.h),
                         PriorityTile(
                           width: double.infinity,
-                          height: 40,
+                          height: 46,
                           label: 'Balanced',
                           selected: _priority == RoutePriority.balanced,
                           onTap: () => setState(
                             () => _priority = RoutePriority.balanced,
                           ),
                         ),
-                        SizedBox(height: 5.h),
+                        SizedBox(height: 10.h),
                         const DividerLine(),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 8.h),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -246,7 +243,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 8.h),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -268,7 +265,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 0.5.h),
+                        SizedBox(height: 2.h),
                         SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor: AppColors.primaryTeal,
@@ -290,12 +287,12 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                                 setState(() => _maxWalkingMinutes = v),
                           ),
                         ),
-                        SizedBox(height: 0.5.h),
+                        SizedBox(height: 4.h),
                         const SectionHeading(
                           text: 'Transport Modes',
-                          fontSize: 14,
+                          fontSize: 15,
                         ),
-                        SizedBox(height: 3.h),
+                        SizedBox(height: 6.h),
                         SizedBox(
                           width: double.infinity,
                           child: PreferencesPanel(
@@ -335,25 +332,25 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 10.h),
                         const DividerLine(),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 8.h),
                         const SectionHeading(
                           text: 'Exclude streets :',
-                          fontSize: 14,
+                          fontSize: 15,
                         ),
-                        SizedBox(height: 3.h),
+                        SizedBox(height: 6.h),
                         SizedBox(
                           width: double.infinity,
                           child: PreferencesPanel(
                             child: Padding(
-                              padding: EdgeInsets.all(8.r),
+                              padding: EdgeInsets.all(10.r),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Wrap(
                                     spacing: 6.w,
-                                    runSpacing: 6.h,
+                                    runSpacing: 7.h,
                                     children: _mainStreetOptions
                                         .map(
                                           (opt) => _SelectableStreetChip(
@@ -371,10 +368,10 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 6.h),
+                        SizedBox(height: 12.h),
                         SizedBox(
                           width: double.infinity,
-                          height: 44.h,
+                          height: 46.h,
                           child: ElevatedButton(
                             onPressed: _applyPreferences,
                             style: ElevatedButton.styleFrom(
@@ -394,10 +391,10 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 6.h),
                         SizedBox(
                           width: double.infinity,
-                          height: 44.h,
+                          height: 46.h,
                           child: ElevatedButton(
                             onPressed: _resetToDefault,
                             style: ElevatedButton.styleFrom(
@@ -418,8 +415,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                           ),
                         ),
                         SizedBox(height: 4.h),
-                      ],
-                    ),
+                    ],
                   ),
                 );
               },

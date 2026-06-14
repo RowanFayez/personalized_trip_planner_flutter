@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
@@ -11,7 +10,6 @@ import '../../../../../core/services/mapbox_geocoding_service.dart';
 import '../widgets/picker_pin.dart';
 import '../widgets/picker_location_card.dart';
 import '../widgets/picker_back_button.dart';
-import '../widgets/picker_my_location_button.dart';
 
 /// Result returned when the user confirms a location from the map picker.
 class MapPickerResult {
@@ -208,13 +206,6 @@ class _MapPickerPageState extends State<MapPickerPage> {
 
           // Back button
           PickerBackButton(onPressed: () => context.pop()),
-
-          // "My Location" FAB
-          Positioned(
-            right: 20.w,
-            bottom: 180.h,
-            child: PickerMyLocationButton(onPressed: () => _goToUserLocation()),
-          ),
 
           // Bottom location card
           Positioned(

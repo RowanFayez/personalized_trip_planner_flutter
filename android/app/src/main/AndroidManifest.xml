@@ -19,7 +19,9 @@
     <application
         android:label="Yastaa"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/yastaa_launcher"
+        android:logo="@mipmap/yastaa_launcher"
+        android:roundIcon="@mipmap/yastaa_launcher_round">
         <activity
             android:name=".MainActivity"
             android:exported="true"
