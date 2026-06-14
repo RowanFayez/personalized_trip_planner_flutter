@@ -68,7 +68,6 @@ Future<void> initializeCrowdsourcingBackgroundService() async {
       foregroundServiceNotificationId: CrowdsourcingNotifications.recordingId,
       foregroundServiceTypes: <AndroidForegroundType>[
         AndroidForegroundType.location,
-        AndroidForegroundType.dataSync,
       ],
     ),
     iosConfiguration: IosConfiguration(
@@ -403,7 +402,6 @@ class _RecordingBackgroundController {
     _isGpsLost = false;
     _isAutoPaused = false;
     _isCheckingGpsHealth = false;
-    _recordingNotificationActionsAttached = false;
     _stationarySince = null;
     _buffer.clear();
     _speedWindow.clear();
@@ -437,7 +435,7 @@ class _RecordingBackgroundController {
       (_) => _checkGpsHealth(),
     );
     _notificationTimer = Timer.periodic(
-      CrowdsourcingTiming.minPointInterval,
+      CrowdsourcingTiming.notificationUpdateInterval,
       (_) => _showRecordingNotification(),
     );
 
@@ -480,21 +478,26 @@ class _RecordingBackgroundController {
 
   Future<void> _startActivityStream() async {
     try {
-      final permission = await FlutterActivityRecognition.instance
-          .checkPermission();
-      if (permission != ActivityPermission.GRANTED) return;
+      debugPrint('[ActivityRecognition] Starting stream in background...');
+
       _activitySubscription = FlutterActivityRecognition.instance.activityStream
           .handleError(
             (Object error) {
-              debugPrint('Activity stream error (non-fatal): $error');
+              debugPrint(
+                '[ActivityRecognition] stream error (non-fatal): $error',
+              );
             },
           )
           .where(
             (activity) => activity.confidence == ActivityConfidence.HIGH,
           )
-          .listen(_onActivity);
+          .listen((Activity activity) {
+            debugPrint('[ActivityRecognition] received: ${activity.type}');
+            _handleActivityEvent(activity);
+          });
+      debugPrint('[ActivityRecognition] stream started successfully');
     } catch (error) {
-      debugPrint(error.toString());
+      debugPrint('[ActivityRecognition] failed to start stream: $error');
     }
   }
 
@@ -798,9 +801,7 @@ class _RecordingBackgroundController {
     unawaited(_showRecordingNotification());
   }
 
-  void _onActivity(Activity activity) {
-    if (!_isTrustedActivity(activity)) return;
-
+  void _handleActivityEvent(Activity activity) {
     if (activity.type == ActivityType.IN_VEHICLE) {
       _lastStableActivity = ActivityType.IN_VEHICLE;
       if (_debounceTimer?.isActive == true) {
@@ -825,10 +826,6 @@ class _RecordingBackgroundController {
         () => unawaited(_onTransferConfirmed()),
       );
     }
-  }
-
-  bool _isTrustedActivity(Activity activity) {
-    return activity.confidence == ActivityConfidence.HIGH;
   }
 
   bool _isPromptCooldownOver() {
@@ -1106,7 +1103,7 @@ class _RecordingBackgroundController {
           playSound: false,
           enableVibration: false,
           priority: Priority.high,
-          importance: Importance.high,
+          importance: Importance.defaultImportance,
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction(
               CrowdsourcingNotifications.actionTransfer,

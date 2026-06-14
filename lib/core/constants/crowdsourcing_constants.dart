@@ -123,6 +123,7 @@ class CrowdsourcingTiming {
   CrowdsourcingTiming._();
 
   static const Duration minPointInterval = Duration(seconds: 5);
+  static const Duration notificationUpdateInterval = Duration(seconds: 30);
   static const Duration flushInterval = Duration(seconds: 30);
   static const Duration gpsLostAfter = Duration(seconds: 60);
   static const Duration locationKickstartTimeout = Duration(seconds: 5);

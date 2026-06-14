@@ -168,19 +168,11 @@ class _StartRecordingContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                CrowdsourcingStrings.silentRecordingTitle,
+                CrowdsourcingStrings.recordTitle,
                 style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w800,
-                ),
-              ),
-              SizedBox(height: 6.h),
-              Text(
-                CrowdsourcingStrings.silentRecordingBody,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12.sp,
                 ),
               ),
             ],
@@ -204,7 +196,6 @@ class _StartRecordingContent extends StatelessWidget {
     }
     final recordingCubit = context.read<RecordingCubit>();
     final contributionsCubit = context.read<ContributionsCubit>();
-    final messenger = ScaffoldMessenger.of(context);
     final allowed = await sl<CrowdsourcingPermissionsService>()
         .ensureAndroidPermissions(context);
     if (!allowed || !context.mounted) return;
@@ -212,9 +203,6 @@ class _StartRecordingContent extends StatelessWidget {
     if (!context.mounted) return;
     await contributionsCubit.load();
     if (!context.mounted) return;
-    messenger.showSnackBar(
-      const SnackBar(content: Text(CrowdsourcingStrings.silentRecordingBody)),
-    );
   }
 }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -33,12 +34,18 @@ class _RecordingMapCanvasState extends State<RecordingMapCanvas> {
   final MapService _mapService = MapService();
   final Completer<void> _ready = Completer<void>();
   MapboxMap? _mapboxMap;
+  final Set<String> _singlePointMarkerIds = <String>{};
   bool _userHasPanned = false;
   Position? _lastCameraPosition;
 
   @override
   void didUpdateWidget(covariant RecordingMapCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (kDebugMode) {
+      debugPrint(
+        '[RecordingMapCanvas] recentPoints=${widget.recentPoints.length}',
+      );
+    }
     if (oldWidget.recentPoints != widget.recentPoints ||
         oldWidget.pulsePrompt != widget.pulsePrompt) {
       unawaited(_draw());
@@ -98,6 +105,7 @@ class _RecordingMapCanvasState extends State<RecordingMapCanvas> {
     await _ready.future;
     final segments = _routeSegments();
     await _mapService.removeRoute('recording_live');
+    await _removeSinglePointMarkers();
     if (segments.isNotEmpty) {
       await _mapService.drawSegmentedRoute(
         id: 'recording_live',
@@ -105,6 +113,7 @@ class _RecordingMapCanvasState extends State<RecordingMapCanvas> {
         width: CrowdsourcingUi.routeWidth,
       );
     }
+    await _drawSinglePointSegmentMarkers();
 
     final last = widget.recentPoints.lastOrNull;
     if (last == null) return;
@@ -157,6 +166,34 @@ class _RecordingMapCanvasState extends State<RecordingMapCanvas> {
           ),
         )
         .toList(growable: false);
+  }
+
+  Future<void> _drawSinglePointSegmentMarkers() async {
+    final groups = <int, List<GpsPointModel>>{};
+    for (final point in widget.recentPoints) {
+      groups.putIfAbsent(point.segmentIndex, () => <GpsPointModel>[]);
+      groups[point.segmentIndex]!.add(point);
+    }
+
+    for (final entry in groups.entries) {
+      if (entry.value.length != 1) continue;
+      final point = entry.value.first;
+      final id = 'recording_live_single_${entry.key}';
+      _singlePointMarkerIds.add(id);
+      await _mapService.upsertMarker(
+        id: id,
+        latitude: point.lat,
+        longitude: point.lon,
+        color: CrowdsourcingModes.color(widget.segmentModes[entry.key]),
+      );
+    }
+  }
+
+  Future<void> _removeSinglePointMarkers() async {
+    for (final id in _singlePointMarkerIds) {
+      await _mapService.removeMarker(id);
+    }
+    _singlePointMarkerIds.clear();
   }
 
   bool _isStationary() {

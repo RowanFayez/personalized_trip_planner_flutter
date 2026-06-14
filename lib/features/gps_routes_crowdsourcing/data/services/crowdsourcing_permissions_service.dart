@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -54,14 +53,6 @@ class CrowdsourcingPermissionsService {
   }
 
   Future<bool> _requestActivityRecognition() async {
-    try {
-      final nativePermission = await FlutterActivityRecognition.instance
-          .requestPermission();
-      if (nativePermission == ActivityPermission.GRANTED) return true;
-    } catch (_) {
-      // Fall back to permission_handler below.
-    }
-
     final permissionHandlerStatus = await Permission.activityRecognition
         .request();
     return permissionHandlerStatus.isGranted;

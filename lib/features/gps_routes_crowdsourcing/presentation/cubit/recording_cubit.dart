@@ -174,7 +174,14 @@ class RecordingCubit extends Cubit<RecordingState> {
     }
 
     if (eventName == CrowdsourcingIpc.gpsPoint) {
-      if (current is! RecordingInProgress || event == null) return;
+      final progress = current is RecordingInProgress
+          ? current
+          : current is RecordingSmartPromptFired
+          ? current.previous
+          : current is RecordingModeSelectionRequested
+          ? current.previous
+          : null;
+      if (progress == null || event == null) return;
       final point = GpsPointModel(
         lat: _readDouble(event[CrowdsourcingPayloadKeys.lat]),
         lon: _readDouble(event[CrowdsourcingPayloadKeys.lon]),
@@ -183,7 +190,7 @@ class RecordingCubit extends Cubit<RecordingState> {
       );
       _appendRecentPoint(point);
       emit(
-        current.copyWith(
+        progress.copyWith(
           distanceM: _readDouble(event[CrowdsourcingPayloadKeys.distanceM]),
           elapsedSeconds: _readInt(
             event[CrowdsourcingPayloadKeys.elapsedSeconds],

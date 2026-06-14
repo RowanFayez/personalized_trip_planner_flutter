@@ -179,7 +179,7 @@ class _ReviewView extends StatelessWidget {
                           ),
                           SizedBox(height: 12.h),
                         ],
-                        _SubmitButton(state: state),
+                        if (!state.submitSucceeded) _SubmitButton(state: state),
                       ],
                     ),
                   ),
@@ -358,6 +358,24 @@ class _SubmitButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (state.tripMeta.status == TripStatuses.uploaded ||
+        state.tripMeta.status == TripStatuses.pendingUpload) {
+      return SizedBox(
+        width: double.infinity,
+        height: CrowdsourcingUi.buttonHeight.h,
+        child: Center(
+          child: Text(
+            CrowdsourcingStrings.uploadedBadge,
+            style: TextStyle(
+              color: AppColors.success,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       width: double.infinity,
       height: CrowdsourcingUi.buttonHeight.h,
