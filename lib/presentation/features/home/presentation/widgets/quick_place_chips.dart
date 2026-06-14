@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../../core/constants/app_colors.dart';
@@ -93,13 +94,19 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
   }
 
   Widget _chip({
-    required IconData icon,
     required String title,
     required String subtitle,
     required bool isSelected,
     required VoidCallback onTap,
+    IconData? icon,
+    String? svgAsset,
+    String? pngAsset,
     VoidCallback? onLongPress,
   }) {
+    assert(
+      icon != null || svgAsset != null || pngAsset != null,
+      '_chip requires either icon, svgAsset, or pngAsset',
+    );
     return GestureDetector(
       onLongPress: onLongPress,
       child: InkWell(
@@ -117,7 +124,21 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: AppColors.textPrimary, size: 17.r),
+              if (pngAsset != null)
+                Image.asset(
+                  pngAsset,
+                  width: 17.r,
+                  height: 17.r,
+                  fit: BoxFit.contain,
+                )
+              else if (svgAsset != null)
+                SvgPicture.asset(
+                  svgAsset,
+                  width: 17.r,
+                  height: 17.r,
+                )
+              else
+                Icon(icon, color: AppColors.textPrimary, size: 17.r),
               SizedBox(width: 10.w),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,7 +327,7 @@ class _QuickPlaceChipsState extends State<QuickPlaceChips> {
                   ),
                   SizedBox(width: 10.w),
                   _chip(
-                    icon: Icons.factory_outlined,
+                    pngAsset: 'assets/icons/collage.png',
                     title: _titleFor(SavedPlaceType.college),
                     subtitle: collegeSubtitle,
                     isSelected: selected == SavedPlaceType.college,

@@ -406,7 +406,7 @@ class _SavedLocationsCard extends StatelessWidget {
           ),
           const Divider(height: 18, color: AppColors.divider),
           _SavedLocationRow(
-            icon: Icons.factory_outlined,
+            imageAsset: 'assets/icons/collage.png',
             title: 'College',
             value: _formatPlace(college, isLoading),
             onSet: onSetCollege,
@@ -433,7 +433,8 @@ class _SavedLocationsCard extends StatelessWidget {
 }
 
 class _SavedLocationRow extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? imageAsset;
   final String title;
   final String value;
   final VoidCallback onSet;
@@ -441,13 +442,14 @@ class _SavedLocationRow extends StatelessWidget {
   final bool canClear;
 
   const _SavedLocationRow({
-    required this.icon,
+    this.icon,
+    this.imageAsset,
     required this.title,
     required this.value,
     required this.onSet,
     required this.onClear,
     required this.canClear,
-  });
+  }) : assert(icon != null || imageAsset != null, 'Provide icon or imageAsset');
 
   @override
   Widget build(BuildContext context) {
@@ -455,7 +457,15 @@ class _SavedLocationRow extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(icon, color: AppColors.textSecondary, size: 18.r),
+        if (imageAsset != null)
+          Image.asset(
+            imageAsset!,
+            width: 18.r,
+            height: 18.r,
+            fit: BoxFit.contain,
+          )
+        else
+          Icon(icon ?? Icons.place_outlined, color: AppColors.textSecondary, size: 18.r),
         SizedBox(width: 10.w),
         Expanded(
           child: Column(

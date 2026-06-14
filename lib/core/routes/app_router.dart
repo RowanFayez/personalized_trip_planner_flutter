@@ -19,6 +19,7 @@ import '../../presentation/features/auth/presentation/view/profile_page.dart';
 import '../../presentation/features/home/presentation/view/home_page.dart';
 import '../../presentation/features/map_picker/presentation/view/map_picker_page.dart';
 import '../../presentation/features/preferences/presentation/view/route_preferences_page.dart';
+import '../../presentation/features/splash/splash_page.dart';
 
 class AppRouter {
   AppRouter._();
@@ -39,9 +40,11 @@ class AppRouter {
   }
 
   static final GoRouter router = GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     redirect: (context, state) {
       final currentPath = state.uri.path;
+      // Do not redirect during splash or review routes
+      if (currentPath == '/splash') return null;
       if (currentPath.startsWith(CrowdsourcingRoutes.review)) return null;
 
       final pending = _pendingReviewTripId;
@@ -52,6 +55,10 @@ class AppRouter {
       return null;
     },
     routes: <RouteBase>[
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       GoRoute(
         path: '/',
         builder: (context, state) {
