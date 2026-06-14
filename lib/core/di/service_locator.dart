@@ -5,6 +5,7 @@ import '../network/api_constants.dart';
 import '../network/dio_factory.dart';
 import '../services/auth_service.dart';
 import '../services/location_service.dart';
+import '../services/custom_places_service.dart';
 import '../services/route_preferences_service.dart';
 import '../services/user_activity_service.dart';
 import '../storage/hive/hive_service.dart';
@@ -48,6 +49,11 @@ class ServiceLocator {
       () => UserActivityService(authService: sl<AuthService>()),
     );
     sl.registerLazySingleton<LocationService>(() => LocationService());
+
+    // Custom places (user-defined quick-place chips)
+    sl.registerLazySingleton<CustomPlacesService>(
+      () => CustomPlacesService(authService: sl<AuthService>()),
+    );
 
     // Core
     sl.registerLazySingleton<Dio>(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/services/custom_places_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
 import 'search_input_field.dart';
 import 'preferences_button.dart';
@@ -25,7 +26,9 @@ class SearchOverlay extends StatelessWidget {
   final bool showQuickPlacesUnderFrom;
   final String? signedInUserId;
   final SavedPlacesService savedPlacesService;
+  final CustomPlacesService customPlacesService;
   final ValueChanged<SavedPlaceType> onQuickPlaceSelected;
+  final ValueChanged<CustomPlace> onCustomPlaceSelected;
   final SavedPlaceType? selectedQuickPlaceFrom;
   final SavedPlaceType? selectedQuickPlaceTo;
   final List<MapboxPlaceSuggestion> fromSuggestions;
@@ -55,7 +58,9 @@ class SearchOverlay extends StatelessWidget {
     required this.showQuickPlacesUnderFrom,
     required this.signedInUserId,
     required this.savedPlacesService,
+    required this.customPlacesService,
     required this.onQuickPlaceSelected,
+    required this.onCustomPlaceSelected,
     required this.selectedQuickPlaceFrom,
     required this.selectedQuickPlaceTo,
     required this.fromSuggestions,
@@ -177,7 +182,9 @@ class SearchOverlay extends StatelessWidget {
               QuickPlaceChips(
                 userId: userId,
                 savedPlacesService: savedPlacesService,
+                customPlacesService: customPlacesService,
                 onSelected: onQuickPlaceSelected,
+                onCustomPlaceSelected: onCustomPlaceSelected,
                 selectedType: selectedQuickPlaceFrom,
               ),
             ],
@@ -216,7 +223,9 @@ class SearchOverlay extends StatelessWidget {
               QuickPlaceChips(
                 userId: userId,
                 savedPlacesService: savedPlacesService,
+                customPlacesService: customPlacesService,
                 onSelected: onQuickPlaceSelected,
+                onCustomPlaceSelected: onCustomPlaceSelected,
                 selectedType: selectedQuickPlaceTo,
               ),
             ],

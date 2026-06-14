@@ -14,6 +14,7 @@ import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/services/location_service.dart';
 import '../../../../../core/services/map_service.dart';
 import '../../../../../core/services/mapbox_geocoding_service.dart';
+import '../../../../../core/services/custom_places_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
 import '../../../../../core/services/auth_service.dart';
 import '../../../../../core/services/user_activity_service.dart';
@@ -49,6 +50,8 @@ class _HomePageState extends State<HomePage> {
   late final SavedPlacesService _savedPlacesService = SavedPlacesService(
     authService: _authService,
   );
+  late final CustomPlacesService _customPlacesService =
+      sl<CustomPlacesService>();
   final UserActivityService _userActivityService = sl<UserActivityService>();
   bool _didCenterOnUser = false;
   bool _didWarmupBackend = false;
@@ -676,6 +679,16 @@ class _HomePageState extends State<HomePage> {
     _toSearch.focusNode.unfocus();
   }
 
+  Future<void> _handleCustomPlaceSelected(CustomPlace place) async {
+    await _activeSearchController.goToLocation(
+      title: place.label,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    );
+    _fromSearch.focusNode.unfocus();
+    _toSearch.focusNode.unfocus();
+  }
+
   /// Callback for the RoutingBottomSheet close button — removes drawn route.
   Future<void> _onRoutingSheetClosed() async {
     if (!mounted) return;
@@ -1000,8 +1013,11 @@ class _HomePageState extends State<HomePage> {
                     showQuickPlacesUnderFrom: !_toSearch.focusNode.hasFocus,
                     signedInUserId: _authService.uid,
                     savedPlacesService: _savedPlacesService,
+                    customPlacesService: _customPlacesService,
                     onQuickPlaceSelected: (type) =>
                         _handleQuickPlaceSelected(type),
+                    onCustomPlaceSelected: (place) =>
+                        _handleCustomPlaceSelected(place),
                     selectedQuickPlaceFrom: _selectedQuickPlaceFrom,
                     selectedQuickPlaceTo: _selectedQuickPlaceTo,
                     fromSuggestions: _fromSearch.suggestions,

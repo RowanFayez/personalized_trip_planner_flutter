@@ -6,11 +6,16 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/crowdsourcing_constants.dart';
 import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/services/auth_service.dart';
+import '../../../../../core/services/custom_places_service.dart';
 import '../../../../../core/services/saved_places_service.dart';
 import '../../../../../core/services/user_activity_service.dart';
+import '../../../../../core/storage/hive/core_hive_boxes.dart';
+import '../../../../../core/storage/hive/hive_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../../map_picker/presentation/view/map_picker_page.dart';
 import '../widgets/profile_header_card.dart';
 import '../widgets/google_sign_in_dialog.dart';
+import '../../../home/presentation/widgets/custom_place_sheet.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -24,6 +29,8 @@ class _ProfilePageState extends State<ProfilePage> {
   late final SavedPlacesService _savedPlacesService = SavedPlacesService(
     authService: _authService,
   );
+  final CustomPlacesService _customPlacesService =
+      sl<CustomPlacesService>();
   final UserActivityService _userActivityService = sl<UserActivityService>();
 
   bool _isLoading = true;
@@ -173,6 +180,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   onClearHome: () => _clearPlace(SavedPlaceType.home),
                   onClearWork: () => _clearPlace(SavedPlaceType.work),
                   onClearCollege: () => _clearPlace(SavedPlaceType.college),
+                ),
+                SizedBox(height: 18.h),
+                _CustomPlacesCard(
+                  userId: _authService.uid ?? '',
+                  customPlacesService: _customPlacesService,
                 ),
                 SizedBox(height: 18.h),
                 _RecentActivityCard(
@@ -565,6 +577,230 @@ class _InfoLine extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CustomPlacesCard extends StatefulWidget {
+  final String userId;
+  final CustomPlacesService customPlacesService;
+
+  const _CustomPlacesCard({
+    required this.userId,
+    required this.customPlacesService,
+  });
+
+  @override
+  State<_CustomPlacesCard> createState() => _CustomPlacesCardState();
+}
+
+class _CustomPlacesCardState extends State<_CustomPlacesCard> {
+  late Future<Box<dynamic>> _boxFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _boxFuture = HiveService.openBox<dynamic>(CoreHiveBoxes.savedPlaces);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CustomPlacesCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _boxFuture = HiveService.openBox<dynamic>(CoreHiveBoxes.savedPlaces);
+    }
+  }
+
+  List<CustomPlace> _parsePlaces(Box<dynamic> box) {
+    if (widget.userId.isEmpty) return const [];
+    final key = CustomPlacesService.storageKeyFor(widget.userId);
+    final raw = box.get(key);
+    if (raw is! List) return const [];
+    final places = <CustomPlace>[];
+    for (final item in raw) {
+      final place = CustomPlace.fromMap(item);
+      if (place != null) places.add(place);
+    }
+    return places;
+  }
+
+  Future<void> _addPlace(BuildContext ctx) async {
+    final places = await widget.customPlacesService.getCustomPlaces();
+    if (places.length >= 10) {
+      if (!ctx.mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum 10 custom places reached'),
+        ),
+      );
+      return;
+    }
+    if (!ctx.mounted) return;
+    await showCustomPlaceSheet(ctx, service: widget.customPlacesService);
+  }
+
+  Future<void> _editPlace(BuildContext ctx, CustomPlace place) async {
+    await showCustomPlaceSheet(
+      ctx,
+      service: widget.customPlacesService,
+      existing: place,
+    );
+  }
+
+  Future<void> _deletePlace(CustomPlace place) async {
+    await widget.customPlacesService.deleteCustomPlace(place.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.userId.isEmpty) return const SizedBox.shrink();
+
+    final customKey =
+        CustomPlacesService.storageKeyFor(widget.userId);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 14.r,
+            offset: Offset(0, 6.h),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(16.r),
+      child: FutureBuilder<Box<dynamic>>(
+        future: _boxFuture,
+        builder: (context, snapshot) {
+          final box = snapshot.data;
+          if (box == null) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Custom places',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return ValueListenableBuilder<Box<dynamic>>(
+            valueListenable: box.listenable(keys: [customKey]),
+            builder: (context, value, _) {
+              final places = _parsePlaces(value);
+              final atCap = places.length >= 10;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Custom places',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (places.isEmpty) ...[
+                    SizedBox(height: 10.h),
+                    Text(
+                      'No custom places yet. Add one below.',
+                      style: TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ] else ...[
+                    SizedBox(height: 10.h),
+                    for (int i = 0; i < places.length; i++) ...[
+                      if (i > 0)
+                        const Divider(height: 16, color: AppColors.divider),
+                      _CustomPlaceRow(
+                        place: places[i],
+                        onEdit: () => _editPlace(context, places[i]),
+                        onDelete: () => _deletePlace(places[i]),
+                      ),
+                    ],
+                  ],
+                  SizedBox(height: 14.h),
+                  OutlinedButton.icon(
+                    onPressed: atCap ? null : () => _addPlace(context),
+                    icon: Icon(Icons.add, size: 18.r),
+                    label: Text(
+                      atCap ? 'Limit reached (10/10)' : 'Add custom place',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryTeal,
+                      disabledForegroundColor: AppColors.textTertiary,
+                      side: BorderSide(
+                        color:
+                            atCap ? AppColors.surfaceLight : AppColors.primaryTeal,
+                      ),
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      textStyle: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CustomPlaceRow extends StatelessWidget {
+  final CustomPlace place;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _CustomPlaceRow({
+    required this.place,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.place_outlined, color: AppColors.textSecondary, size: 18.r),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Text(
+            place.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        TextButton(onPressed: onEdit, child: const Text('Edit')),
+        SizedBox(width: 4.w),
+        TextButton(
+          onPressed: onDelete,
+          style: TextButton.styleFrom(foregroundColor: AppColors.accentRed),
+          child: const Text('Delete'),
         ),
       ],
     );
