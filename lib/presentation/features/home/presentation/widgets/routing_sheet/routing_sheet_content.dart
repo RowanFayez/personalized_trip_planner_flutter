@@ -141,6 +141,7 @@ class RoutingSheetContent extends StatelessWidget {
         final total = state.result?.journeys.length ?? 0;
         final index = state.selectedJourneyIndex;
         final destinationName = _destinationName(journey.legs);
+        final originName = _originName(journey.legs);
         final firstConnection = _firstConnectionInfo(journey.legs);
         final finalConnection = _finalConnectionInfo(journey.legs);
         final arrivalName =
@@ -150,7 +151,10 @@ class RoutingSheetContent extends StatelessWidget {
           controller: scrollController,
           padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 16.h),
           children: [
-            const RoutingChatRow(),
+            RoutingChatRow(
+              originName: originName,
+              destinationName: destinationName,
+            ),
             SizedBox(height: 10.h),
             RoutingHeaderRow(total: total, index: index),
             SizedBox(height: 10.h),
@@ -185,10 +189,27 @@ class RoutingSheetContent extends StatelessWidget {
   // ── Destination name resolution ───────────────────────────────────────────
 
   String? _destinationName(List<RouteLeg> legs) {
+    final requested = requestedDestinationName?.trim();
+    if (requested != null && requested.isNotEmpty) return requested;
+
     for (var i = legs.length - 1; i >= 0; i--) {
       final name = TextPreference.preferred(
         legs[i].to?.nameAr,
         legs[i].to?.name,
+      );
+      if (name != null) return name;
+    }
+    return null;
+  }
+
+  String? _originName(List<RouteLeg> legs) {
+    final requested = requestedOriginName?.trim();
+    if (requested != null && requested.isNotEmpty) return requested;
+
+    for (final leg in legs) {
+      final name = TextPreference.preferred(
+        leg.from?.nameAr,
+        leg.from?.name,
       );
       if (name != null) return name;
     }

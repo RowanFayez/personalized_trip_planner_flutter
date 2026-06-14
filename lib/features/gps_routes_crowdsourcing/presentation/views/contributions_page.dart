@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -34,8 +36,39 @@ class ContributionsPage extends StatelessWidget {
   }
 }
 
-class _ContributionsView extends StatelessWidget {
+class _ContributionsView extends StatefulWidget {
   const _ContributionsView();
+
+  @override
+  State<_ContributionsView> createState() => _ContributionsViewState();
+}
+
+class _ContributionsViewState extends State<_ContributionsView>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<ContributionsCubit>().load();
+    }
+  }
+
+  Future<void> _openReview(BuildContext context, String tripId) async {
+    await context.push('${CrowdsourcingRoutes.review}/$tripId');
+    if (!context.mounted) return;
+    await context.read<ContributionsCubit>().load();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +79,7 @@ class _ContributionsView extends StatelessWidget {
           if (state is RecordingComplete) {
             context.read<ContributionsCubit>().load();
             if (state.shouldOpenReview) {
-              context.push(
-                '${CrowdsourcingRoutes.review}/${state.tripMeta.tripId}',
-              );
+              unawaited(_openReview(context, state.tripMeta.tripId));
             }
           }
           if (state is RecordingInitial) {
@@ -83,11 +114,11 @@ class _ContributionsView extends StatelessWidget {
                       for (final trip in state.trips) ...[
                         ContributionListItem(
                           trip: trip,
-                          onTap: () => context.push(
-                            '${CrowdsourcingRoutes.review}/${trip.tripId}',
+                          onTap: () => unawaited(
+                            _openReview(context, trip.tripId),
                           ),
-                          onAction: () => context.push(
-                            '${CrowdsourcingRoutes.review}/${trip.tripId}',
+                          onAction: () => unawaited(
+                            _openReview(context, trip.tripId),
                           ),
                           onDelete: () =>
                               _confirmDeleteTrip(context, trip.tripId),

@@ -6,12 +6,19 @@ import '../../../../../../core/constants/app_colors.dart';
 
 /// Banner row that navigates to the AI-agent chat page.
 class RoutingChatRow extends StatelessWidget {
-  const RoutingChatRow({super.key});
+  final String? originName;
+  final String? destinationName;
+
+  const RoutingChatRow({
+    super.key,
+    this.originName,
+    this.destinationName,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => context.push('/agent'),
+      onTap: () => context.push('/agent', extra: _initialMessage()),
       borderRadius: BorderRadius.circular(16.r),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -52,5 +59,15 @@ class RoutingChatRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _initialMessage() {
+    final origin = originName?.trim().isNotEmpty == true
+        ? originName!.trim()
+        : 'نقطة البداية';
+    final destination = destinationName?.trim().isNotEmpty == true
+        ? destinationName!.trim()
+        : 'وجهتك';
+    return 'عايز اسأل عن الطريق من $origin إلى $destination';
   }
 }

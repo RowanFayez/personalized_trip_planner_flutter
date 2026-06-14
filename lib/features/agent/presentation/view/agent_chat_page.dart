@@ -15,7 +15,9 @@ import '../widgets/agent_sign_in_gate.dart';
 import '../../../../presentation/features/auth/presentation/widgets/google_sign_in_dialog.dart';
 
 class AgentChatPage extends StatefulWidget {
-  const AgentChatPage({super.key});
+  final String? initialMessage;
+
+  const AgentChatPage({super.key, this.initialMessage});
 
   @override
   State<AgentChatPage> createState() => _AgentChatPageState();
@@ -26,6 +28,7 @@ class _AgentChatPageState extends State<AgentChatPage> {
   final ScrollController _scrollController = ScrollController();
   final AuthService _authService = sl<AuthService>();
   bool _isShowingSignInDialog = false;
+  bool _initialMessageSent = false;
 
   @override
   void initState() {
@@ -65,6 +68,29 @@ class _AgentChatPageState extends State<AgentChatPage> {
     context.read<AgentCubit>().sendMessage(text);
   }
 
+  void _maybeSendInitialMessage({required bool signedIn}) {
+    if (_initialMessageSent) return;
+    final text = widget.initialMessage?.trim();
+    if (text == null || text.isEmpty) return;
+
+    if (!signedIn) {
+      if (_controller.text.trim().isEmpty) {
+        _controller.text = text;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_promptSignInForChat());
+      });
+      return;
+    }
+
+    _initialMessageSent = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _controller.clear();
+      context.read<AgentCubit>().sendMessage(text);
+    });
+  }
+
   Future<void> _promptSignInForChat() async {
     if (!mounted || _isShowingSignInDialog) return;
     _isShowingSignInDialog = true;
@@ -99,6 +125,7 @@ class _AgentChatPageState extends State<AgentChatPage> {
       stream: _authService.authStateChanges(),
       builder: (context, _) {
         final signedIn = _authService.uid != null;
+        _maybeSendInitialMessage(signedIn: signedIn);
 
         return BlocConsumer<AgentCubit, AgentState>(
           listenWhen: (previous, current) =>

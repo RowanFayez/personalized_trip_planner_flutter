@@ -174,7 +174,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(8.5.w, 4.h, 8.5.w, 12.h),
+                  padding: EdgeInsets.fromLTRB(10.w, 2.h, 10.w, 8.h),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight,
@@ -185,47 +185,47 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         RoutePreferencesHeader(
                           onClose: () => context.pop(false),
                         ),
-                        SizedBox(height: 6.h),
+                        SizedBox(height: 2.h),
                         Text(
                           'Prioritize by',
                           style: TextStyle(
                             color: AppColors.textPrimary,
-                            fontSize: 17.sp,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 3.h),
                         PriorityTile(
-                          width: 358.w,
-                          height: 54,
+                          width: double.infinity,
+                          height: 40,
                           label: 'Fastest Route',
                           selected: _priority == RoutePriority.fastest,
                           onTap: () =>
                               setState(() => _priority = RoutePriority.fastest),
                         ),
-                        SizedBox(height: 5.h),
+                        SizedBox(height: 3.h),
                         PriorityTile(
-                          width: 358.w,
-                          height: 54,
+                          width: double.infinity,
+                          height: 40,
                           label: 'Cheapest Route',
                           selected: _priority == RoutePriority.cheapest,
                           onTap: () => setState(
                             () => _priority = RoutePriority.cheapest,
                           ),
                         ),
-                        SizedBox(height: 5.h),
+                        SizedBox(height: 3.h),
                         PriorityTile(
-                          width: 358.w,
-                          height: 54,
+                          width: double.infinity,
+                          height: 40,
                           label: 'Balanced',
                           selected: _priority == RoutePriority.balanced,
                           onTap: () => setState(
                             () => _priority = RoutePriority.balanced,
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 5.h),
                         const DividerLine(),
-                        SizedBox(height: 6.h),
+                        SizedBox(height: 4.h),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -233,7 +233,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                               'Max Transfers',
                               style: TextStyle(
                                 color: AppColors.textPrimary,
-                                fontSize: 13.sp,
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -246,7 +246,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 4.h),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -254,7 +254,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                               'Max Walking Time',
                               style: TextStyle(
                                 color: AppColors.textPrimary,
-                                fontSize: 13.sp,
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -262,7 +262,7 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                               '${_maxWalkingMinutes.round()} min',
                               style: TextStyle(
                                 color: AppColors.textSecondary,
-                                fontSize: 13.sp,
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -277,9 +277,9 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             overlayColor: AppColors.primaryTeal.withValues(
                               alpha: 0.2,
                             ),
-                            trackHeight: 2.5.h,
+                            trackHeight: 2.h,
                             thumbShape: RoundSliderThumbShape(
-                              enabledThumbRadius: 10.r,
+                              enabledThumbRadius: 8.r,
                             ),
                           ),
                           child: Slider(
@@ -293,11 +293,11 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                         SizedBox(height: 0.5.h),
                         const SectionHeading(
                           text: 'Transport Modes',
-                          fontSize: 17,
+                          fontSize: 14,
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 3.h),
                         SizedBox(
-                          width: 358.w,
+                          width: double.infinity,
                           child: PreferencesPanel(
                             child: Column(
                               children: [
@@ -335,25 +335,25 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 6.h),
+                        SizedBox(height: 4.h),
                         const DividerLine(),
-                        SizedBox(height: 10.h),
+                        SizedBox(height: 4.h),
                         const SectionHeading(
                           text: 'Exclude streets :',
-                          fontSize: 17,
+                          fontSize: 14,
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 3.h),
                         SizedBox(
-                          width: 358.w,
+                          width: double.infinity,
                           child: PreferencesPanel(
                             child: Padding(
-                              padding: EdgeInsets.all(12.r),
+                              padding: EdgeInsets.all(8.r),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Wrap(
-                                    spacing: 8.w,
-                                    runSpacing: 8.h,
+                                    spacing: 6.w,
+                                    runSpacing: 6.h,
                                     children: _mainStreetOptions
                                         .map(
                                           (opt) => _SelectableStreetChip(
@@ -371,47 +371,47 @@ class _RoutePreferencesPageState extends State<RoutePreferencesPage> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 10.h),
+                        SizedBox(height: 6.h),
                         SizedBox(
                           width: double.infinity,
-                          height: 54.h,
+                          height: 44.h,
                           child: ElevatedButton(
                             onPressed: _applyPreferences,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryTeal,
                               foregroundColor: AppColors.textPrimary,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(27.r),
+                                borderRadius: BorderRadius.circular(22.r),
                               ),
                               elevation: 0,
                             ),
                             child: Text(
                               'Apply',
                               style: TextStyle(
-                                fontSize: 16.sp,
+                                fontSize: 14.sp,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(height: 6.h),
+                        SizedBox(height: 4.h),
                         SizedBox(
                           width: double.infinity,
-                          height: 54.h,
+                          height: 44.h,
                           child: ElevatedButton(
                             onPressed: _resetToDefault,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.searchInputBackground,
                               foregroundColor: AppColors.textPrimary,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(27.r),
+                                borderRadius: BorderRadius.circular(22.r),
                               ),
                               elevation: 0,
                             ),
                             child: Text(
                               'Reset to Default',
                               style: TextStyle(
-                                fontSize: 16.sp,
+                                fontSize: 14.sp,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -450,7 +450,7 @@ class _TransfersStepper extends StatelessWidget {
     final canDown = value > min;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
       decoration: BoxDecoration(
         color: AppColors.searchInputBackground,
         borderRadius: BorderRadius.circular(999.r),
@@ -463,11 +463,11 @@ class _TransfersStepper extends StatelessWidget {
             '$value',
             style: TextStyle(
               color: AppColors.textPrimary,
-              fontSize: 13.sp,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: 5.w),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -475,7 +475,7 @@ class _TransfersStepper extends StatelessWidget {
                 onTap: canUp ? () => onChanged(value + 1) : null,
                 child: Icon(
                   Icons.keyboard_arrow_up,
-                  size: 18.r,
+                  size: 15.r,
                   color: canUp
                       ? AppColors.textPrimary
                       : AppColors.textSecondary,
@@ -485,7 +485,7 @@ class _TransfersStepper extends StatelessWidget {
                 onTap: canDown ? () => onChanged(value - 1) : null,
                 child: Icon(
                   Icons.keyboard_arrow_down,
-                  size: 18.r,
+                  size: 15.r,
                   color: canDown
                       ? AppColors.textPrimary
                       : AppColors.textSecondary,
@@ -527,7 +527,7 @@ class _SelectableStreetChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(999.r),
@@ -541,13 +541,13 @@ class _SelectableStreetChip extends StatelessWidget {
               textDirection: TextDirection.rtl,
               style: TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 12.sp,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w700,
               ),
             ),
             if (selected) ...[
-              SizedBox(width: 6.w),
-              Icon(Icons.close, size: 16.r, color: AppColors.textPrimary),
+              SizedBox(width: 4.w),
+              Icon(Icons.close, size: 13.r, color: AppColors.textPrimary),
             ],
           ],
         ),

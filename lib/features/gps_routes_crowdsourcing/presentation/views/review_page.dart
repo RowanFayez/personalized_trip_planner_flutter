@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -318,9 +320,11 @@ class _ShareGpxButton extends StatelessWidget {
 
   Future<void> _share(BuildContext context) async {
     final path = state.tripMeta.gpxFilePath;
-    if (path == null || path.trim().isEmpty) {
+    if (path == null || path.trim().isEmpty || !File(path).existsSync()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(CrowdsourcingStrings.shareUnavailable)),
+        const SnackBar(
+          content: Text('لا يوجد مسار كافي لمشاركته، يجب أن تتحرك مسافة أطول'),
+        ),
       );
       return;
     }

@@ -11,7 +11,7 @@ class RoutePreferencesHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -20,7 +20,7 @@ class RoutePreferencesHeader extends StatelessWidget {
             child: IconButton(
               icon: Icon(Icons.close, color: AppColors.textPrimary, size: 20.r),
               padding: EdgeInsets.zero,
-              constraints: BoxConstraints.tightFor(width: 36.w, height: 36.h),
+              constraints: BoxConstraints.tightFor(width: 32.w, height: 32.h),
               onPressed: onClose,
             ),
           ),
@@ -28,7 +28,7 @@ class RoutePreferencesHeader extends StatelessWidget {
             'Route Preferences',
             style: TextStyle(
               color: AppColors.textPrimary,
-              fontSize: 18.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
           ),

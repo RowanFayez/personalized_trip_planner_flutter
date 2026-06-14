@@ -10,7 +10,7 @@ import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart' hide ActivityType;
 import 'package:geolocator_android/geolocator_android.dart'
-    show AndroidSettings, ForegroundNotificationConfig;
+    show AndroidSettings;
 
 import '../../../../core/constants/crowdsourcing_constants.dart';
 import '../../../../core/routes/app_router.dart';
@@ -445,12 +445,6 @@ class _RecordingBackgroundController {
       forceLocationManager: true,
       intervalDuration: CrowdsourcingTiming.minPointInterval,
       useMSLAltitude: false,
-      foregroundNotificationConfig: const ForegroundNotificationConfig(
-        notificationText: 'جاري تتبع المسار بدقة...',
-        notificationTitle: 'Yastaa',
-        enableWakeLock: true,
-        setOngoing: true,
-      ),
     );
 
     await _kickstartInitialPosition();
@@ -1079,15 +1073,6 @@ class _RecordingBackgroundController {
         : 'الوقت: ${_formatElapsed(elapsed)} • المسافة: '
               '${(_distanceM / 1000).toStringAsFixed(1)} كم';
 
-    if (service is AndroidServiceInstance &&
-        _recordingNotificationActionsAttached) {
-      await (service as AndroidServiceInstance).setForegroundNotificationInfo(
-        title: CrowdsourcingStrings.recordingNotificationTitle,
-        content: body,
-      );
-      return;
-    }
-
     await notifications.show(
       CrowdsourcingNotifications.recordingId,
       CrowdsourcingStrings.recordingNotificationTitle,
@@ -1097,13 +1082,14 @@ class _RecordingBackgroundController {
           CrowdsourcingNotifications.recordingChannelId,
           CrowdsourcingStrings.recordingNotificationTitle,
           icon: '@drawable/ic_notification',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           ongoing: true,
           autoCancel: false,
           onlyAlertOnce: true,
           playSound: false,
           enableVibration: false,
-          priority: Priority.high,
-          importance: Importance.defaultImportance,
+          priority: Priority.low,
+          importance: Importance.low,
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction(
               CrowdsourcingNotifications.actionTransfer,
@@ -1132,6 +1118,7 @@ class _RecordingBackgroundController {
           CrowdsourcingNotifications.promptChannelId,
           CrowdsourcingStrings.tripSavedReviewTitle,
           icon: '@drawable/ic_notification',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           autoCancel: true,
           priority: Priority.high,
           importance: Importance.defaultImportance,
@@ -1155,6 +1142,7 @@ class _RecordingBackgroundController {
           CrowdsourcingNotifications.promptChannelId,
           CrowdsourcingStrings.locationPermissionStoppedTitle,
           icon: '@drawable/ic_notification',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           autoCancel: true,
           priority: Priority.high,
           importance: Importance.defaultImportance,
@@ -1173,6 +1161,7 @@ class _RecordingBackgroundController {
           CrowdsourcingNotifications.promptChannelId,
           CrowdsourcingStrings.gpsDisabledTitle,
           icon: '@drawable/ic_notification',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           autoCancel: true,
           priority: Priority.high,
           importance: Importance.defaultImportance,
@@ -1191,6 +1180,7 @@ class _RecordingBackgroundController {
           CrowdsourcingNotifications.promptChannelId,
           CrowdsourcingStrings.storageFullTitle,
           icon: '@drawable/ic_notification',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           autoCancel: true,
           priority: Priority.high,
           importance: Importance.defaultImportance,
@@ -1212,6 +1202,7 @@ class _RecordingBackgroundController {
           CrowdsourcingNotifications.promptChannelId,
           CrowdsourcingStrings.splitPromptTitle,
           icon: '@drawable/ic_notification',
+          largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           autoCancel: true,
           ongoing: false,
           priority: Priority.high,
@@ -1247,6 +1238,7 @@ class _RecordingBackgroundController {
           CrowdsourcingNotifications.promptChannelId,
           CrowdsourcingStrings.stillRecording,
           icon: '@drawable/ic_notification',
+          largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
           priority: Priority.defaultPriority,
           importance: Importance.defaultImportance,
           actions: <AndroidNotificationAction>[

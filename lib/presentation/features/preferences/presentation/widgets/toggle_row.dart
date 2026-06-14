@@ -16,21 +16,21 @@ class ToggleRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
-    this.verticalPadding = 4,
+    this.verticalPadding = 1,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: 16.w,
+        horizontal: 12.w,
         vertical: verticalPadding.h,
       ),
       child: Row(
         children: [
           SizedBox(
-            width: 36.r,
-            height: 36.r,
+            width: 30.r,
+            height: 30.r,
             child: Center(child: leading),
           ),
           SizedBox(width: 8.w),
@@ -39,13 +39,13 @@ class ToggleRow extends StatelessWidget {
               label,
               style: TextStyle(
                 color: AppColors.textPrimary,
-                fontSize: 15.sp,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
           Transform.scale(
-            scale: 0.76,
+            scale: 0.68,
             child: Switch(
               value: value,
               onChanged: onChanged,

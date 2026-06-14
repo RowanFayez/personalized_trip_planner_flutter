@@ -16,7 +16,7 @@ class PriorityTile extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.width,
-    this.height = 54,
+    this.height = 40,
   });
 
   @override
@@ -30,17 +30,17 @@ class PriorityTile extends StatelessWidget {
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(26.r),
+      borderRadius: BorderRadius.circular(20.r),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(26.r),
+        borderRadius: BorderRadius.circular(20.r),
         child: Container(
           width: width,
           height: height.h,
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          padding: EdgeInsets.symmetric(horizontal: 10.w),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(26.r),
+            borderRadius: BorderRadius.circular(20.r),
             border: Border.all(color: borderColor, width: selected ? 2 : 1),
           ),
           child: Row(
@@ -50,7 +50,7 @@ class PriorityTile extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: AppColors.textPrimary,
-                    fontSize: 15.sp,
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -86,8 +86,8 @@ class _RadioDot extends StatelessWidget {
       child: selected
           ? Center(
               child: Container(
-                width: 8.r,
-                height: 8.r,
+                width: 7.r,
+                height: 7.r,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.primaryTeal,

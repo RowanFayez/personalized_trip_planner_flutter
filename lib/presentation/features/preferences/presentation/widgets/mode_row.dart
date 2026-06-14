@@ -25,14 +25,14 @@ class ModeRow extends StatelessWidget {
     final Widget icon = isPng
         ? Image.asset(
             iconAsset,
-            width: 36.r,
-            height: 36.r,
+            width: 28.r,
+            height: 28.r,
             fit: BoxFit.contain,
           )
         : SvgPicture.asset(
             iconAsset,
-            width: 20.r,
-            height: 20.r,
+            width: 18.r,
+            height: 18.r,
             colorFilter: const ColorFilter.mode(
               AppColors.textPrimary,
               BlendMode.srcIn,

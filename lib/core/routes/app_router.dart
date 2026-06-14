@@ -75,9 +75,12 @@ class AppRouter {
       GoRoute(
         path: '/agent',
         builder: (context, state) {
+          final initialMessage = state.extra is String
+              ? state.extra as String
+              : null;
           return BlocProvider(
             create: (_) => sl<AgentCubit>(),
-            child: const AgentChatPage(),
+            child: AgentChatPage(initialMessage: initialMessage),
           );
         },
       ),
