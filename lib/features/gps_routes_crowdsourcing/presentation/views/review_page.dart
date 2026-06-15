@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -146,16 +147,12 @@ class _ReviewView extends StatelessWidget {
             ),
             body: Column(
               children: [
-                GestureDetector(
-                  onTap: () => _openFullMap(
+                _OfflineAwareGpxMapPreview(
+                  gpxFilePath: state.tripMeta.gpxFilePath,
+                  height: 0.35.sh,
+                  onOpen: () => _openFullMap(
                     context,
                     state.tripMeta.gpxFilePath,
-                  ),
-                  child: SizedBox(
-                    height: 0.35.sh,
-                    child: GpxMapPreview(
-                      gpxFilePath: state.tripMeta.gpxFilePath,
-                    ),
                   ),
                 ),
                 Expanded(
@@ -243,6 +240,124 @@ class _ReviewView extends StatelessWidget {
       MaterialPageRoute<void>(
         fullscreenDialog: true,
         builder: (_) => _FullScreenMapPreview(gpxFilePath: gpxFilePath),
+      ),
+    );
+  }
+}
+
+class _OfflineAwareGpxMapPreview extends StatefulWidget {
+  final String? gpxFilePath;
+  final bool interactive;
+  final double? height;
+  final VoidCallback? onOpen;
+
+  const _OfflineAwareGpxMapPreview({
+    required this.gpxFilePath,
+    this.interactive = false,
+    this.height,
+    this.onOpen,
+  });
+
+  @override
+  State<_OfflineAwareGpxMapPreview> createState() =>
+      _OfflineAwareGpxMapPreviewState();
+}
+
+class _OfflineAwareGpxMapPreviewState
+    extends State<_OfflineAwareGpxMapPreview> {
+  static const String _offlineMapMessage =
+      'الخريطة تحتاج إلى اتصال بالإنترنت لعرضها';
+
+  late Future<bool> _canLoadMap;
+
+  @override
+  void initState() {
+    super.initState();
+    _canLoadMap = _hasMapboxNetwork();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mapBody = FutureBuilder<bool>(
+      future: _canLoadMap,
+      builder: (context, snapshot) {
+        final canLoadMap = snapshot.data == true;
+        if (!canLoadMap) {
+          return _MapUnavailablePlaceholder(
+            isChecking: snapshot.connectionState != ConnectionState.done,
+            message: _offlineMapMessage,
+          );
+        }
+
+        final preview = GpxMapPreview(
+          gpxFilePath: widget.gpxFilePath,
+          interactive: widget.interactive,
+        );
+        if (widget.onOpen == null) return preview;
+        return GestureDetector(onTap: widget.onOpen, child: preview);
+      },
+    );
+
+    final height = widget.height;
+    if (height == null) return mapBody;
+    return SizedBox(height: height, child: mapBody);
+  }
+
+  Future<bool> _hasMapboxNetwork() async {
+    try {
+      final result = await InternetAddress.lookup(
+        'api.mapbox.com',
+      ).timeout(const Duration(seconds: 3));
+      return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
+    } on SocketException {
+      return false;
+    } on TimeoutException {
+      return false;
+    }
+  }
+}
+
+class _MapUnavailablePlaceholder extends StatelessWidget {
+  final bool isChecking;
+  final String message;
+
+  const _MapUnavailablePlaceholder({
+    required this.isChecking,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.searchInputBackground,
+      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      child: Center(
+        child: isChecking
+            ? SizedBox.square(
+                dimension: 24.r,
+                child: const CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.cloud_off_rounded,
+                    color: AppColors.textSecondary,
+                    size: 32.r,
+                  ),
+                  SizedBox(height: 10.h),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -350,7 +465,10 @@ class _FullScreenMapPreview extends StatelessWidget {
           icon: const Icon(Icons.close_rounded),
         ),
       ),
-      body: GpxMapPreview(gpxFilePath: gpxFilePath, interactive: true),
+      body: _OfflineAwareGpxMapPreview(
+        gpxFilePath: gpxFilePath,
+        interactive: true,
+      ),
     );
   }
 }

@@ -52,7 +52,7 @@
             android:name="id.flutter.flutter_background_service.BackgroundService"
             android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="location|dataSync"
+            android:foregroundServiceType="location"
             android:stopWithTask="false"
             tools:replace="android:exported,android:foregroundServiceType,android:stopWithTask" />
     </application>

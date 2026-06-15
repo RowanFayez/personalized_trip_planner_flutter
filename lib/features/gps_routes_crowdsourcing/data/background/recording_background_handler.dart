@@ -283,9 +283,7 @@ class _RecordingBackgroundController {
       return;
     }
 
-    if (service is AndroidServiceInstance) {
-      await (service as AndroidServiceInstance).setAsForegroundService();
-    }
+    await _promoteToForegroundService();
 
     _activeTrip = orphan;
     _distanceM = orphan.totalDistanceM ?? 0;
@@ -329,9 +327,7 @@ class _RecordingBackgroundController {
     final mode = event?[CrowdsourcingPayloadKeys.mode]?.toString();
 
     await localDataSource.setRecordingServiceArmed(true);
-    if (service is AndroidServiceInstance) {
-      await (service as AndroidServiceInstance).setAsForegroundService();
-    }
+    await _promoteToForegroundService();
 
     final existing = await localDataSource.getActiveTrip();
     if (existing != null &&
@@ -391,6 +387,12 @@ class _RecordingBackgroundController {
     return status == TripStatuses.recording ||
         status == TripStatuses.paused ||
         status == TripStatuses.gpsLost;
+  }
+
+  Future<void> _promoteToForegroundService() async {
+    final androidService = service;
+    if (androidService is! AndroidServiceInstance) return;
+    await androidService.setAsForegroundService();
   }
 
   void _resetRuntimeTracking() {
@@ -1073,9 +1075,19 @@ class _RecordingBackgroundController {
         : 'الوقت: ${_formatElapsed(elapsed)} • المسافة: '
               '${(_distanceM / 1000).toStringAsFixed(1)} كم';
 
+    final title = CrowdsourcingStrings.recordingNotificationTitle;
+    final androidService = service;
+    if (androidService is AndroidServiceInstance) {
+      await androidService.setAsForegroundService();
+      await androidService.setForegroundNotificationInfo(
+        title: title,
+        content: body,
+      );
+    }
+
     await notifications.show(
       CrowdsourcingNotifications.recordingId,
-      CrowdsourcingStrings.recordingNotificationTitle,
+      title,
       body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -1087,8 +1099,10 @@ class _RecordingBackgroundController {
           onlyAlertOnce: true,
           playSound: false,
           enableVibration: false,
-          priority: Priority.low,
-          importance: Importance.low,
+          priority: Priority.high,
+          importance: Importance.high,
+          category: AndroidNotificationCategory.service,
+          visibility: NotificationVisibility.public,
           actions: <AndroidNotificationAction>[
             AndroidNotificationAction(
               CrowdsourcingNotifications.actionTransfer,

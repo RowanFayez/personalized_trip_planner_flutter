@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/constants/crowdsourcing_constants.dart';
 import '../models/gps_point_model.dart';
 import '../models/trip_metadata_model.dart';
@@ -21,10 +23,21 @@ class TripFinalizerService {
   ) async {
     final rawPoints = await localDataSource.getGpsPoints(stoppedTrip.tripId);
     if (rawPoints.isEmpty) {
+      debugPrint(
+        '[TripFinalizer] Trip ${stoppedTrip.tripId} has 0 GPS points; '
+        'keeping it for review instead of discarding it.',
+      );
       final emptyMeta = stoppedTrip.copyWith(status: TripStatuses.pendingReview);
       await localDataSource.saveTripMetadata(emptyMeta);
       await localDataSource.clearActiveTrip();
       return emptyMeta;
+    }
+    if (rawPoints.length < 3) {
+      debugPrint(
+        '[TripFinalizer] Trip ${stoppedTrip.tripId} has only '
+        '${rawPoints.length} GPS point(s); keeping it for review and GPX '
+        'generation instead of discarding a short recording.',
+      );
     }
 
     final transfers = await localDataSource.getPotentialTransfers(
