@@ -288,6 +288,8 @@ class CrowdsourcingStrings {
   static const String transit = 'Transit';
   static const String fare = 'Fare';
   static const String egp = 'EGP';
+  static const String batteryOptimizationWarning =
+      'التسجيل ممكن يتوقف لو الموبايل اتقفل. اضغط هنا لإصلاح ده.';
 }
 
 class CrowdsourcingModes {

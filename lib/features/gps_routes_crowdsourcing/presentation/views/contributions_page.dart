@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/crowdsourcing_constants.dart';
@@ -185,41 +187,102 @@ class _RecordingControlCard extends StatelessWidget {
   }
 }
 
-class _StartRecordingContent extends StatelessWidget {
+class _StartRecordingContent extends StatefulWidget {
   final bool canCreateTrip;
 
   const _StartRecordingContent({required this.canCreateTrip});
 
   @override
+  State<_StartRecordingContent> createState() => _StartRecordingContentState();
+}
+
+class _StartRecordingContentState extends State<_StartRecordingContent> {
+  bool _isBatteryOptimized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBatteryOptimization();
+  }
+
+  Future<void> _checkBatteryOptimization() async {
+    if (!Platform.isAndroid) return;
+    final status = await Permission.ignoreBatteryOptimizations.status;
+    if (mounted) {
+      setState(() => _isBatteryOptimized = !status.isGranted);
+    }
+  }
+
+  Future<void> _requestBatteryExemption() async {
+    await Permission.ignoreBatteryOptimizations.request();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    await _checkBatteryOptimization();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                CrowdsourcingStrings.recordTitle,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w800,
-                ),
+        if (_isBatteryOptimized)
+          GestureDetector(
+            onTap: _requestBatteryExemption,
+            child: Container(
+              margin: EdgeInsets.only(bottom: 8.h),
+              padding: EdgeInsets.all(10.r),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: AppColors.warning),
               ),
-            ],
+              child: Row(
+                children: [
+                  Icon(Icons.battery_alert, color: AppColors.warning, size: 16.r),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      CrowdsourcingStrings.batteryOptimizationWarning,
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(
+                        color: AppColors.warning,
+                        fontSize: 11.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        SizedBox(width: 12.w),
-        ElevatedButton(
-          onPressed: canCreateTrip ? () => _startRecording(context) : null,
-          child: const Text(CrowdsourcingStrings.recordTrip),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    CrowdsourcingStrings.recordTitle,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 12.w),
+            ElevatedButton(
+              onPressed: widget.canCreateTrip ? () => _startRecording(context) : null,
+              child: const Text(CrowdsourcingStrings.recordTrip),
+            ),
+          ],
         ),
       ],
     );
   }
 
   Future<void> _startRecording(BuildContext context) async {
-    if (!canCreateTrip) {
+    if (!widget.canCreateTrip) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(CrowdsourcingStrings.maxDraftsReached)),
       );
@@ -234,6 +297,8 @@ class _StartRecordingContent extends StatelessWidget {
     if (!context.mounted) return;
     await contributionsCubit.load();
     if (!context.mounted) return;
+    // Recheck battery optimization after permissions flow
+    await _checkBatteryOptimization();
   }
 }
 

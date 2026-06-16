@@ -11,6 +11,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart' hide ActivityType;
 import 'package:geolocator_android/geolocator_android.dart'
     show AndroidSettings;
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../../core/constants/crowdsourcing_constants.dart';
 import '../../../../core/routes/app_router.dart';
@@ -284,6 +285,7 @@ class _RecordingBackgroundController {
     }
 
     await _promoteToForegroundService();
+    await _acquireWakeLock();
 
     _activeTrip = orphan;
     _distanceM = orphan.totalDistanceM ?? 0;
@@ -370,6 +372,7 @@ class _RecordingBackgroundController {
     _distanceM = 0;
     _resetRuntimeTracking();
     await localDataSource.saveActiveTrip(trip);
+    await _acquireWakeLock();
     await _startStreams();
     await _showRecordingNotification();
   }
@@ -1059,6 +1062,27 @@ class _RecordingBackgroundController {
     _debounceTimer?.cancel();
     _promptExpiryTimer?.cancel();
     _safetyTimer?.cancel();
+    await _releaseWakeLock();
+  }
+
+  Future<void> _acquireWakeLock() async {
+    try {
+      await WakelockPlus.enable();
+      debugPrint('Yastaa WakeLock acquired');
+    } catch (error) {
+      debugPrint('Yastaa WakeLock acquire failed: $error');
+    }
+  }
+
+  Future<void> _releaseWakeLock() async {
+    try {
+      if (await WakelockPlus.enabled) {
+        await WakelockPlus.disable();
+        debugPrint('Yastaa WakeLock released');
+      }
+    } catch (error) {
+      debugPrint('Yastaa WakeLock release failed: $error');
+    }
   }
 
   Future<void> _showRecordingNotification() async {

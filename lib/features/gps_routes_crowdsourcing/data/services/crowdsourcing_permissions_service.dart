@@ -43,7 +43,12 @@ class CrowdsourcingPermissionsService {
     }
     if (!context.mounted) return false;
 
-    await Permission.ignoreBatteryOptimizations.request();
+    // Request Battery Optimization exemption to prevent Doze mode
+    final batteryOpt = await Permission.ignoreBatteryOptimizations.status;
+    if (!batteryOpt.isGranted) {
+      await Permission.ignoreBatteryOptimizations.request();
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
     if (!context.mounted) return false;
 
     await Permission.notification.request();
