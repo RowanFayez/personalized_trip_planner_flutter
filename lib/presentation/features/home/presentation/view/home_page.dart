@@ -20,6 +20,7 @@ import '../../../../../core/services/auth_service.dart';
 import '../../../../../core/services/user_activity_service.dart';
 import '../../../../../features/nearby_trips/data/services/nearby_trips_service.dart';
 import '../../../../../features/nearby_trips/domain/entities/nearby_route.dart';
+import '../../../../../features/routing/domain/entities/routing_entities.dart';
 import '../../../../../features/routing/presentation/cubit/routing_cubit.dart';
 import '../../../../../features/routing/presentation/cubit/routing_state.dart';
 import '../../../../features/map_picker/presentation/view/map_picker_page.dart';
@@ -817,10 +818,16 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (toLat != null && toLon != null) {
-            final lastRealSegment = segments.lastWhere(
-              (segment) => !segment.isDashedConnector,
-            );
-            final backendFinalPoint = lastRealSegment.coordinates.first;
+            final backendFinalPoint =
+                _lastRoutePointClosestTo(
+                  journey.legs,
+                  latitude: toLat,
+                  longitude: toLon,
+                ) ??
+                segments
+                    .lastWhere((segment) => !segment.isDashedConnector)
+                    .coordinates
+                    .last;
             if (_shouldDrawRouteConnector(
               backendFinalPoint.lat.toDouble(),
               backendFinalPoint.lng.toDouble(),
@@ -1130,6 +1137,40 @@ class _HomePageState extends State<HomePage> {
     required double thresholdMeters,
   }) {
     return _distanceMeters(lat1, lon1, lat2, lon2) > thresholdMeters;
+  }
+
+  Position? _lastRoutePointClosestTo(
+    List<RouteLeg> legs, {
+    required double latitude,
+    required double longitude,
+  }) {
+    for (var i = legs.length - 1; i >= 0; i--) {
+      final leg = legs[i];
+      if (leg.path.isNotEmpty) {
+        final first = leg.path.first;
+        final last = leg.path.last;
+        final firstDistance = _distanceMeters(
+          first.lat,
+          first.lon,
+          latitude,
+          longitude,
+        );
+        final lastDistance = _distanceMeters(
+          last.lat,
+          last.lon,
+          latitude,
+          longitude,
+        );
+        final point = firstDistance <= lastDistance ? first : last;
+        return Position(point.lon, point.lat);
+      }
+
+      final stop = leg.to;
+      if (stop != null) {
+        return Position(stop.coord.lon, stop.coord.lat);
+      }
+    }
+    return null;
   }
 }
 

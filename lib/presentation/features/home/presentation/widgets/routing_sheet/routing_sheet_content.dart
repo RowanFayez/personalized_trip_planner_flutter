@@ -319,13 +319,17 @@ class RoutingSheetContent extends StatelessWidget {
 
     final requestedLat = requestedDestinationLatitude;
     final requestedLon = requestedDestinationLongitude;
-    final lastRoutePoint = _lastRoutePoint(legs);
 
     if (requestedLat == null ||
-        requestedLon == null ||
-        lastRoutePoint == null) {
+        requestedLon == null) {
       return null;
     }
+    final lastRoutePoint = _lastRoutePointClosestTo(
+      legs,
+      latitude: requestedLat,
+      longitude: requestedLon,
+    );
+    if (lastRoutePoint == null) return null;
 
     final distance = _distanceMeters(
       lastRoutePoint.lat,
@@ -358,12 +362,30 @@ class RoutingSheetContent extends StatelessWidget {
     return null;
   }
 
-  ({double lat, double lon})? _lastRoutePoint(List<RouteLeg> legs) {
+  ({double lat, double lon})? _lastRoutePointClosestTo(
+    List<RouteLeg> legs, {
+    required double latitude,
+    required double longitude,
+  }) {
     for (var i = legs.length - 1; i >= 0; i--) {
       final path = legs[i].path;
       if (path.isNotEmpty) {
         final first = path.first;
-        return (lat: first.lat, lon: first.lon);
+        final last = path.last;
+        final firstDistance = _distanceMeters(
+          first.lat,
+          first.lon,
+          latitude,
+          longitude,
+        );
+        final lastDistance = _distanceMeters(
+          last.lat,
+          last.lon,
+          latitude,
+          longitude,
+        );
+        final point = firstDistance <= lastDistance ? first : last;
+        return (lat: point.lat, lon: point.lon);
       }
 
       final stop = legs[i].to;
