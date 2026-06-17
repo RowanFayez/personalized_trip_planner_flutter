@@ -301,10 +301,14 @@ class RecordingCubit extends Cubit<RecordingState> {
     if (current is! RecordingInProgress) return;
     final activeTrip = await localDataSource.getActiveTrip();
     if (activeTrip == null) return;
+    final lastMode = activeTrip.segments.isEmpty
+        ? null
+        : activeTrip.segments.last.mode;
     emit(
       current.copyWith(
-        clearCurrentMode: true,
-        currentModeDisplay: CrowdsourcingStrings.unspecifiedMode,
+        currentMode: lastMode,
+        clearCurrentMode: lastMode == null,
+        currentModeDisplay: CrowdsourcingModes.displayName(lastMode),
         segmentCount: activeTrip.segments.length,
         segmentModes: _segmentModeMap(activeTrip),
       ),

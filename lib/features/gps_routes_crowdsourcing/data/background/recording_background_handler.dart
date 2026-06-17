@@ -144,19 +144,58 @@ Future<void> _forwardNotificationAction(
   }
 
   if (actionId == CrowdsourcingNotifications.actionTransfer) {
-    service.invoke(CrowdsourcingIpc.addSegment, <String, dynamic>{
-      CrowdsourcingPayloadKeys.mode: null,
-    });
+    await HiveService.init();
+    final dataSource = TripLocalDataSource();
+    final activeTrip = await dataSource.getActiveTrip();
+    if (activeTrip != null) {
+      await dataSource.addSegmentToActiveTrip(
+        tripId: activeTrip.tripId,
+        startedAtIso8601: DateTime.now().toIso8601String(),
+        mode: null,
+        fareEgp: null,
+      );
+    }
+    service.invoke(CrowdsourcingIpc.activeTripChanged);
     return;
   }
 
   if (actionId == CrowdsourcingNotifications.actionConfirmTransfer) {
-    service.invoke(CrowdsourcingIpc.confirmTransfer, payload);
+    await HiveService.init();
+    final dataSource = TripLocalDataSource();
+    final activeTrip = await dataSource.getActiveTrip();
+    final detectedAt =
+        payload[CrowdsourcingPayloadKeys.detectedAt]?.toString();
+    if (activeTrip != null && detectedAt != null) {
+      await dataSource.retroactiveSplitSegment(
+        activeTrip.tripId,
+        detectedAt,
+      );
+      await dataSource.updateTransferResponse(
+        activeTrip.tripId,
+        detectedAt,
+        TransferResponses.confirmed,
+        true,
+      );
+    }
+    service.invoke(CrowdsourcingIpc.activeTripChanged);
     return;
   }
 
   if (actionId == CrowdsourcingNotifications.actionRejectTransfer) {
-    service.invoke(CrowdsourcingIpc.rejectTransfer, payload);
+    await HiveService.init();
+    final dataSource = TripLocalDataSource();
+    final activeTrip = await dataSource.getActiveTrip();
+    final detectedAt =
+        payload[CrowdsourcingPayloadKeys.detectedAt]?.toString();
+    if (activeTrip != null && detectedAt != null) {
+      await dataSource.updateTransferResponse(
+        activeTrip.tripId,
+        detectedAt,
+        TransferResponses.rejected,
+        false,
+      );
+    }
+    service.invoke(CrowdsourcingIpc.activeTripChanged);
   }
 }
 
@@ -319,6 +358,14 @@ class _RecordingBackgroundController {
       if (androidService is AndroidServiceInstance) {
         unawaited(androidService.openApp());
       }
+    });
+    service.on(CrowdsourcingIpc.activeTripChanged).listen((_) async {
+      final fresh = await localDataSource.getActiveTrip();
+      if (fresh == null) return;
+      _activeTrip = fresh;
+      await _showRecordingNotification();
+      await _showSegmentSplitConfirmation();
+      service.invoke(CrowdsourcingIpc.segmentSplitConfirmed);
     });
   }
 
@@ -681,13 +728,23 @@ class _RecordingBackgroundController {
 
   Future<void> _flushBuffer() async {
     if (_isFlushing) return;
-    final activeTrip = _activeTrip;
+    var activeTrip = _activeTrip;
     if (activeTrip == null || _buffer.isEmpty) return;
     _isFlushing = true;
     try {
       final points = List<GpsPointModel>.of(_buffer, growable: false);
       _buffer.clear();
       await localDataSource.appendGpsPointsBatch(activeTrip.tripId, points);
+
+      // Reconcile: the notification isolate may have added segments
+      // directly to Hive while we were running. Adopt them if so.
+      final persisted = await localDataSource.getActiveTrip();
+      if (persisted != null &&
+          persisted.segments.length > activeTrip.segments.length) {
+        activeTrip = persisted;
+        service.invoke(CrowdsourcingIpc.segmentSplitConfirmed);
+      }
+
       final updated = activeTrip.copyWith(totalDistanceM: _distanceM);
       await localDataSource.saveActiveTrip(updated);
       _activeTrip = updated;
@@ -1143,6 +1200,25 @@ class _RecordingBackgroundController {
       ),
     );
     _recordingNotificationActionsAttached = true;
+  }
+
+  Future<void> _showSegmentSplitConfirmation() async {
+    await notifications.show(
+      CrowdsourcingNotifications.smartPromptId,
+      CrowdsourcingStrings.segmentSplitNotificationTitle,
+      CrowdsourcingStrings.segmentSplitNotificationBody,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          CrowdsourcingNotifications.promptChannelId,
+          CrowdsourcingStrings.segmentSplitNotificationTitle,
+          icon: 'ic_notification',
+          autoCancel: true,
+          timeoutAfter: 4000,
+          priority: Priority.high,
+          importance: Importance.defaultImportance,
+        ),
+      ),
+    );
   }
 
   Future<void> _showReviewReadyNotification(String tripId) async {

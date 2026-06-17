@@ -77,6 +77,7 @@ class CrowdsourcingIpc {
       'notification_transfer_requested';
   static const String showModeSelector = 'show_mode_selector';
   static const String setCurrentSegmentMode = 'set_current_segment_mode';
+  static const String activeTripChanged = 'active_trip_changed';
 }
 
 class CrowdsourcingPayloadKeys {
@@ -290,6 +291,8 @@ class CrowdsourcingStrings {
   static const String egp = 'EGP';
   static const String batteryOptimizationWarning =
       'التسجيل ممكن يتوقف لو الموبايل اتقفل. اضغط هنا لإصلاح ده.';
+  static const String segmentSplitNotificationTitle = 'Yastaa — تم فصل المواصلة ✓';
+  static const String segmentSplitNotificationBody = 'تم فصل الجزء. كمّل رحلتك.';
 }
 
 class CrowdsourcingModes {
@@ -300,6 +303,7 @@ class CrowdsourcingModes {
     AppStrings.modeMinibus,
     AppStrings.modeTomnaya,
     AppStrings.modeBus,
+    AppStrings.modeWalking,
     null,
   ];
 
@@ -310,6 +314,7 @@ class CrowdsourcingModes {
       AppStrings.modeTomnaya => 'تومناية',
       AppStrings.modeTonaya => 'تومناية',
       AppStrings.modeBus => 'أتوبيس',
+      AppStrings.modeWalking => 'مشي',
       _ => CrowdsourcingStrings.unspecifiedMode,
     };
   }
@@ -321,6 +326,7 @@ class CrowdsourcingModes {
       AppStrings.modeTomnaya => '🛺',
       AppStrings.modeTonaya => '🛺',
       AppStrings.modeBus => '🚎',
+      AppStrings.modeWalking => '🚶',
       _ => '?',
     };
   }
@@ -332,6 +338,7 @@ class CrowdsourcingModes {
       AppStrings.modeTomnaya => AppColors.tonayaColor,
       AppStrings.modeTonaya => AppColors.tonayaColor,
       AppStrings.modeBus => AppColors.busColor,
+      AppStrings.modeWalking => AppColors.walkColor,
       _ => AppColors.primaryTeal,
     };
   }
