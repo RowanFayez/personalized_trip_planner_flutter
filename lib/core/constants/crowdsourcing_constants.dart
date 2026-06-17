@@ -304,8 +304,12 @@ class CrowdsourcingStrings {
   static const String segmentSplitNotificationTitle =
       'Yastaa — تم فصل المواصلة ✓';
   static const String segmentSplitNotificationBody = 'تم فصل الجزء. كمّل رحلتك.';
-  static const String segmentNameLabel = 'اسم المقطع (اختياري)';
-  static const String segmentNameHint = 'مثال: مواصلة عوايد أو مشي 6 دقايق';
+  static const String segmentNameLabel = 'ركبت إيه؟ أو مشيت قد إيه؟ (اختياري)';
+  static const String segmentNameHint = 'مثال: مواصلة عوايد  •  مشي 6 دقايق';
+  static const String transferConfirmedNotifTitle = 'Yastaa — فصلنا المواصلة ✓';
+  static const String transferConfirmedNotifBody = 'تمام، سجلنا إنك غيّرت. كمّل!';
+  static const String transferRejectedNotifTitle = 'Yastaa — تمام 👍';
+  static const String transferRejectedNotifBody = 'خلاص، يارب الزحمة تعدي بسلامة!';
 }
 
 class CrowdsourcingModes {

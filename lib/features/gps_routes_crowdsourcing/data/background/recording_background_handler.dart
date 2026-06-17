@@ -160,6 +160,15 @@ Future<void> _forwardNotificationAction(
   }
 
   if (actionId == CrowdsourcingNotifications.actionConfirmTransfer) {
+    // Dismiss the smart-prompt notification immediately.
+    final notifs = FlutterLocalNotificationsPlugin();
+    await notifs.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('ic_notification'),
+      ),
+    );
+    await notifs.cancel(CrowdsourcingNotifications.smartPromptId);
+
     await HiveService.init();
     final dataSource = TripLocalDataSource();
     final activeTrip = await dataSource.getActiveTrip();
@@ -177,11 +186,37 @@ Future<void> _forwardNotificationAction(
         true,
       );
     }
+    // Show a brief reaction notification, then dismiss.
+    await notifs.show(
+      CrowdsourcingNotifications.smartPromptId,
+      CrowdsourcingStrings.transferConfirmedNotifTitle,
+      CrowdsourcingStrings.transferConfirmedNotifBody,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          CrowdsourcingNotifications.promptChannelId,
+          CrowdsourcingStrings.transferConfirmedNotifTitle,
+          icon: 'ic_notification',
+          autoCancel: true,
+          timeoutAfter: 5000,
+          priority: Priority.high,
+          importance: Importance.defaultImportance,
+        ),
+      ),
+    );
     service.invoke(CrowdsourcingIpc.activeTripChanged);
     return;
   }
 
   if (actionId == CrowdsourcingNotifications.actionRejectTransfer) {
+    // Dismiss the smart-prompt notification immediately.
+    final notifs = FlutterLocalNotificationsPlugin();
+    await notifs.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('ic_notification'),
+      ),
+    );
+    await notifs.cancel(CrowdsourcingNotifications.smartPromptId);
+
     await HiveService.init();
     final dataSource = TripLocalDataSource();
     final activeTrip = await dataSource.getActiveTrip();
@@ -195,6 +230,23 @@ Future<void> _forwardNotificationAction(
         false,
       );
     }
+    // Show a brief friendly reaction notification.
+    await notifs.show(
+      CrowdsourcingNotifications.smartPromptId,
+      CrowdsourcingStrings.transferRejectedNotifTitle,
+      CrowdsourcingStrings.transferRejectedNotifBody,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          CrowdsourcingNotifications.promptChannelId,
+          CrowdsourcingStrings.transferRejectedNotifTitle,
+          icon: 'ic_notification',
+          autoCancel: true,
+          timeoutAfter: 4000,
+          priority: Priority.defaultPriority,
+          importance: Importance.defaultImportance,
+        ),
+      ),
+    );
     service.invoke(CrowdsourcingIpc.activeTripChanged);
   }
 }
@@ -369,7 +421,8 @@ class _RecordingBackgroundController {
       if (fresh == null) return;
       _activeTrip = fresh;
       await _showRecordingNotification();
-      await _showSegmentSplitConfirmation();
+      // The background notification isolate already showed its own
+      // reaction notification before invoking activeTripChanged.
       service.invoke(CrowdsourcingIpc.segmentSplitConfirmed);
     });
   }
@@ -1250,24 +1303,6 @@ class _RecordingBackgroundController {
     _recordingNotificationActionsAttached = true;
   }
 
-  Future<void> _showSegmentSplitConfirmation() async {
-    await notifications.show(
-      CrowdsourcingNotifications.smartPromptId,
-      CrowdsourcingStrings.segmentSplitNotificationTitle,
-      CrowdsourcingStrings.segmentSplitNotificationBody,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          CrowdsourcingNotifications.promptChannelId,
-          CrowdsourcingStrings.segmentSplitNotificationTitle,
-          icon: 'ic_notification',
-          autoCancel: true,
-          timeoutAfter: 4000,
-          priority: Priority.high,
-          importance: Importance.defaultImportance,
-        ),
-      ),
-    );
-  }
 
   Future<void> _showReviewReadyNotification(String tripId) async {
     await notifications.show(
