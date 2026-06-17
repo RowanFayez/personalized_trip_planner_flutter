@@ -59,6 +59,16 @@ class ReviewCubit extends Cubit<ReviewState> {
     await _saveSegments(updated);
   }
 
+  Future<void> updateSegmentName(int index, String? name) async {
+    final updated = state.segments
+        .map((segment) {
+          if (segment.index != index) return segment;
+          return segment.copyWith(name: name, clearName: name == null);
+        })
+        .toList(growable: false);
+    await _saveSegments(updated);
+  }
+
   Future<void> updateRouteName(String value) async {
     final normalized = value.trim();
     final routeName = normalized.isEmpty ? null : normalized;
