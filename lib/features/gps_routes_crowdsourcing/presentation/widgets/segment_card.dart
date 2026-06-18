@@ -13,6 +13,7 @@ class SegmentCard extends StatefulWidget {
   final TripSegmentModel segment;
   final ValueChanged<String?> onModeChanged;
   final ValueChanged<double?> onFareChanged;
+  final ValueChanged<String?> onNameChanged;
   final VoidCallback onDelete;
 
   const SegmentCard({
@@ -20,6 +21,7 @@ class SegmentCard extends StatefulWidget {
     required this.segment,
     required this.onModeChanged,
     required this.onFareChanged,
+    required this.onNameChanged,
     required this.onDelete,
   });
 
@@ -29,12 +31,14 @@ class SegmentCard extends StatefulWidget {
 
 class _SegmentCardState extends State<SegmentCard> {
   late final TextEditingController _fareController;
+  late final TextEditingController _nameController;
   String? _fareError;
 
   @override
   void initState() {
     super.initState();
     _fareController = TextEditingController(text: _fareText());
+    _nameController = TextEditingController(text: widget.segment.name ?? '');
   }
 
   @override
@@ -43,11 +47,16 @@ class _SegmentCardState extends State<SegmentCard> {
     if (oldWidget.segment.fareEgp != widget.segment.fareEgp) {
       _fareController.text = _fareText();
     }
+    if (oldWidget.segment.name != widget.segment.name) {
+      final next = widget.segment.name ?? '';
+      if (_nameController.text != next) _nameController.text = next;
+    }
   }
 
   @override
   void dispose() {
     _fareController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -76,6 +85,11 @@ class _SegmentCardState extends State<SegmentCard> {
     _setFareText(_fareController.text);
   }
 
+  void _setName(String value) {
+    final trimmed = value.trim();
+    widget.onNameChanged(trimmed.isEmpty ? null : trimmed);
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = CrowdsourcingModes.color(widget.segment.mode);
@@ -91,6 +105,7 @@ class _SegmentCardState extends State<SegmentCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ── Header row ──────────────────────────────────────────────────
           Row(
             children: [
               Expanded(
@@ -112,17 +127,62 @@ class _SegmentCardState extends State<SegmentCard> {
             ],
           ),
           SizedBox(height: 10.h),
+
+          // ── Mode selector ────────────────────────────────────────────────
           OutlinedButton(
             onPressed: _chooseMode,
             child: Text(CrowdsourcingModes.displayName(widget.segment.mode)),
           ),
           SizedBox(height: 10.h),
+
+          // ── Optional segment name ────────────────────────────────────────
+          TextField(
+            controller: _nameController,
+            onChanged: _setName,
+            textDirection: TextDirection.rtl,
+            maxLength: 60,
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 13.sp),
+            decoration: InputDecoration(
+              labelText: CrowdsourcingStrings.segmentNameLabel,
+              hintText: CrowdsourcingStrings.segmentNameHint,
+              hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13.sp),
+              labelStyle: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13.sp,
+              ),
+              prefixIcon: const Icon(
+                Icons.edit_note_rounded,
+                size: 20,
+              ),
+              filled: true,
+              fillColor: AppColors.searchInputBackground,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide(color: AppColors.border),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12.w,
+                vertical: 10.h,
+              ),
+              counterText: '',
+              isDense: true,
+            ),
+          ),
+          SizedBox(height: 10.h),
+
+          // ── Fare input ───────────────────────────────────────────────────
           _CompactFareInput(
             controller: _fareController,
             errorText: _fareError,
             onChanged: _setFareText,
           ),
           SizedBox(height: 10.h),
+
+          // ── Fare presets ─────────────────────────────────────────────────
           Wrap(
             spacing: 8.w,
             runSpacing: 8.h,

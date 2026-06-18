@@ -5,6 +5,7 @@ import '../../../../core/constants/crowdsourcing_constants.dart';
 class TripSegmentModel extends Equatable {
   final int index;
   final String? mode;
+  final String? name;
   final double? fareEgp;
   final String startedAt;
   final String? endedAt;
@@ -15,6 +16,7 @@ class TripSegmentModel extends Equatable {
     required this.index,
     required this.startedAt,
     this.mode,
+    this.name,
     this.fareEgp,
     this.endedAt,
     this.confidence = SegmentConfidence.unknown,
@@ -26,6 +28,7 @@ class TripSegmentModel extends Equatable {
     return TripSegmentModel(
       index: _readInt(map['index']),
       mode: mode,
+      name: _readString(map['name']),
       fareEgp: _readNullableDouble(map['fare_egp']),
       startedAt:
           _readString(map['started_at']) ?? DateTime.now().toIso8601String(),
@@ -43,6 +46,7 @@ class TripSegmentModel extends Equatable {
     return <String, dynamic>{
       'index': index,
       'mode': mode,
+      'name': name,
       'fare_egp': fareEgp,
       'started_at': startedAt,
       'ended_at': endedAt,
@@ -55,6 +59,8 @@ class TripSegmentModel extends Equatable {
     int? index,
     String? mode,
     bool clearMode = false,
+    String? name,
+    bool clearName = false,
     double? fareEgp,
     bool clearFare = false,
     String? startedAt,
@@ -67,6 +73,7 @@ class TripSegmentModel extends Equatable {
     return TripSegmentModel(
       index: index ?? this.index,
       mode: nextMode,
+      name: clearName ? null : name ?? this.name,
       fareEgp: clearFare ? null : fareEgp ?? this.fareEgp,
       startedAt: startedAt ?? this.startedAt,
       endedAt: clearEndedAt ? null : endedAt ?? this.endedAt,
@@ -100,6 +107,7 @@ class TripSegmentModel extends Equatable {
   List<Object?> get props => <Object?>[
     index,
     mode,
+    name,
     fareEgp,
     startedAt,
     endedAt,

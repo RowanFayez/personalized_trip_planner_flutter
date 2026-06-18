@@ -128,7 +128,10 @@ class CrowdsourcingTiming {
   static const Duration flushInterval = Duration(seconds: 30);
   static const Duration gpsLostAfter = Duration(seconds: 60);
   static const Duration locationKickstartTimeout = Duration(seconds: 5);
-  static const Duration transferDebounce = Duration(seconds: 60);
+  // 25 s balances responsiveness vs. false positives from brief traffic stops.
+  // Previously 60 s (too slow on top of OS-level AR batching delays of 30s-2min).
+  // Increase if users report spurious prompts at red lights.
+  static const Duration transferDebounce = Duration(seconds: 25);
   static const Duration promptCooldown = Duration(seconds: 180);
   static const Duration promptExpiresAfter = Duration(minutes: 5);
   static const Duration stationaryAfter = Duration(minutes: 15);
@@ -150,6 +153,13 @@ class CrowdsourcingLimits {
   static const double stationaryResumeVelocityMs = 1.5;
   static const double stationaryRadiusM = 5;
   static const double impossibleTransitSpeedMs = 38.89;
+  // Walking pace: used by GPS-speed transfer trigger.
+  // Below this threshold (sustained) is treated as "definitely walking/stopped"
+  // after previously being above activeVelocityMs (in-vehicle).
+  static const double walkingPaceMaxMs = 2.0;
+  // How many consecutive speed readings must be in walking-pace range before
+  // we treat the speed drop as a genuine exit-vehicle event.
+  static const int gpsTransferConsecutiveReadings = 3;
   static const int privacyFuzzingMinutes = 3;
   static const double privacyFuzzingDistanceM = 200;
   static const int maxSavedTrips = 5;
@@ -291,8 +301,15 @@ class CrowdsourcingStrings {
   static const String egp = 'EGP';
   static const String batteryOptimizationWarning =
       'التسجيل ممكن يتوقف لو الموبايل اتقفل. اضغط هنا لإصلاح ده.';
-  static const String segmentSplitNotificationTitle = 'Yastaa — تم فصل المواصلة ✓';
+  static const String segmentSplitNotificationTitle =
+      'Yastaa — تم فصل المواصلة ✓';
   static const String segmentSplitNotificationBody = 'تم فصل الجزء. كمّل رحلتك.';
+  static const String segmentNameLabel = 'ركبت إيه؟ أو مشيت قد إيه؟ (اختياري)';
+  static const String segmentNameHint = 'مثال: مواصلة عوايد  •  مشي 6 دقايق';
+  static const String transferConfirmedNotifTitle = 'Yastaa — فصلنا المواصلة ✓';
+  static const String transferConfirmedNotifBody = 'تمام، سجلنا إنك غيّرت. كمّل!';
+  static const String transferRejectedNotifTitle = 'Yastaa — تمام 👍';
+  static const String transferRejectedNotifBody = 'خلاص، يارب الزحمة تعدي بسلامة!';
 }
 
 class CrowdsourcingModes {

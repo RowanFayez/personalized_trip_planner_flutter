@@ -34,6 +34,7 @@ class ReviewPage extends StatelessWidget {
     );
   }
 }
+
 class ReviewLookupPage extends StatelessWidget {
   final String tripId;
 
@@ -173,6 +174,9 @@ class _ReviewView extends StatelessWidget {
                             onFareChanged: (fare) => context
                                 .read<ReviewCubit>()
                                 .updateFare(segment.index, fare),
+                            onNameChanged: (name) => context
+                                .read<ReviewCubit>()
+                                .updateSegmentName(segment.index, name),
                             onDelete: () =>
                                 _confirmDelete(context, segment.index),
                           ),

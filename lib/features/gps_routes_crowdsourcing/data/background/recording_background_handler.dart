@@ -144,6 +144,8 @@ Future<void> _forwardNotificationAction(
   }
 
   if (actionId == CrowdsourcingNotifications.actionTransfer) {
+    final notifs = FlutterLocalNotificationsPlugin();
+    await _initializeNotifications(notifs);
     await HiveService.init();
     final dataSource = TripLocalDataSource();
     final activeTrip = await dataSource.getActiveTrip();
@@ -154,12 +156,34 @@ Future<void> _forwardNotificationAction(
         mode: null,
         fareEgp: null,
       );
+      // Show the same reaction notification used by actionConfirmTransfer.
+      await notifs.show(
+        CrowdsourcingNotifications.smartPromptId,
+        CrowdsourcingStrings.transferConfirmedNotifTitle,
+        CrowdsourcingStrings.transferConfirmedNotifBody,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            CrowdsourcingNotifications.promptChannelId,
+            CrowdsourcingStrings.transferConfirmedNotifTitle,
+            icon: 'ic_notification',
+            autoCancel: true,
+            timeoutAfter: 5000,
+            priority: Priority.high,
+            importance: Importance.defaultImportance,
+          ),
+        ),
+      );
     }
     service.invoke(CrowdsourcingIpc.activeTripChanged);
     return;
   }
 
   if (actionId == CrowdsourcingNotifications.actionConfirmTransfer) {
+    // Dismiss the smart-prompt notification immediately.
+    final notifs = FlutterLocalNotificationsPlugin();
+    await _initializeNotifications(notifs);
+    await notifs.cancel(CrowdsourcingNotifications.smartPromptId);
+
     await HiveService.init();
     final dataSource = TripLocalDataSource();
     final activeTrip = await dataSource.getActiveTrip();
@@ -177,11 +201,33 @@ Future<void> _forwardNotificationAction(
         true,
       );
     }
+    // Show a brief reaction notification, then dismiss.
+    await notifs.show(
+      CrowdsourcingNotifications.smartPromptId,
+      CrowdsourcingStrings.transferConfirmedNotifTitle,
+      CrowdsourcingStrings.transferConfirmedNotifBody,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          CrowdsourcingNotifications.promptChannelId,
+          CrowdsourcingStrings.transferConfirmedNotifTitle,
+          icon: 'ic_notification',
+          autoCancel: true,
+          timeoutAfter: 5000,
+          priority: Priority.high,
+          importance: Importance.defaultImportance,
+        ),
+      ),
+    );
     service.invoke(CrowdsourcingIpc.activeTripChanged);
     return;
   }
 
   if (actionId == CrowdsourcingNotifications.actionRejectTransfer) {
+    // Dismiss the smart-prompt notification immediately.
+    final notifs = FlutterLocalNotificationsPlugin();
+    await _initializeNotifications(notifs);
+    await notifs.cancel(CrowdsourcingNotifications.smartPromptId);
+
     await HiveService.init();
     final dataSource = TripLocalDataSource();
     final activeTrip = await dataSource.getActiveTrip();
@@ -195,6 +241,23 @@ Future<void> _forwardNotificationAction(
         false,
       );
     }
+    // Show a brief friendly reaction notification.
+    await notifs.show(
+      CrowdsourcingNotifications.smartPromptId,
+      CrowdsourcingStrings.transferRejectedNotifTitle,
+      CrowdsourcingStrings.transferRejectedNotifBody,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          CrowdsourcingNotifications.promptChannelId,
+          CrowdsourcingStrings.transferRejectedNotifTitle,
+          icon: 'ic_notification',
+          autoCancel: true,
+          timeoutAfter: 4000,
+          priority: Priority.defaultPriority,
+          importance: Importance.defaultImportance,
+        ),
+      ),
+    );
     service.invoke(CrowdsourcingIpc.activeTripChanged);
   }
 }
@@ -307,6 +370,11 @@ class _RecordingBackgroundController {
   bool _recordingNotificationActionsAttached = false;
   bool _storageFullHandled = false;
   DateTime? _stationarySince;
+  // GPS-speed transfer trigger: tracks whether speed was above activeVelocityMs
+  // (in-vehicle) before dropping to walking pace.
+  bool _wasAboveActiveVelocity = false;
+  // How many consecutive GPS readings have been in the walking-pace range.
+  int _consecutiveWalkingReadings = 0;
 
   _RecordingBackgroundController(this.service);
 
@@ -360,11 +428,13 @@ class _RecordingBackgroundController {
       }
     });
     service.on(CrowdsourcingIpc.activeTripChanged).listen((_) async {
+      debugPrint('[IPC] activeTripChanged received — refreshing trip and notifying cubit');
       final fresh = await localDataSource.getActiveTrip();
       if (fresh == null) return;
       _activeTrip = fresh;
       await _showRecordingNotification();
-      await _showSegmentSplitConfirmation();
+      // The background notification isolate already showed its own
+      // reaction notification before invoking activeTripChanged.
       service.invoke(CrowdsourcingIpc.segmentSplitConfirmed);
     });
   }
@@ -534,11 +604,16 @@ class _RecordingBackgroundController {
               );
             },
           )
+          // Accept HIGH and MEDIUM: many devices rarely emit HIGH confidence,
+          // causing missed detections. MEDIUM is common during slow walking or
+          // the moments just after alighting from a vehicle.
           .where(
-            (activity) => activity.confidence == ActivityConfidence.HIGH,
+            (activity) =>
+                activity.confidence == ActivityConfidence.HIGH ||
+                activity.confidence == ActivityConfidence.MEDIUM,
           )
           .listen((Activity activity) {
-            debugPrint('[ActivityRecognition] received: ${activity.type}');
+            debugPrint('[ActivityRecognition] received: ${activity.type} (${activity.confidence})');
             _handleActivityEvent(activity);
           });
       debugPrint('[ActivityRecognition] stream started successfully');
@@ -789,6 +864,34 @@ class _RecordingBackgroundController {
     final medianSpeed = _median(_speedWindow);
     final now = DateTime.now();
 
+    // ── GPS-speed transfer trigger ────────────────────────────────────────────
+    // Track the transition from above-vehicle-speed → sustained walking pace.
+    if (medianSpeed >= CrowdsourcingLimits.activeVelocityMs) {
+      _wasAboveActiveVelocity = true;
+      _consecutiveWalkingReadings = 0;
+    } else if (_wasAboveActiveVelocity &&
+        medianSpeed <= CrowdsourcingLimits.walkingPaceMaxMs) {
+      _consecutiveWalkingReadings++;
+      if (_consecutiveWalkingReadings >=
+          CrowdsourcingLimits.gpsTransferConsecutiveReadings) {
+        // Speed has been in walking range for enough consecutive readings.
+        // Treat this as an exit-vehicle event (same guard as activity path).
+        debugPrint(
+          '[TransferDetect] GPS-speed trigger: medianSpeed='
+          '${medianSpeed.toStringAsFixed(2)} m/s for '
+          '$_consecutiveWalkingReadings consecutive readings',
+        );
+        _consecutiveWalkingReadings = 0;
+        _wasAboveActiveVelocity = false;
+        _maybeStartPotentialTransfer();
+      }
+    } else {
+      // Speed is between walking pace and active velocity — reset counter
+      // but keep _wasAboveActiveVelocity so a brief blip doesn't cancel.
+      _consecutiveWalkingReadings = 0;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (medianSpeed < CrowdsourcingLimits.activeVelocityMs) {
       _stationarySince ??= now;
       if (!_isAutoPaused &&
@@ -860,6 +963,7 @@ class _RecordingBackgroundController {
   void _handleActivityEvent(Activity activity) {
     if (activity.type == ActivityType.IN_VEHICLE) {
       _lastStableActivity = ActivityType.IN_VEHICLE;
+      // Re-boarding detected: cancel any pending transfer prompt.
       if (_debounceTimer?.isActive == true) {
         _debounceTimer?.cancel();
         _debounceTimer = null;
@@ -873,15 +977,24 @@ class _RecordingBackgroundController {
     }
 
     if (activity.type == ActivityType.WALKING &&
-        _lastStableActivity == ActivityType.IN_VEHICLE &&
-        (_debounceTimer == null || !_debounceTimer!.isActive) &&
-        _isPromptCooldownOver()) {
-      _potentialTransferStartTime = DateTime.now();
-      _debounceTimer = Timer(
-        CrowdsourcingTiming.transferDebounce,
-        () => unawaited(_onTransferConfirmed()),
-      );
+        _lastStableActivity == ActivityType.IN_VEHICLE) {
+      // AR path: activity signal says WALKING after IN_VEHICLE.
+      debugPrint('[TransferDetect] Activity-recognition trigger: WALKING after IN_VEHICLE');
+      _maybeStartPotentialTransfer();
     }
+  }
+
+  /// Shared guard for both the Activity Recognition and GPS-speed transfer
+  /// triggers. Starts the debounce timer if conditions are met; both paths
+  /// share _debounceTimer and _isPromptCooldownOver() so they can't double-fire.
+  void _maybeStartPotentialTransfer() {
+    if (_debounceTimer != null && _debounceTimer!.isActive) return;
+    if (!_isPromptCooldownOver()) return;
+    _potentialTransferStartTime = DateTime.now();
+    _debounceTimer = Timer(
+      CrowdsourcingTiming.transferDebounce,
+      () => unawaited(_onTransferConfirmed()),
+    );
   }
 
   bool _isPromptCooldownOver() {
@@ -956,6 +1069,7 @@ class _RecordingBackgroundController {
       fareEgp: fare,
     );
     _activeTrip = await localDataSource.getActiveTrip();
+    service.invoke(CrowdsourcingIpc.segmentSplitConfirmed);
     await _showRecordingNotification();
   }
 
@@ -1202,24 +1316,6 @@ class _RecordingBackgroundController {
     _recordingNotificationActionsAttached = true;
   }
 
-  Future<void> _showSegmentSplitConfirmation() async {
-    await notifications.show(
-      CrowdsourcingNotifications.smartPromptId,
-      CrowdsourcingStrings.segmentSplitNotificationTitle,
-      CrowdsourcingStrings.segmentSplitNotificationBody,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          CrowdsourcingNotifications.promptChannelId,
-          CrowdsourcingStrings.segmentSplitNotificationTitle,
-          icon: 'ic_notification',
-          autoCancel: true,
-          timeoutAfter: 4000,
-          priority: Priority.high,
-          importance: Importance.defaultImportance,
-        ),
-      ),
-    );
-  }
 
   Future<void> _showReviewReadyNotification(String tripId) async {
     await notifications.show(
