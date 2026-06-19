@@ -181,11 +181,7 @@ Future<void> _forwardNotificationAction(
   if (actionId == CrowdsourcingNotifications.actionConfirmTransfer) {
     // Dismiss the smart-prompt notification immediately.
     final notifs = FlutterLocalNotificationsPlugin();
-    await notifs.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('ic_notification'),
-      ),
-    );
+    await _initializeNotifications(notifs);
     await notifs.cancel(CrowdsourcingNotifications.smartPromptId);
 
     await HiveService.init();
@@ -229,11 +225,7 @@ Future<void> _forwardNotificationAction(
   if (actionId == CrowdsourcingNotifications.actionRejectTransfer) {
     // Dismiss the smart-prompt notification immediately.
     final notifs = FlutterLocalNotificationsPlugin();
-    await notifs.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('ic_notification'),
-      ),
-    );
+    await _initializeNotifications(notifs);
     await notifs.cancel(CrowdsourcingNotifications.smartPromptId);
 
     await HiveService.init();
