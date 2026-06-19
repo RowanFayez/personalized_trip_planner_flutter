@@ -144,6 +144,8 @@ Future<void> _forwardNotificationAction(
   }
 
   if (actionId == CrowdsourcingNotifications.actionTransfer) {
+    final notifs = FlutterLocalNotificationsPlugin();
+    await _initializeNotifications(notifs);
     await HiveService.init();
     final dataSource = TripLocalDataSource();
     final activeTrip = await dataSource.getActiveTrip();
@@ -153,6 +155,23 @@ Future<void> _forwardNotificationAction(
         startedAtIso8601: DateTime.now().toIso8601String(),
         mode: null,
         fareEgp: null,
+      );
+      // Show the same reaction notification used by actionConfirmTransfer.
+      await notifs.show(
+        CrowdsourcingNotifications.smartPromptId,
+        CrowdsourcingStrings.transferConfirmedNotifTitle,
+        CrowdsourcingStrings.transferConfirmedNotifBody,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            CrowdsourcingNotifications.promptChannelId,
+            CrowdsourcingStrings.transferConfirmedNotifTitle,
+            icon: 'ic_notification',
+            autoCancel: true,
+            timeoutAfter: 5000,
+            priority: Priority.high,
+            importance: Importance.defaultImportance,
+          ),
+        ),
       );
     }
     service.invoke(CrowdsourcingIpc.activeTripChanged);
@@ -417,6 +436,7 @@ class _RecordingBackgroundController {
       }
     });
     service.on(CrowdsourcingIpc.activeTripChanged).listen((_) async {
+      debugPrint('[IPC] activeTripChanged received — refreshing trip and notifying cubit');
       final fresh = await localDataSource.getActiveTrip();
       if (fresh == null) return;
       _activeTrip = fresh;
@@ -1057,6 +1077,7 @@ class _RecordingBackgroundController {
       fareEgp: fare,
     );
     _activeTrip = await localDataSource.getActiveTrip();
+    service.invoke(CrowdsourcingIpc.segmentSplitConfirmed);
     await _showRecordingNotification();
   }
 

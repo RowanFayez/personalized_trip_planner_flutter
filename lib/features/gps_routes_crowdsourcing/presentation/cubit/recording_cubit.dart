@@ -298,21 +298,43 @@ class RecordingCubit extends Cubit<RecordingState> {
 
   Future<void> _refreshAfterSegmentSplit() async {
     final current = state;
-    if (current is! RecordingInProgress) return;
+    // Extract the inner RecordingInProgress regardless of whether it is the
+    // top-level state or wrapped inside a smart-prompt / mode-selection state.
+    final RecordingInProgress progress;
+    if (current is RecordingInProgress) {
+      progress = current;
+    } else if (current is RecordingSmartPromptFired) {
+      progress = current.previous;
+    } else if (current is RecordingModeSelectionRequested) {
+      progress = current.previous;
+    } else {
+      return;
+    }
+
     final activeTrip = await localDataSource.getActiveTrip();
     if (activeTrip == null) return;
     final lastMode = activeTrip.segments.isEmpty
         ? null
         : activeTrip.segments.last.mode;
-    emit(
-      current.copyWith(
-        currentMode: lastMode,
-        clearCurrentMode: lastMode == null,
-        currentModeDisplay: CrowdsourcingModes.displayName(lastMode),
-        segmentCount: activeTrip.segments.length,
-        segmentModes: _segmentModeMap(activeTrip),
-      ),
+    final updated = progress.copyWith(
+      currentMode: lastMode,
+      clearCurrentMode: lastMode == null,
+      currentModeDisplay: CrowdsourcingModes.displayName(lastMode),
+      segmentCount: activeTrip.segments.length,
+      segmentModes: _segmentModeMap(activeTrip),
     );
+
+    // Re-wrap in the same outer state type so the UI layer is not disrupted.
+    if (current is RecordingSmartPromptFired) {
+      emit(RecordingSmartPromptFired(
+        detectedAt: current.detectedAt,
+        previous: updated,
+      ));
+    } else if (current is RecordingModeSelectionRequested) {
+      emit(RecordingModeSelectionRequested(previous: updated));
+    } else {
+      emit(updated);
+    }
   }
 
   Future<void> _handleStopAcknowledged(Map<String, dynamic>? event) async {
