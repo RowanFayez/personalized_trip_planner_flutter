@@ -56,6 +56,36 @@ After recording, the trip review screen displays the captured path, organizes th
   <img src="assets/images/tripreview.png" alt="Recorded trip review screen with map path, segments, and GPX export" width="300">
 </p>
 
+## Map, Filtering, And Privacy
+
+### Interactive map experience
+
+The Mapbox-powered map is an active part of planning, not just a route backdrop. Riders can choose endpoints from the map, view the selected route fitted to the camera, and explore nearby transit around the map’s current center. Route geometry is rendered as transport-mode segments with mode icons; when the routing response does not reach an exact selected endpoint, Yastaa draws a dashed connector so the last walking link remains clear.
+
+Nearby mode is designed to stay responsive while the map moves. It waits for the camera to be idle for 800 ms, searches within a 500 m radius, cancels the previous request when the map moves again, and ignores late responses using a request ID. This prevents stale nearby-route results from replacing the current map view.
+
+### Route filtering and ranking
+
+Route preferences are saved locally and converted into the routing request each time a trip is planned. Riders can:
+
+- Prioritize the fastest, cheapest, or a balanced route.
+- Set a maximum walking time and number of transfers.
+- Exclude specific transport modes: microbus, tomnaya, minibus, or bus.
+- Exclude selected main streets and choose how many alternatives to return.
+
+The app deliberately sends disabled modes as exclusions rather than restrictive inclusions, so walking and transfer legs are not accidentally removed. Returned alternatives are sorted locally by duration or cost when the corresponding priority is selected, with a stable fallback to the backend order for balanced results.
+
+### Privacy-aware location fuzzing
+
+GPS contributions are exported as GPX without retaining full pickup and drop-off precision. Before writing the file, Yastaa removes low-quality points (accuracy over 30 m, or stationary points with accuracy over 15 m) and fuzzes the first and last 200 m of the track by rounding their coordinates to three decimal places. The exported GPX marks which points were fuzzed and records that fuzzing was applied, making the privacy treatment transparent while preserving the useful middle of the route.
+
+### Notable implementation details
+
+- GPX generation runs off the UI thread, groups points by segment, XML-escapes metadata, and preserves transfer, fare, timing, and accuracy data in GPX extensions.
+- A background service keeps trip recording active, while local persistence protects an unfinished trip and its GPS points until review.
+- Routing and nearby-map requests use cancellation tokens and request IDs to prevent an older network response from overwriting newer state.
+- The authentication interceptor attaches Supabase tokens, refreshes a session once after a `401`, then retries the original request without leaking that logic into feature screens.
+
 ## What The App Does
 
 - Finds and displays routes on a live map.
@@ -262,5 +292,5 @@ iOS release build:
 flutter build ios --release
 ```
 
-## Notes
+
 
