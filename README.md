@@ -6,6 +6,56 @@ Yastaa is a Flutter mobile application for transit discovery, route planning, an
 
 The project was built to solve a real mobility problem: helping users discover routes and also contribute transport data back into the system. That means Yastaa is not just a routing app. It is also a collection, review, and export pipeline for transit traces, with a focus on clean separation of concerns and maintainable code.
 
+## App Walkthrough
+
+### Plan a trip from the map
+
+Yastaa starts with a map-first home screen where riders can enter an origin and destination, adjust route preferences, and browse alternative journeys. The route cards make it easy to compare options while keeping the selected path visible on the map.
+
+<p align="center">
+  <img src="assets/images/appcover.png" alt="Yastaa route-planning screens showing map search, preferences, and route alternatives" width="360">
+</p>
+
+### Choose locations and preferences
+
+Users can select precise pickup and destination points, switch between map-based selection and search, and refine the journey with their preferred transport options. These controls let the planner tailor results to how a rider wants to travel.
+
+<p align="center">
+  <img src="assets/images/userinput.png" alt="Trip input flow for selecting locations and route preferences" width="800">
+</p>
+
+### Review route alternatives
+
+The results view shows the route on an interactive map alongside a readable step-by-step itinerary. Riders can move through route alternatives, see walking and transfer legs, and open the in-app assistant for help with a selected trip.
+
+<p align="center">
+  <img src="assets/images/useroutput.png" alt="Route result screens with an interactive map, journey steps, and assistant entry point" width="620">
+</p>
+
+### Ask the transit assistant
+
+The AI assistant provides a chat interface for transit questions and route-specific guidance, while preserving quick access to the current journey on the map.
+
+<p align="center">
+  <img src="assets/images/chatbot.png" alt="Yastaa AI transit assistant chat and map screens" width="720">
+</p>
+
+### Crowdsource fares and GPS traces
+
+Yastaa lets riders contribute fare feedback and record journeys as they travel. GPS recording continues through a background service, while the contribution flow captures route details, segments, and fare information for community-powered transit data.
+
+<p align="center">
+  <img src="assets/images/fare_gpscrowdsourcing.png" alt="Fare crowdsourcing form and background GPS trip-recording screens" width="650">
+</p>
+
+### Review and share recorded trips
+
+After recording, the trip review screen displays the captured path, organizes the trip into segments, and can export the result as a GPX file for sharing or submission.
+
+<p align="center">
+  <img src="assets/images/tripreview.png" alt="Recorded trip review screen with map path, segments, and GPX export" width="300">
+</p>
+
 ## What The App Does
 
 - Finds and displays routes on a live map.
